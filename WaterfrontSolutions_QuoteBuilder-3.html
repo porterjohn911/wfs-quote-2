@@ -4546,6 +4546,7 @@ function pvBuild(type, params){
     }
   });
   pvUpdatePalette();
+  pvRenderProcessDims(type, params);
   pvDraw();
 }
 
@@ -4556,6 +4557,7 @@ function pvBuildDeck(p, W, H){
   const SCALE = Math.min((W*0.72)/Math.max(len,1), (H*0.65)/Math.max(wid,1), 26);
   const DW=len*SCALE, DH=wid*SCALE;
   const OX=(W-DW)/2, OY=(H-DH)/2-10;
+  pvSetFrame(SCALE, OX, OY, DW, DH, p);
   const paN=Math.max(2,Math.ceil(len/8)+1), paN2=Math.max(2,Math.ceil(wid/8)+1);
   const jocPx=joc/12*SCALE;
 
@@ -4728,6 +4730,7 @@ function pvBuildRoof(p, W, H){
   const SCALE=Math.min((W*0.7)/(blen+eaveExt*2),(H*0.6)/(bwid+eaveExt*2),20);
   const TW=(blen+eaveExt*2)*SCALE, TH=(bwid+eaveExt*2)*SCALE;
   const OX=(W-TW)/2, OY=(H-TH)/2-8;
+  pvSetFrame(SCALE, OX, OY, TW, TH, p);
 
   if(o==='plan'){
     // Phase 0: Tearoff area, chalk lines
@@ -4851,6 +4854,7 @@ function pvBuildFraming(p, W, H){
   const SCALE=Math.min((W*0.72)/Math.max(len,1),(H*0.65)/Math.max(wid,1),22);
   const PW=len*SCALE, PH=wid*SCALE;
   const OX=(W-PW)/2, OY=(H-PH)/2-8;
+  pvSetFrame(SCALE, OX, OY, PW, PH, p);
   const wallT=6/12*SCALE, jocPx=oc/12*SCALE;
 
   if(o==='plan'){
@@ -4970,6 +4974,7 @@ function pvBuildConcrete(p, W, H){
   const SCALE=Math.min((W*0.7)/Math.max(len,1),(H*0.65)/Math.max(wid,1),22);
   const PW=len*SCALE, PH=wid*SCALE;
   const OX=(W-PW)/2, OY=(H-PH)/2-8;
+  pvSetFrame(SCALE, OX, OY, PW, PH, p);
   const fwPx=fwid/12*SCALE;
 
   if(o==='plan'){
@@ -5076,6 +5081,393 @@ function pvBuildConcrete(p, W, H){
 // ══════════════════════════════════════════════════════════════════════════
 // DRAW ENGINE — AutoCAD look
 // ══════════════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════════
+// BLUEPRINT OVERLAY — CAD dimensions, title block, scale bar, code references
+// All measurements derived from real-world params; dimension text in ft-inches.
+// ══════════════════════════════════════════════════════════════════════════
+let _pvFrame = null;
+function pvSetFrame(scale, ox, oy, dw, dh, params){
+  _pvFrame = {scale, ox, oy, dw, dh, p: params||{}};
+}
+
+function pvFmtFt(feet){
+  if(!isFinite(feet)) return '—';
+  const sign = feet<0?'-':''; feet=Math.abs(feet);
+  const totalIn = Math.round(feet*12);
+  const ft = Math.floor(totalIn/12);
+  const inch = totalIn - ft*12;
+  return sign + (inch===0 ? `${ft}'-0"` : `${ft}'-${inch}"`);
+}
+
+function pvDimLineH(ctx, x1, x2, y, feet, opts){
+  opts=opts||{};
+  ctx.save();
+  ctx.strokeStyle=opts.color||CAD.dim; ctx.lineWidth=0.8; ctx.setLineDash([]);
+  // Extension lines (project edge → past dim line)
+  ctx.beginPath(); ctx.moveTo(x1, y+10); ctx.lineTo(x1, y-4); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x2, y+10); ctx.lineTo(x2, y-4); ctx.stroke();
+  // Dimension line
+  ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(x2, y); ctx.stroke();
+  // 45° architectural tick marks at extents
+  const t=4;
+  [x1,x2].forEach(xt=>{
+    ctx.beginPath(); ctx.moveTo(xt-t, y+t); ctx.lineTo(xt+t, y-t); ctx.stroke();
+  });
+  // Centered dimension text with backing
+  const txt=opts.label||pvFmtFt(feet);
+  ctx.font='bold 10px monospace'; ctx.textAlign='center'; ctx.textBaseline='bottom';
+  const tw=ctx.measureText(txt).width;
+  ctx.fillStyle='rgba(13,17,23,0.92)';
+  ctx.fillRect((x1+x2)/2 - tw/2 - 5, y-12, tw+10, 12);
+  ctx.fillStyle=opts.color||CAD.dimText; ctx.fillText(txt, (x1+x2)/2, y-2);
+  ctx.restore();
+}
+
+function pvDimLineV(ctx, y1, y2, x, feet, opts){
+  opts=opts||{};
+  ctx.save();
+  ctx.strokeStyle=opts.color||CAD.dim; ctx.lineWidth=0.8; ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(x-10, y1); ctx.lineTo(x+4, y1); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x-10, y2); ctx.lineTo(x+4, y2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x, y1); ctx.lineTo(x, y2); ctx.stroke();
+  const t=4;
+  [y1,y2].forEach(yt=>{
+    ctx.beginPath(); ctx.moveTo(x-t, yt-t); ctx.lineTo(x+t, yt+t); ctx.stroke();
+  });
+  const txt=opts.label||pvFmtFt(feet);
+  ctx.save();
+  ctx.translate(x, (y1+y2)/2);
+  ctx.rotate(-Math.PI/2);
+  ctx.font='bold 10px monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  const tw=ctx.measureText(txt).width;
+  ctx.fillStyle='rgba(13,17,23,0.92)';
+  ctx.fillRect(-tw/2 - 5, -7, tw+10, 12);
+  ctx.fillStyle=opts.color||CAD.dimText; ctx.fillText(txt, 0, 0);
+  ctx.restore();
+  ctx.restore();
+}
+
+function pvDrawNorthArrow(ctx, x, y){
+  ctx.save();
+  ctx.translate(x,y);
+  ctx.strokeStyle=CAD.annotate; ctx.lineWidth=0.8; ctx.setLineDash([]);
+  ctx.beginPath(); ctx.arc(0,0,13,0,Math.PI*2); ctx.stroke();
+  ctx.fillStyle=CAD.annotate;
+  ctx.beginPath();
+  ctx.moveTo(0,-11); ctx.lineTo(5,8); ctx.lineTo(0,3); ctx.lineTo(-5,8); ctx.closePath();
+  ctx.fill();
+  ctx.font='bold 9px monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillStyle='rgba(13,17,23,0.95)'; ctx.fillRect(-6,-21,12,8);
+  ctx.fillStyle=CAD.annotate; ctx.fillText('N', 0, -17);
+  ctx.restore();
+}
+
+function pvDrawScaleBar(ctx, x, y, scale){
+  if(!scale||scale<=0) return;
+  ctx.save();
+  const totalFt = scale>=18 ? 4 : scale>=10 ? 8 : 12;
+  const segs = 4;
+  const segPx = (totalFt/segs)*scale;
+  ctx.lineWidth=0.7; ctx.setLineDash([]);
+  for(let i=0;i<segs;i++){
+    ctx.fillStyle = i%2===0 ? CAD.visible : 'rgba(13,17,23,0.95)';
+    ctx.fillRect(x+i*segPx, y, segPx, 5);
+    ctx.strokeStyle=CAD.visible; ctx.strokeRect(x+i*segPx, y, segPx, 5);
+  }
+  ctx.font='8px monospace'; ctx.fillStyle=CAD.annotate;
+  ctx.textAlign='center'; ctx.textBaseline='top';
+  ctx.fillText("0", x, y+7);
+  ctx.fillText(totalFt+"' ", x+segs*segPx, y+7);
+  ctx.textBaseline='bottom';
+  ctx.fillText('SCALE', x+segs*segPx/2, y-2);
+  ctx.restore();
+}
+
+const _PV_TITLE = {
+  deck:'DECK CONSTRUCTION',
+  roof:'ROOFING PLAN',
+  framing:'WALL FRAMING',
+  concrete:'CONCRETE SLAB & FOOTERS',
+  porch:'COVERED PORCH',
+  carport:'CARPORT STRUCTURE'
+};
+function _pvTitleSub(type, p){
+  p=p||{};
+  if(type==='deck')     return `${p.len||'-'}'L × ${p.wid||'-'}'W × ${p.ht||'-'}'H · ${p.joc||16}" O.C. JOISTS`;
+  if(type==='roof')     return `${p.blen||'-'}'L × ${p.bwid||'-'}'W · ${p.pitch||0}:12 PITCH · ${p.eave||0}" EAVE`;
+  if(type==='framing')  return `${p.len||'-'}'L × ${p.wid||'-'}'W × ${p.ht||'-'}'H · ${(p.stud||'2x4').toUpperCase()} @ ${p.oc||16}" O.C.`;
+  if(type==='concrete') return `${p.len||'-'}'L × ${p.wid||'-'}'W · ${p.thick||0}" SLAB · ${p.fwid||0}"×${p.fdep||0}" FOOTER · #${p.rebar||4} REBAR`;
+  if(type==='porch')    return `${p.len||'-'}'L × ${p.dep||'-'}'D · ${p.pitch||0}:12 ${(p.roofStyle||'').toUpperCase()}`;
+  if(type==='carport')  return `${p.len||'-'}'L × ${p.wid||'-'}'W × ${p.ht||'-'}'H · ${p.pitch||0}:12 · ${p.postSp||10}' POST O.C.`;
+  return '';
+}
+
+function pvDrawTitleBlock(ctx, W, H, type, p){
+  const h=46, y=H-h-2, x=2, w=W-4;
+  ctx.save();
+  ctx.fillStyle='rgba(15,22,32,0.94)';
+  ctx.fillRect(x,y,w,h);
+  ctx.strokeStyle=CAD.visible; ctx.lineWidth=0.9; ctx.setLineDash([]);
+  ctx.strokeRect(x,y,w,h);
+  const c1=Math.round(w*0.58), c2=Math.round(w*0.82);
+  ctx.strokeStyle='rgba(208,208,208,0.4)'; ctx.lineWidth=0.5;
+  ctx.beginPath(); ctx.moveTo(x+c1,y); ctx.lineTo(x+c1,y+h); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x+c2,y); ctx.lineTo(x+c2,y+h); ctx.stroke();
+  // Left column — project + sub
+  ctx.textAlign='left'; ctx.textBaseline='top';
+  ctx.fillStyle=CAD.annotate; ctx.font='bold 12px monospace';
+  ctx.fillText(_PV_TITLE[type]||'PROJECT', x+6, y+4);
+  ctx.font='7.5px monospace'; ctx.fillStyle='rgba(208,208,208,0.85)';
+  ctx.fillText('WATERFRONT SOLUTIONS · CONSTRUCTION BLUEPRINT', x+6, y+18);
+  ctx.fillStyle=CAD.dimText; ctx.font='bold 8.5px monospace';
+  ctx.fillText(_pvTitleSub(type, p), x+6, y+30);
+  // Mid column — drawing meta
+  ctx.fillStyle=CAD.annotate; ctx.font='bold 9px monospace';
+  ctx.fillText('VIEW: '+(_pvOrient||'plan').toUpperCase(), x+c1+6, y+4);
+  const ph=(PHASE_NAMES[type]||[])[_pvPhase]||'';
+  ctx.fillStyle='rgba(208,208,208,0.95)'; ctx.font='7.5px monospace';
+  ctx.fillText('PHASE '+(+_pvPhase+1)+': '+ph.toUpperCase().slice(0,28), x+c1+6, y+16);
+  const scaleTxt = _pvFrame ? _pvFrame.scale.toFixed(1)+' PX/FT' : 'NTS';
+  ctx.fillText('SCALE: '+scaleTxt+' · NTS', x+c1+6, y+26);
+  ctx.fillText('CODE: IRC 2021 / IBC 2021', x+c1+6, y+36);
+  // Right column — sheet
+  ctx.textAlign='center';
+  ctx.fillStyle=CAD.annotate; ctx.font='bold 16px monospace';
+  ctx.fillText('A-1', x+c2+(w-c2)/2, y+10);
+  ctx.fillStyle='rgba(208,208,208,0.85)'; ctx.font='7px monospace';
+  ctx.fillText('SHEET 1 OF 1', x+c2+(w-c2)/2, y+30);
+  ctx.fillText(new Date().toLocaleDateString(), x+c2+(w-c2)/2, y+38);
+  ctx.restore();
+}
+
+function pvDrawBlueprintOverlay(ctx, W, H){
+  ctx.save();
+  ctx.setLineDash([]);
+  if(_pvFrame && _pvOrient==='plan'){
+    const {scale, ox, oy, dw, dh, p} = _pvFrame;
+    pvDimLineH(ctx, ox, ox+dw, oy-24, dw/scale);
+    pvDimLineV(ctx, oy, oy+dh, ox-22, dh/scale);
+    // Member-spacing dim band (interior to project) — secondary string
+    pvDrawMemberDims(ctx, _pvType, p, ox, oy, dw, dh, scale);
+    pvDrawScaleBar(ctx, 12, H-66, scale);
+    pvDrawNorthArrow(ctx, W-22, 34);
+  }
+  pvDrawTitleBlock(ctx, W, H, _pvType, _pvParams||{});
+  ctx.restore();
+}
+
+function pvDrawMemberDims(ctx, type, p, ox, oy, dw, dh, scale){
+  if(!type||!p) return;
+  // Interior secondary dim string just above the dim line (showing spacing)
+  let label = null;
+  if(type==='deck' && p.joc)          label = `JOISTS ${p.joc}" O.C.`;
+  else if(type==='framing' && p.oc)   label = `STUDS ${p.oc}" O.C. · ${(p.stud||'2x4').toUpperCase()}`;
+  else if(type==='roof' && p.pitch)   label = `RAFTERS 16" O.C. · ${p.pitch}:12`;
+  else if(type==='concrete' && p.rebar) label = `#${p.rebar} REBAR @ 18" O.C. E.W.`;
+  else if(type==='porch' && p.colSp)  label = `COLUMNS ${p.colSp}' O.C.`;
+  else if(type==='carport' && p.postSp) label = `POSTS ${p.postSp}' O.C.`;
+  if(!label) return;
+  ctx.save();
+  ctx.font='8px monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  const tw=ctx.measureText(label).width;
+  ctx.fillStyle='rgba(0,40,20,0.85)';
+  ctx.fillRect(ox+dw/2 - tw/2 - 6, oy+dh+6, tw+12, 13);
+  ctx.strokeStyle=CAD.annotate; ctx.lineWidth=0.6; ctx.setLineDash([]);
+  ctx.strokeRect(ox+dw/2 - tw/2 - 6, oy+dh+6, tw+12, 13);
+  ctx.fillStyle=CAD.annotate;
+  ctx.fillText(label, ox+dw/2, oy+dh+13);
+  ctx.restore();
+}
+
+// ── CODE REFERENCES (IRC / IBC 2021) ──────────────────────────────────────
+const CODE_REFS = {
+  deck: [
+    {sec:'IRC R301.5',     txt:'Live load — 40 psf deck; 60 psf stairs.'},
+    {sec:'IRC R507.2',     txt:'Lumber must be naturally durable or preservative-treated for ground contact (AC2).'},
+    {sec:'IRC R507.4',     txt:'Footings: 12" Ø min, below frost line, sized per Table R507.3.1.'},
+    {sec:'IRC R507.5',     txt:'Beam spans — see Table R507.5; max cantilever ¼ of beam span.'},
+    {sec:'IRC R507.6',     txt:'Joist spans — Table R507.6; 2×10 @ 16" O.C. spans up to 14\'-0".'},
+    {sec:'IRC R507.9.1',   txt:'Ledger: ½"Ø lag/through-bolts, spacing per Table R507.9.1.3(1); flash with cap.'},
+    {sec:'IRC R312.1.2',   txt:'Guard height — 36" min when walking surface >30" above grade.'},
+    {sec:'IRC R311.7.5.1', txt:'Stair riser — 7¾" max, 4" min; total variance ⅜".'},
+    {sec:'IRC R311.7.5.2', txt:'Stair tread — 10" min run; nosing ¾"–1¼" projection.'},
+    {sec:'IRC R311.7.8',   txt:'Handrail — 34"–38" above tread nosing on stairs with ≥4 risers.'},
+  ],
+  roof: [
+    {sec:'IRC R802.4',    txt:'Rafter spans — Table R802.4.1(1)–(8); 2×6 @ 16" O.C. typical for ≤24\' span.'},
+    {sec:'IRC R803.2.3',  txt:'Sheathing — 7/16" OSB or ½" plywood min on rafters ≤24" O.C.'},
+    {sec:'IRC R905.1.2',  txt:'Underlayment — 1 layer ASTM D226 Type I (15#) min; 2 layers if pitch <4:12.'},
+    {sec:'IRC R905.1.2',  txt:'Ice barrier — required where mean Jan. temp ≤25°F; extend 24" inside warm wall.'},
+    {sec:'IRC R905.2',    txt:'Asphalt shingles — minimum 2:12 pitch; 4 nails per shingle (6 in high wind).'},
+    {sec:'IRC R903.2',    txt:'Flashing at all wall-roof intersections, valleys, and chimneys.'},
+    {sec:'IRC R806.2',    txt:'Attic ventilation — 1/150 of vent area, or 1/300 with balanced soffit/ridge.'},
+    {sec:'IRC R301.2.1.4',txt:'Wind load per Fig. R301.2(4) — verify ASCE 7 exposure category for site.'},
+  ],
+  framing: [
+    {sec:'IRC R602.3(5)', txt:'Stud spacing — 24" O.C. max for 2×4 bearing, 16" O.C. for 2×6 (10\' wall).'},
+    {sec:'IRC Table R602.3(5)', txt:'Studs — 2×4 SPF #2 supports 1 floor + roof up to 10\' height.'},
+    {sec:'IRC R602.6',    txt:'Top/bottom plate splices — 24" min lap, with 8-16d nails each side.'},
+    {sec:'IRC R602.7',    txt:'Headers — Table R602.7(1); 2-2×6 spans 4\'-0", 2-2×10 spans 6\'-8" w/ 1 floor.'},
+    {sec:'IRC R602.10',   txt:'Bracing — continuous structural sheathing or braced wall panel method.'},
+    {sec:'IRC R602.3(1)', txt:'Fastener schedule — 16d common @ 16" O.C. for top plate to stud (toe-nail 2-16d).'},
+    {sec:'IRC R703.1',    txt:'Weather barrier (house wrap) over sheathing required behind cladding.'},
+    {sec:'IRC N1102.4',   txt:'Air sealing — caulk/foam all top/bottom plates, penetrations, rim joists.'},
+  ],
+  concrete: [
+    {sec:'IRC R403.1.4', txt:'Footing depth below frost line — verify with AHJ (TN typical 12"–18").'},
+    {sec:'IRC R403.1',   txt:'Min. footing width — Table R403.1; 12" for 1-story light frame on soil ≥1500 psf.'},
+    {sec:'IRC R403.1.6', txt:'Anchor bolts — ½"Ø, 7" embed, max 6\' O.C., 12" from corners + each end.'},
+    {sec:'IRC R506.2.2', txt:'Slab base — 4" clean gravel/crushed stone; 6 mil polyethylene vapor retarder.'},
+    {sec:'IRC R506.1',   txt:'Slab thickness — 3½" min for habitable; 4" typical residential.'},
+    {sec:'ACI 318 §25.5',txt:'Rebar lap splice — 40× bar diameter (#4 = 20", #5 = 25").'},
+    {sec:'ACI 318 §20.6',txt:'Concrete cover — 3" from earth, 1½" from formed surface.'},
+    {sec:'IRC R402.2',   txt:'Concrete strength — 2500 psi min residential; 3000 psi for slabs exposed to weather.'},
+  ],
+  porch: [
+    {sec:'IRC R301.5',   txt:'Live load — 40 psf for porch floor; 20 psf roof live load minimum.'},
+    {sec:'IRC R507',     txt:'Porch floor framing follows deck provisions when freestanding/elevated.'},
+    {sec:'IRC R407.3',   txt:'Wood columns — embedded ≥12" or set on a pier with anchor; isolated from ground.'},
+    {sec:'IRC R802.3',   txt:'Roof framing — rafter ties / collar ties per ridge-board construction.'},
+    {sec:'IRC R312.1.2', txt:'Guards — 36" min when porch >30" above grade.'},
+    {sec:'IRC R311.7',   txt:'If stairs serve porch — apply rise/run/handrail rules of R311.7.'},
+    {sec:'IRC R703.4',   txt:'Beams and headers — flashed and sloped to drain at exterior conditions.'},
+  ],
+  carport: [
+    {sec:'IRC R309.4',   txt:'Carport open on ≥2 sides; otherwise classified as garage (R-309).'},
+    {sec:'IRC R407.3',   txt:'Columns — fully restrained at base; min 12" embed or anchored to footing.'},
+    {sec:'IRC R403.1.4', txt:'Post footings — below frost line; ≥12" Ø concrete or pre-cast pier.'},
+    {sec:'IRC R802.4',   txt:'Rafters — span per Table R802.4.1; verify wind uplift connection.'},
+    {sec:'IRC R301.2.1', txt:'Wind/Uplift — hurricane ties (Simpson H2.5A or equiv.) every rafter-to-plate.'},
+    {sec:'IRC R905',     txt:'Roof covering installed per manufacturer; metal min 3:12 unless specified.'},
+    {sec:'IRC R301.4',   txt:'Snow load — verify ground snow load with local AHJ; design for Pg per ASCE 7.'},
+  ],
+};
+
+function pvMemberSchedule(type, p){
+  p=p||{};
+  const sch=[];
+  if(type==='deck'){
+    sch.push(`OVERALL ........ ${pvFmtFt(p.len)} L × ${pvFmtFt(p.wid)} W × ${pvFmtFt(p.ht)} H`);
+    sch.push(`JOISTS ......... 2×10 PT @ ${p.joc}" O.C. — max span per Table R507.6`);
+    sch.push(`BEAMS .......... (2)2×10 PT, fastened with 3-row 16d nail pattern`);
+    sch.push(`LEDGER ......... 2×10 PT, ½"Ø lag bolts @ 16" O.C. staggered + Z-flashing`);
+    sch.push(`POSTS .......... ${p.postSz||'6×6'} PT, max 8'-0" O.C., min embed 18" or to frost line`);
+    sch.push(`FOOTINGS ....... 12" Ø concrete sonotubes, ${p.ht>=2?'24"':'18"'} below grade min`);
+    sch.push(`DECKING ........ 5/4×6 PT or composite, ⅛" gap between boards`);
+    sch.push(`FASTENERS ...... 2½" stainless or coated deck screws (2 per joist intersection)`);
+    sch.push(`GUARD .......... ${p.ht>2.5?42:36}" min height · 4" max sphere passage between balusters`);
+    if(p.stairs>0){
+      const rise = p.ht*12 / Math.max(p.rises||1,1);
+      sch.push(`STAIRS ......... ${p.stairs} run · ${p.rises||0} risers @ ${rise.toFixed(2)}" each (≤7¾" max)`);
+      sch.push(`STAIR TREADS ... 10" min run · nosing ¾"–1¼" projection`);
+      sch.push(`STRINGERS ...... (3) 2×12 PT cut stringers · 36" min stair width`);
+      sch.push(`HANDRAIL ....... 34"–38" above tread nosing · graspable profile R311.7.8.3`);
+    }
+  } else if(type==='roof'){
+    const slope = p.pitch||0;
+    const run = (p.bwid||0)/2;
+    const ridgeHt = run * slope / 12;
+    const rafterLen = Math.sqrt(run*run + ridgeHt*ridgeHt);
+    sch.push(`ROOF PLAN ...... ${pvFmtFt(p.blen)} L × ${pvFmtFt(p.bwid)} W · ${pvFmtFt(p.eave/12)} eave overhang`);
+    sch.push(`PITCH .......... ${slope}:12 · ${(Math.atan(slope/12)*180/Math.PI).toFixed(1)}° slope · ${pvFmtFt(ridgeHt)} ridge rise`);
+    sch.push(`RAFTERS ........ 2×8 SPF #2 @ 16" O.C. (verify span Table R802.4.1)`);
+    sch.push(`RAFTER LENGTH .. ${pvFmtFt(rafterLen)} (theoretical — add tail/eave)`);
+    sch.push(`RIDGE BOARD .... (1)2×10 min · ≥ depth of rafter cut`);
+    sch.push(`SHEATHING ...... 7/16" OSB, 8d common @ 6" edge / 12" field`);
+    sch.push(`UNDERLAYMENT ... ASTM D226 Type I (15#) · 6" headlap`);
+    sch.push(`ICE BARRIER .... Self-adhering polymer-modified bitumen · 24" past warm wall`);
+    sch.push(`DRIP EDGE ...... 26-ga galv. or alum. · lapped 2" min at joints`);
+    sch.push(`SHINGLES ....... ${p.shingle||'Architectural laminate'} · 4 nails (6 high-wind) · 5⅝" exposure`);
+    sch.push(`FLASHING ....... Step at sidewalls · 4"×4" min · counter-flashed at masonry`);
+    sch.push(`VENTILATION .... Ridge + soffit balanced · 1/300 of attic floor area min`);
+  } else if(type==='framing'){
+    const ocPx=p.oc||16;
+    const studCount = Math.ceil((p.len||0)*12/ocPx)+1;
+    sch.push(`WALL FOOTPRINT . ${pvFmtFt(p.len)} L × ${pvFmtFt(p.wid)} W × ${pvFmtFt(p.ht)} H`);
+    sch.push(`STUDS .......... ${(p.stud||'2×4').toUpperCase()} SPF #2 @ ${ocPx}" O.C. — ~${studCount} per ${pvFmtFt(p.len)} run`);
+    sch.push(`BOTTOM PLATE ... (1)${(p.stud||'2×4').toUpperCase()} PT — anchor bolts ½"Ø @ 6\'-0" O.C.`);
+    sch.push(`TOP PLATE ...... (2) doubled — laps min 24" + 8-16d each side of joint`);
+    sch.push(`HEADERS ........ (2)${p.stud==='2x6'?'2×8':'2×6'} for openings ≤4\' — verify Table R602.7(1)`);
+    sch.push(`JACK STUDS ..... 1 each side openings ≤4\' · 2 each side openings 4\'–6\'`);
+    sch.push(`KING STUDS ..... Full-height stud each side of every opening`);
+    sch.push(`SHEATHING ...... 7/16" OSB · 8d common @ 6" edge / 12" field · all panel edges blocked`);
+    sch.push(`BRACING ........ Continuous structural sheathing per R602.10.4 (Method CS-WSP)`);
+    sch.push(`WEATHER BARRIER House wrap, lapped 6" horizontal / 12" vertical, taped seams`);
+    sch.push(`OPENINGS ....... ${p.doors||0} door(s) · ${p.windows||0} window(s) — verify R-O dimensions`);
+    sch.push(`INSULATION ..... R-${p.stud==='2x6'?'20':'13'} cavity min (climate zone 4 — verify N1102.1.2)`);
+  } else if(type==='concrete'){
+    const area = (p.len||0)*(p.wid||0);
+    const slabCy = (area * (p.thick||4)/12) / 27;
+    const footPerim = 2*((p.len||0)+(p.wid||0));
+    const footCy = (footPerim * (p.fwid||16)/12 * (p.fdep||8)/12) / 27;
+    sch.push(`SLAB ........... ${pvFmtFt(p.len)} × ${pvFmtFt(p.wid)} × ${p.thick}" thick = ${area} sq ft · ${slabCy.toFixed(2)} cy`);
+    sch.push(`FOOTER ......... ${p.fwid}" W × ${p.fdep}" D continuous · ${footPerim} LF · ${footCy.toFixed(2)} cy`);
+    sch.push(`REBAR .......... #${p.rebar||4} grade-60 @ 18" O.C. each way · 3" clear from earth`);
+    sch.push(`LAP SPLICE ..... 40 × bar dia = ${(p.rebar||4)/8*40}" min lap at all splices`);
+    sch.push(`WIRE MESH ...... ${p.mesh?'6×6 W1.4/W1.4 WWF · chair to mid-depth':'(omitted)'}`);
+    sch.push(`VAPOR BARRIER .. 6 mil polyethylene · lap seams 6" · tape & seal at penetrations`);
+    sch.push(`BASE ........... 4" crushed stone (½"–¾") compacted to 95% Proctor`);
+    sch.push(`ANCHOR BOLTS ... ½"Ø × 10" L · 7" embed · 6\'-0" O.C. max · 12" from each corner`);
+    sch.push(`CONCRETE ....... 3000 psi · 4"–6" slump · air-entrained 5–7% (exterior exposure)`);
+    sch.push(`FINISH ......... Steel trowel for interior · broom finish for exterior slip resistance`);
+    sch.push(`CONTROL JOINTS . Sawcut ¼ slab depth @ 10'–12' O.C. max (within 24 hrs of pour)`);
+    if(p.piers>0) sch.push(`PIERS .......... ${p.piers} × 12" Ø sonotube · footed below frost line · #4 vertical bars`);
+  } else if(type==='porch'){
+    sch.push(`PORCH .......... ${pvFmtFt(p.len)} L × ${pvFmtFt(p.dep)} D · floor ht ${pvFmtFt(p.flHt||1)} · ceil ht ${pvFmtFt(p.ceilHt||9)}`);
+    sch.push(`COLUMNS ........ ${(p.colStyle||'6x6pt').toUpperCase()} · ${p.totalCols||p.frontCols||3} total · ${p.colSp||8}\' O.C.`);
+    sch.push(`COLUMN BASE .... Anchored to pier or footing · isolated from grade per R407.3`);
+    sch.push(`HEADER BEAM .... (2)2×10 PT with ½"Ø through-bolts to columns`);
+    sch.push(`ROOF FRAMING ... ${(p.roofStyle||'gable').toUpperCase()} · ${p.pitch||4}:12 pitch · 2×6 rafters @ 16" O.C.`);
+    sch.push(`ROOF MATERIAL .. ${(p.roofMat||'shingles').toUpperCase()} per IRC R905 manufacturer instructions`);
+    sch.push(`CEILING ........ ${(p.ceilMat||'beadboard').toUpperCase()} · ${(p.ceilHt||9)}\' clear`);
+    sch.push(`FLOOR .......... ${(p.floorMat||'pt deck').toUpperCase()} · 5/4×6 PT or specified material`);
+    sch.push(`ENCLOSURE ...... ${(p.screening&&p.screening!=='none')?p.screening.toUpperCase():'OPEN PORCH'}`);
+    if(p.railing) sch.push(`RAILING ........ ${(p.flHt||1)>2.5?42:36}" min · per IRC R312.1.2`);
+    sch.push(`ATTACHMENT ..... ${p.attached?'LEDGER-ATTACHED to dwelling per R507.9 with flashing':'FREESTANDING — independent posts'}`);
+  } else if(type==='carport'){
+    const ridgeHt = (p.wid||0)/2 * (p.pitch||0)/12 + (p.ht||0);
+    sch.push(`CARPORT ........ ${pvFmtFt(p.len)} L × ${pvFmtFt(p.wid)} W · eave ht ${pvFmtFt(p.ht)} · ridge ht ${pvFmtFt(ridgeHt)}`);
+    sch.push(`POSTS .......... ${(p.colType||'6x6pt').toUpperCase()} · ${p.totalCols||(p.frontCols+p.backCols)||4} total · ${p.postSp||10}\' O.C.`);
+    sch.push(`FOUNDATION ..... ${(p.foundType||'piers').toUpperCase()} · footings below frost line per R403.1.4`);
+    sch.push(`BEAM ........... (2)2×10 PT continuous over posts · 3-row 16d nail pattern`);
+    sch.push(`RAFTERS ........ 2×6 SPF #2 @ 16" O.C. · uplift connector EACH rafter-to-plate`);
+    sch.push(`UPLIFT TIES .... Simpson H2.5A (or equiv.) at every rafter — R301.2.1`);
+    sch.push(`ROOF ........... ${(p.roofStyle||'gable').toUpperCase()} · ${p.pitch||3}:12 · ${(p.roofMat||'metal').toUpperCase()}`);
+    sch.push(`SHEATHING ...... ${p.roofMat==='metal'?'2×4 purlins @ 24" O.C.':'7/16" OSB · 8d @ 6"/12"'}`);
+    sch.push(`SIDES .......... ${(p.sides==='none'||!p.sides)?'OPEN ALL SIDES (R309.4 carport)':p.sides+' enclosed — '+(p.wallMat||'').toUpperCase()}`);
+    if(p.gutter) sch.push(`GUTTERS ........ 5" K-style aluminum · downspout each end · slope ¼" per 10\'`);
+    sch.push(`ATTACHMENT ..... ${p.attached?'LEDGER to dwelling — flashed':'FREESTANDING'}`);
+  }
+  return sch;
+}
+
+function pvRenderProcessDims(type, p){
+  const el = document.getElementById('process-dims');
+  if(!el) return;
+  if(!type){ el.innerHTML=''; return; }
+  const sch = pvMemberSchedule(type, p||{});
+  const refs = CODE_REFS[type]||[];
+  let html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start">';
+  html += '<div>';
+  html += '<div style="color:var(--gold);font-weight:700;margin-bottom:6px;letter-spacing:.5px">MEMBER SCHEDULE</div>';
+  html += sch.map(s=>`<div style="margin:2px 0">${s.replace(/\s\.\.+\s/, m=>'<span style="color:#444">'+m+'</span>')}</div>`).join('');
+  html += '</div>';
+  html += '<div>';
+  html += '<div style="color:var(--gold);font-weight:700;margin-bottom:6px;letter-spacing:.5px">CODE REFERENCES (IRC / IBC 2021)</div>';
+  html += refs.map(r=>`<div style="margin:2px 0"><b style="color:#00e5ff">${r.sec}</b> — ${r.txt}</div>`).join('');
+  html += '</div>';
+  html += '</div>';
+  html += '<div style="margin-top:10px;padding:8px;border:1px dashed #444;color:var(--text3);font-size:9.5px;line-height:1.5">';
+  html += '<b style="color:var(--gold)">DRAWING NOTES.</b> ';
+  html += 'All dimensions shown are nominal and derived from project inputs; verify against site conditions before construction. ';
+  html += 'Member sizing, span lengths, header schedules, footing depths, fastener patterns, anchor schedules and connector hardware ';
+  html += 'must be verified against the building code edition adopted by the local Authority Having Jurisdiction (AHJ). ';
+  html += 'Frost-line depth, soil bearing capacity, wind exposure category, and snow load are site-specific — adjust footing widths/depths and uplift connections accordingly. ';
+  html += 'This drawing is generated for estimating and permit-prep purposes; a stamped set from a licensed design professional is required for permit-issued construction.';
+  html += '</div>';
+  el.innerHTML = html;
+}
+
 function pvDraw(){
   const c=_pvCanvas||document.getElementById('process-canvas');
   if(!c) return;
@@ -5133,13 +5525,19 @@ function pvDraw(){
   if(_pvSelected!==null){
     const eD=_pvElems[_pvSelected];
     if(eD&&eD.phase<=_pvPhase){
-      const dimStr=`${eD.label}  W:${Math.round(eD.w)} H:${Math.round(eD.h)}`;
+      const realW = _pvFrame ? (eD.w/_pvFrame.scale) : 0;
+      const realH = _pvFrame ? (eD.h/_pvFrame.scale) : 0;
+      const dimStr=`${eD.label}   W: ${pvFmtFt(realW)}   H: ${pvFmtFt(realH)}`;
       ctx.fillStyle='rgba(0,229,255,0.12)';
-      ctx.fillRect(8,H-22,400,18);
+      ctx.fillRect(8,H-72,400,18);
       ctx.fillStyle=CAD.dimText; ctx.font='9px monospace';
-      ctx.fillText(dimStr, 12, H-10);
+      ctx.fillText(dimStr, 12, H-60);
     }
   }
+
+  // ── Blueprint overlay: dimension strings, title block, scale bar, north arrow
+  pvDrawBlueprintOverlay(ctx, W, H);
+
   ctx.restore();
 }
 
@@ -7228,6 +7626,7 @@ function pvBuildPorch(p, W, H){
   const SCALE=Math.min((W*0.72)/Math.max(len,1),(H*0.65)/Math.max(dep,1),24);
   const PW=len*SCALE, PH=dep*SCALE;
   const OX=(W-PW)/2, OY=(H-PH)/2-10;
+  pvSetFrame(SCALE, OX, OY, PW, PH, p);
   const colSpPx=colSp*SCALE;
   const paN=frontCols;
   const colSzPx=colStyle==='6x6pt'||colStyle==='wrapped'||colStyle==='round'?9:6;
@@ -9201,6 +9600,7 @@ function pvBuildCarport(p, W, H){
   const SCALE=Math.min((W*0.72)/Math.max(len,1),(H*0.65)/Math.max(wid,1),22);
   const PW=len*SCALE, PH=wid*SCALE;
   const OX=(W-PW)/2, OY=(H-PH)/2-8;
+  pvSetFrame(SCALE, OX, OY, PW, PH, p);
   const isSteel=colType.startsWith('steel');
   const colSzPx=isSteel?5:colType==='6x6pt'?9:7;
   const paN=frontCols;
