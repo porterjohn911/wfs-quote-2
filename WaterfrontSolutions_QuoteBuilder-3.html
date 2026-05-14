@@ -4536,8 +4536,8 @@ function pvBuild(type, params){
   else if(type==='roof')     pvBuildRoof(params,W,H);
   else if(type==='framing')  pvBuildFraming(params,W,H);
   else if(type==='concrete') pvBuildConcrete(params,W,H);
-  else if(type==='carport') pvBuildCarport(params,W,H);
   else if(type==='carport')  pvBuildCarport(params,W,H);
+  if(type!=='deck') pvDefaultPlanAnnotations(type);
 
   // Restore user-moved positions
   oldElems.forEach(old=>{
@@ -5985,6 +5985,165 @@ function pvDrawAnnotations(ctx, W, H){
     else if(a.kind==='conc_hatch') pvAnnConcreteHatch(ctx, a);
   });
   ctx.restore();
+}
+
+// Default plan-view annotation pack — applied at the end of each pvBuild* for
+// types that don't already have custom annotations (deck has its own).
+function pvDefaultPlanAnnotations(type){
+  if(_pvOrient!=='plan' || !_pvFrame) return;
+  const {scale, ox, oy, dw, dh, p} = _pvFrame;
+  const W = _pvCanvas ? (parseInt(_pvCanvas.style.width)||340) : 340;
+  const H = _pvCanvas ? (parseInt(_pvCanvas.style.height)||240) : 240;
+
+  const config = {
+    roof: {
+      lenLbl: p.blen, widLbl: p.bwid,
+      dirText: `2×8 RAFTERS @ 16" O.C. · ${p.pitch}:12 SLOPE`,
+      sectionTag: 'B', sectionSheet: 'A-3',
+      details: [
+        {x:ox-34, y:oy-22, num:'1', sheet:'A3.2', leadX:ox+8, leadY:oy-4},
+        {x:ox+dw+30, y:oy+dh*0.5, num:'2', sheet:'A3.2', leadX:ox+dw-8, leadY:oy+dh*0.5},
+      ],
+      codeTitle: 'ROOFING NOTES — IRC 2021',
+      codeLines: [
+        `• ${p.pitch}:12 (${(Math.atan(p.pitch/12)*180/Math.PI).toFixed(1)}°)`,
+        '• Rafters per Tbl R802.4.1',
+        '• 7/16" OSB sheathing',
+        '  8d @ 6" edge / 12" field',
+        '• ASTM D226 underlayment',
+        '• Ice barrier 24" past wall',
+        '  (R905.1.2)',
+        '• Hurricane H2.5A every rafter',
+        '  (R802.11 / R301.2.1)',
+        '• Asphalt min pitch 2:12',
+        '• Vent 1/300 attic (R806.2)',
+      ],
+      slopeArrow: true,
+    },
+    framing: {
+      lenLbl: p.len, widLbl: p.wid,
+      dirText: `${(p.stud||'2×4').toUpperCase()} STUDS @ ${p.oc}" O.C.`,
+      sectionTag: 'C', sectionSheet: 'A-3',
+      details: [
+        {x:ox-34, y:oy-22, num:'1', sheet:'A3.3', leadX:ox+8, leadY:oy-4},
+        {x:ox+dw+30, y:oy+dh*0.5, num:'2', sheet:'A3.3', leadX:ox+dw-8, leadY:oy+dh*0.5},
+      ],
+      codeTitle: 'FRAMING NOTES — IRC 2021',
+      codeLines: [
+        `• ${(p.stud||'2×4').toUpperCase()} SPF#2 @ ${p.oc}" O.C.`,
+        '• Headers Tbl R602.7(1)',
+        '• Bracing R602.10 (CS-WSP)',
+        '• Bottom plate 2× PT',
+        '• (2) 2× top plates · 24" lap',
+        '• ½"Ø anchor @ 6\'-0" O.C.',
+        '  12" from corners (R403.1.6)',
+        '• 7/16" OSB sheathing',
+        '  8d @ 6" edge / 12" field',
+        '• House wrap (R703.1)',
+        `• R-${p.stud==='2x6'?'20':'13'} cavity (N1102)`,
+      ],
+    },
+    concrete: {
+      lenLbl: p.len, widLbl: p.wid,
+      dirText: `#${p.rebar||4} REBAR @ 18" O.C. EACH WAY`,
+      sectionTag: 'D', sectionSheet: 'S-1',
+      details: [
+        {x:ox-34, y:oy-22, num:'1', sheet:'S1.1', leadX:ox+8, leadY:oy-4},
+        {x:ox+dw+30, y:oy+dh+22, num:'2', sheet:'S1.1', leadX:ox+dw-8, leadY:oy+dh-4},
+      ],
+      codeTitle: 'CONCRETE NOTES — IRC 2021',
+      codeLines: [
+        `• Slab ${p.thick||4}" · 3000 psi min`,
+        `• Footer ${p.fwid||16}"W × ${p.fdep||8}"D`,
+        `• #${p.rebar||4} @ 18" O.C. EW (R506)`,
+        `• Lap splice = 40× = ${(p.rebar||4)*5}"`,
+        '• Cover 3" earth / 1½" form',
+        '• 4" compacted gravel base',
+        '• 6 mil vapor barrier · taped',
+        '• ½"Ø anchor @ 6\'-0" O.C.',
+        '  7" embed (R403.1.6)',
+        '• Control joints sawcut',
+        '  ¼ depth @ 10\'-12\' O.C.',
+      ],
+    },
+    porch: {
+      lenLbl: p.len, widLbl: p.dep,
+      dirText: p.colSp ? `${p.colStyle?(p.colStyle.toUpperCase()):'6×6 PT'} COLUMNS @ ${p.colSp}'-0" O.C.` : 'COLUMNS PER PLAN',
+      sectionTag: 'E', sectionSheet: 'A-3',
+      details: [
+        {x:ox-34, y:oy-22, num:'1', sheet:'A3.4', leadX:ox+8, leadY:oy-4},
+        {x:ox+dw+30, y:oy+dh+22, num:'2', sheet:'A3.4', leadX:ox+dw-8, leadY:oy+dh-8},
+      ],
+      codeTitle: 'PORCH NOTES — IRC 2021',
+      codeLines: [
+        '• LL=40psf floor · Roof DL+SL',
+        `• ${p.pitch||4}:12 ${(p.roofStyle||'shed').toUpperCase()} ROOF`,
+        '• PT lumber AC2 ground-contact',
+        '• Posts on post base R317.1.4',
+        '  6" min above grade',
+        '• Ledger flashed per R703.4',
+        '  ½"Ø lag @ 16" O.C.',
+        '• Step flashing roof-to-wall',
+        `• Guard ${p.flHt>2.5?42:36}" min · 4" sphere`,
+        '  (R312.1) where >30" drop',
+        '• (2)2×10 PT header beam',
+      ],
+      slopeArrow: !!p.pitch,
+    },
+    carport: {
+      lenLbl: p.len, widLbl: p.wid,
+      dirText: p.postSp ? `${(p.postMat||p.colType||'6×6 PT').toUpperCase()} POSTS @ ${p.postSp}'-0" O.C.` : 'POSTS PER PLAN',
+      sectionTag: 'F', sectionSheet: 'A-3',
+      details: [
+        {x:ox-34, y:oy-22, num:'1', sheet:'A3.5', leadX:ox+8, leadY:oy-4},
+        {x:ox+dw+30, y:oy+dh+22, num:'2', sheet:'A3.5', leadX:ox+dw-8, leadY:oy+dh-8},
+      ],
+      codeTitle: 'CARPORT NOTES — IRC 2021',
+      codeLines: [
+        `• ${p.len}\'L × ${p.wid}\'W open carport`,
+        '• Open ≥2 sides per R309.4',
+        `• ${p.pitch||3}:12 ${(p.roofStyle||'shed').toUpperCase()} ROOF`,
+        '• Roof LL=20psf · snow per AHJ',
+        '• Hurricane H2.5A every rafter',
+        '  (R802.11 / R301.2.1)',
+        '• Post base anchored to ftg',
+        '  (R407.3 / R403.1.4)',
+        '• Posts 6" min above grade',
+        '  (R317.1.4)',
+        '• Clear ht 8\'-0" typical',
+        '• Class A roof covering R902',
+      ],
+      slopeArrow: !!p.pitch,
+    },
+  };
+
+  const c = config[type];
+  if(!c) return;
+
+  // Multi-tier dim strings (outer overall, vertical width)
+  pvAnn({kind:'dim_h', x1:ox, x2:ox+dw, y:oy-30, label:_ftIn(c.lenLbl || dw/scale), tier:2, dir:'up'});
+  pvAnn({kind:'dim_v', y1:oy, y2:oy+dh, x:ox-30, label:_ftIn(c.widLbl || dh/scale), tier:1, dir:'left'});
+
+  // Direction arrow with inline member text
+  pvAnn({kind:'dirv', y1:oy+12, y2:oy+dh-12, x:ox+dw*0.5, text:c.dirText, color:'#00ff88'});
+
+  // Section cut across long axis
+  pvAnn({kind:'section', x1:ox-22, y1:oy+dh*0.55, x2:ox+dw+22, y2:oy+dh*0.55,
+    tag:c.sectionTag, sheet:c.sectionSheet, dir:'down'});
+
+  // Detail bubbles
+  c.details.forEach(d=>{
+    pvAnn({kind:'detail', x:d.x, y:d.y, num:d.num, sheet:d.sheet,
+      leadFromX:d.leadX, leadFromY:d.leadY});
+  });
+
+  // Slope arrow for pitched-roof types
+  if(c.slopeArrow){
+    pvAnn({kind:'slope', x:ox+dw*0.5, y:oy+dh+22, pitch:p.pitch||4, dir:'right'});
+  }
+
+  // Code reference panel
+  pvAnn({kind:'code', x:6, y:H-200, w:222, title:c.codeTitle, lines:c.codeLines.filter(Boolean)});
 }
 
 function pvDraw(){
