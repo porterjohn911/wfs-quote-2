@@ -2768,6 +2768,278 @@ function toCalcConcrete(){
 }
 
 // ══════════════════════════════════════════════════════════════════════════
+// MATERIAL SUBSTITUTION — alternates catalog + per-item overrides
+//
+// Each line item in a takeoff can have its material swapped for an equivalent
+// alternative (e.g. 2×10 joist → 2×8 joist, 5/4 PT decking → composite Trex,
+// Ø12" sonotube → Ø10"). The role is inferred from the item name. User
+// overrides persist for the session in _itemOverrides and survive recalc.
+// ══════════════════════════════════════════════════════════════════════════
+const ALT_CATALOG = {
+  joist: [
+    {label:'2×6 PT × 16\'',  matCostEach:22},
+    {label:'2×8 PT × 16\'',  matCostEach:26},
+    {label:'2×10 PT × 16\'', matCostEach:32},
+    {label:'2×12 PT × 16\'', matCostEach:42},
+    {label:'LVL 1¾"×9¼" × 16\'',   matCostEach:92},
+    {label:'LVL 1¾"×11⅞" × 16\'',  matCostEach:115},
+    {label:'I-Joist 11⅞" × 16\'',  matCostEach:78},
+  ],
+  beam: [
+    {label:'(2) 2×8 PT',            matCostEach:52},
+    {label:'(2) 2×10 PT',           matCostEach:64},
+    {label:'(2) 2×12 PT',           matCostEach:84},
+    {label:'(3) 2×10 PT',           matCostEach:96},
+    {label:'(3) 2×12 PT',           matCostEach:126},
+    {label:'LVL 1¾"×9¼"',           matCostEach:14, _perFt:true},
+    {label:'LVL 1¾"×11⅞"',          matCostEach:16, _perFt:true},
+    {label:'PSL 5¼"×11⅞"',          matCostEach:32, _perFt:true},
+  ],
+  ledger: [
+    {label:'2×8 PT Ledger',  matCostEach:26},
+    {label:'2×10 PT Ledger', matCostEach:32},
+    {label:'2×12 PT Ledger', matCostEach:42},
+  ],
+  post: [
+    {label:'4×4 PT × 8\'',  matCostEach:18},
+    {label:'4×4 PT × 10\'', matCostEach:28},
+    {label:'6×6 PT × 8\'',  matCostEach:42},
+    {label:'6×6 PT × 10\'', matCostEach:58},
+    {label:'6×6 PT × 12\'', matCostEach:78},
+    {label:'Steel Sch40 4"', matCostEach:115},
+  ],
+  stud: [
+    {label:'2×4 SPF × 8\' precut',  matCostEach:4.20},
+    {label:'2×4 SPF × 9\' precut',  matCostEach:5.80},
+    {label:'2×6 SPF × 8\' precut',  matCostEach:7.80},
+    {label:'2×6 SPF × 9\' precut',  matCostEach:9.40},
+    {label:'2×4 KD Doug-Fir × 8\'', matCostEach:5.40},
+  ],
+  decking_board: [
+    {label:'5/4×6 PT × 16\'',          matCostEach:19},
+    {label:'5/4×6 Cedar × 16\'',       matCostEach:38},
+    {label:'1×6 Composite (Trex Sel)', matCostEach:46},
+    {label:'1×6 Composite (Transcend)',matCostEach:62},
+    {label:'1×6 Ipe Hardwood × 16\'',  matCostEach:78},
+    {label:'1×6 PVC (Azek) × 16\'',    matCostEach:58},
+  ],
+  sonotube: [
+    {label:'Sonotube 10"Ø × 48"', matCostEach:18},
+    {label:'Sonotube 12"Ø × 48"', matCostEach:24},
+    {label:'Sonotube 14"Ø × 48"', matCostEach:34},
+    {label:'Sonotube 16"Ø × 48"', matCostEach:42},
+    {label:'Sonotube 18"Ø × 48"', matCostEach:48},
+  ],
+  rebar: [
+    {label:'#3 Rebar 20\' (3/8"Ø)',  matCostEach:9},
+    {label:'#4 Rebar 20\' (1/2"Ø)',  matCostEach:14},
+    {label:'#5 Rebar 20\' (5/8"Ø)',  matCostEach:20},
+    {label:'#6 Rebar 20\' (3/4"Ø)',  matCostEach:28},
+  ],
+  anchor_bolt: [
+    {label:'½"Ø × 8" J-Bolt + nut + washer',  matCostEach:3.20},
+    {label:'½"Ø × 10" J-Bolt + nut + washer', matCostEach:4.20},
+    {label:'⅝"Ø × 10" J-Bolt + nut + washer', matCostEach:5.40},
+    {label:'⅝"Ø × 12" J-Bolt + nut + washer', matCostEach:6.20},
+    {label:'¾"Ø × 12" J-Bolt + nut + washer', matCostEach:8.40},
+  ],
+  sheathing_panel: [
+    {label:'7/16" OSB 4×8',          matCostEach:22},
+    {label:'15/32" OSB 4×8',         matCostEach:28},
+    {label:'5/8" OSB 4×8',           matCostEach:34},
+    {label:'½" CDX Plywood 4×8',     matCostEach:42},
+    {label:'¾" T&G Plywood 4×8',     matCostEach:62},
+    {label:'Zip System 7/16" 4×8',   matCostEach:54},
+  ],
+  underlayment: [
+    {label:'15# Felt Roll (400 sf)',     matCostEach:42},
+    {label:'30# Felt Roll (200 sf)',     matCostEach:48},
+    {label:'Synthetic 48"×250\' (10 sq)',matCostEach:115},
+    {label:'Premium Synthetic (Sharkskin)',matCostEach:165},
+  ],
+  shingle: [
+    {label:'3-Tab Shingles (bundle)',       matCostEach:34},
+    {label:'Architectural 30-yr (bundle)',  matCostEach:42},
+    {label:'Architectural 50-yr (bundle)',  matCostEach:58},
+    {label:'Premium Designer (bundle)',     matCostEach:78},
+    {label:'Standing Seam Metal (sf)',      matCostEach:8.50, _perSf:true},
+  ],
+  drip_edge: [
+    {label:'Aluminum T-style 10\'',  matCostEach:9},
+    {label:'Aluminum F-style 10\'',  matCostEach:9},
+    {label:'Galv steel 10\'',        matCostEach:11},
+    {label:'Copper 10\'',            matCostEach:48},
+    {label:'Painted aluminum 10\'',  matCostEach:14},
+  ],
+  gutter: [
+    {label:'5" K-Style Aluminum 10\'',  matCostEach:14},
+    {label:'6" K-Style Aluminum 10\'',  matCostEach:18},
+    {label:'5" Half-Round Aluminum 10\'',matCostEach:24},
+    {label:'5" Half-Round Copper 10\'', matCostEach:78},
+    {label:'5" K-Style Galv Steel 10\'',matCostEach:16},
+  ],
+  insulation: [
+    {label:'R-13 Fiberglass batt (bag)', matCostEach:52},
+    {label:'R-15 Mineral Wool (bag)',    matCostEach:68},
+    {label:'R-19 Fiberglass batt (bag)', matCostEach:58},
+    {label:'R-20 Fiberglass batt (bag)', matCostEach:78},
+    {label:'R-21 Fiberglass HD (bag)',   matCostEach:88},
+    {label:'R-30 Blown-In (bag)',        matCostEach:42},
+    {label:'ccSPF kit 200 bf',           matCostEach:385},
+  ],
+  column: [
+    {label:'6×6 PT Post',          matCostEach:58},
+    {label:'PVC Wrap 8" Round',    matCostEach:285},
+    {label:'PVC Wrap 10" Round',   matCostEach:325},
+    {label:'PVC Wrap 12" Square Fluted', matCostEach:385},
+    {label:'Fiberglass Round 8"',  matCostEach:215},
+    {label:'Cedar 6×6 Wrapped',    matCostEach:185},
+  ],
+  paint: [
+    {label:'Sherwin Multipurpose Primer 1 gal',  matCostEach:52},
+    {label:'Sherwin SuperPaint Ext 1 gal',       matCostEach:78},
+    {label:'Sherwin Duration Ext 1 gal',         matCostEach:115},
+    {label:'Behr Premium Ext 1 gal',             matCostEach:48},
+    {label:'Benjamin Moore Aura 1 gal',          matCostEach:88},
+  ],
+  caulk: [
+    {label:'Big Stretch Acrylic 10 oz', matCostEach:11},
+    {label:'Geocel 2300 Polyurethane 10 oz', matCostEach:11},
+    {label:'OSI QUAD Max 10 oz', matCostEach:14},
+    {label:'GE Silicone II 10 oz', matCostEach:9},
+  ],
+  deck_screw: [
+    {label:'2½" Coated Deck Screw (5 lb)',     matCostEach:58},
+    {label:'3" Coated Deck Screw (5 lb)',      matCostEach:62},
+    {label:'2½" Stainless 305 (5 lb)',         matCostEach:115},
+    {label:'3" Stainless 305 (5 lb)',          matCostEach:125},
+    {label:'Cortex hidden plug system box',    matCostEach:48},
+  ],
+  vapor_barrier: [
+    {label:'6 mil Poly 20×100 Roll',         matCostEach:58},
+    {label:'10 mil Poly 20×100 Roll',        matCostEach:82},
+    {label:'Stego Wrap 15-mil 14×210',       matCostEach:385},
+    {label:'Perminator 10 mil 14×140',       matCostEach:225},
+  ],
+  shingle_starter: [
+    {label:'Starter Strip Bundle (100 lf)',  matCostEach:58},
+    {label:'Custom-cut from 3-tab (bundle)', matCostEach:38},
+  ],
+  ridge_cap: [
+    {label:'Timbertex Ridge Cap (bundle, 35 lf)', matCostEach:72},
+    {label:'Z-Ridge Ridge Cap (bundle)',          matCostEach:62},
+    {label:'Custom-cut from arch (bundle)',       matCostEach:48},
+    {label:'Metal Ridge Cap 10\'6"',              matCostEach:42},
+  ],
+};
+
+// Infer the role of an item from its name. Returns role key or null.
+function inferItemRole(name){
+  if(!name) return null;
+  const s = name.toLowerCase();
+  // Exclude accessory items first
+  if(/(hanger|tape|preservative|cage|tie wire|cap osha|chair|nail|screw\s|hook|coat|sealer|sealant|primer)/.test(s)) {
+    // accessories shouldn't be classified as the parent role
+    if(/^(deck(ing)? screw|deck screw|stainless deck)/.test(s)) return 'deck_screw';
+  }
+  if(/joist hanger/.test(s)) return null;
+  if(/joist tape/.test(s)) return null;
+  if(/post (base|cap|hardware|level)/.test(s)) return null;
+  if(/rebar (chair|tie|cap)/.test(s)) return null;
+  if(/anchor bolt|j[- ]bolt|wedge anchor/.test(s)) return 'anchor_bolt';
+  if(/joist/.test(s)) return 'joist';
+  if(/beam/.test(s)) return 'beam';
+  if(/ledger/.test(s)) return 'ledger';
+  if(/\b(\d+×\d+\s*pt\s*(post|column)?\s*\()|6×6 post|4×4 post|6×6 pt post|4×4 pt post/.test(s)) return 'post';
+  if(/\bpost\b(?!\s*(base|cap))/.test(s)) return 'post';
+  if(/\bstud\b/.test(s) && !/studs? & plates?/.test(s)) return 'stud';
+  if(/decking (board)?|deck board|5\/4×6|composite deck|cedar deck/.test(s)) return 'decking_board';
+  if(/sonotube/.test(s)) return 'sonotube';
+  if(/rebar(?! (chair|tie|cap|dowel))/.test(s)) return 'rebar';
+  if(/sheathing|osb|cdx|zip system|plywood/.test(s)) return 'sheathing_panel';
+  if(/underlayment|felt|synthetic/.test(s)) return 'underlayment';
+  if(/shingles?(?! (starter|cap|ridge))|metal panels|standing seam/.test(s)) return 'shingle';
+  if(/drip edge/.test(s)) return 'drip_edge';
+  if(/k[- ]style|gutter\s+(\d|al|gal|copper|half)/.test(s)) return 'gutter';
+  if(/fiberglass batt|mineral wool|spray foam|ccspf|insulation/.test(s)) return 'insulation';
+  if(/column(?! (cap|base))|pvc wrap/.test(s)) return 'column';
+  if(/(exterior|primer|sherwin|behr|benjamin) (paint|primer|wall|exterior)/.test(s) || /\bpaint 1 gal/.test(s)) return 'paint';
+  if(/caulk|sealant\s+(10 oz|tube)/.test(s)) return 'caulk';
+  if(/deck(ing)? screw/.test(s)) return 'deck_screw';
+  if(/vapor barrier|6 mil|10 mil poly|stego wrap|perminator/.test(s)) return 'vapor_barrier';
+  if(/starter strip/.test(s)) return 'shingle_starter';
+  if(/ridge cap|timbertex|z-ridge/.test(s)) return 'ridge_cap';
+  return null;
+}
+
+function getAltsFor(name){
+  const role = inferItemRole(name);
+  if(!role) return null;
+  return {role, alts: ALT_CATALOG[role] || []};
+}
+
+// User-saved overrides keyed by `${type}::${originalName}`. Holds the chosen
+// alternate or a custom-edited record. Survives recalc within a session.
+window._itemOverrides = window._itemOverrides || {};
+
+function _overrideKey(type, name){ return type+'::'+name; }
+
+// Apply override to a freshly-built item (mutates the item object).
+function applyItemOverride(type, item){
+  const key = _overrideKey(type, item._origName || item.name);
+  const ov  = window._itemOverrides[key];
+  if(!ov) return item;
+  item._origName = item._origName || item.name;
+  if(ov.name) item.name = ov.name;
+  if(ov.matCostEach != null) item.matCostEach = ov.matCostEach;
+  if(ov.qty != null) item.qty = ov.qty;
+  return item;
+}
+
+// Set an override and trigger a recalc of the active trade.
+function setItemOverride(type, origName, patch){
+  const key = _overrideKey(type, origName);
+  if(patch == null || patch === 'reset'){ delete window._itemOverrides[key]; }
+  else { window._itemOverrides[key] = Object.assign({}, window._itemOverrides[key]||{}, patch); }
+  if(typeof toCalc==='function') toCalc();
+}
+
+// Convenience handlers exposed for inline event wiring.
+window.swapItemMaterial = function(selectEl){
+  const type = selectEl.dataset.type;
+  const orig = selectEl.dataset.orig;
+  const val  = selectEl.value;
+  if(val === '__reset__'){ setItemOverride(type, orig, 'reset'); return; }
+  if(val === '__custom__'){
+    const cur = window._itemOverrides[_overrideKey(type, orig)] || {};
+    const newName = prompt('Custom material name:', cur.name || orig);
+    if(newName == null) return;
+    const newPriceStr = prompt('Unit price ($ per ' + (selectEl.dataset.unit||'item') + '):',
+                               cur.matCostEach != null ? cur.matCostEach : (selectEl.dataset.unitPrice||0));
+    if(newPriceStr == null) return;
+    setItemOverride(type, orig, {name:newName, matCostEach: parseFloat(newPriceStr) || 0});
+    return;
+  }
+  // Parse "label||price"
+  const [label, priceStr] = val.split('||');
+  setItemOverride(type, orig, {name:label, matCostEach: parseFloat(priceStr) || 0});
+};
+
+window.removeTakeoffItem = function(btn){
+  const type = btn.dataset.type;
+  const orig = btn.dataset.orig;
+  setItemOverride(type, orig, {qty:0});
+};
+
+window.editTakeoffQty = function(inp){
+  const type = inp.dataset.type;
+  const orig = inp.dataset.orig;
+  const q = parseFloat(inp.value);
+  if(isNaN(q) || q < 0) return;
+  setItemOverride(type, orig, {qty:q});
+};
+
+// ══════════════════════════════════════════════════════════════════════════
 // EXTENDED TAKEOFF — ensure each trade's material list includes every SKU a
 // builder actually needs on site: fasteners, structural connectors, flashing,
 // sealants, consumables, tools-as-materials, permits & inspection fees.
@@ -3143,11 +3415,12 @@ function toRenderResults(items, summary, type){
     if(!catItems||!catItems.length) return;
     const labRate = LABOR_RATES_BY_CAT[cat] || R.sk;
     const labHrsMap = LAB_HRS_PER_UNIT[cat] || {};
-    costData[cat] = catItems.map(item=>{
+    costData[cat] = catItems.map(rawItem=>{
+      // Preserve original name for override lookup, then apply user swap/edit.
+      const item = applyItemOverride(type, {...rawItem});
       if(!item.name||item.qty===0&&!item.matCostEach) return {...item,matCost:0,laborCost:0,laborHrs:0,total:0};
       const qty = parseFloat(item.qty)||0;
-      // Material cost
-      // Use PRICE_MAP (unified source) → item override → DEFAULT_PRICES → category estimate
+      // Material cost — user override → item.matCostEach → PRICE_MAP → 0
       const matEach = item.matCostEach != null ? item.matCostEach
         : pmMat(item.name, item.matPerUnit||0);
       const matCost = Math.round(qty * matEach * 100)/100;
@@ -3223,12 +3496,69 @@ function toRenderResults(items, summary, type){
       dItem.className = 'to-item';
       dItem.style.cssText = 'display:grid;grid-template-columns:1fr 70px 60px 70px;gap:4px;align-items:start;padding:6px 10px';
 
+      // Material substitution dropdown + qty edit + remove button.
+      const origName = item._origName || item.name;
+      const overrideKey = _overrideKey(type, origName);
+      const isOverridden = !!window._itemOverrides[overrideKey];
+      const altsInfo = getAltsFor(origName);
+      const safeOrig = (origName||'').replace(/"/g,'&quot;');
+      const unitForAlt = (item.unit||'').replace(/"/g,'&quot;');
+      const unitMatPrice = item.qty>0 && item.matCost>0 ? (item.matCost/item.qty).toFixed(2) : '';
+      let swapHtml = '';
+      if(altsInfo && altsInfo.alts && altsInfo.alts.length){
+        const currentLabel = item.name;
+        const optsArr = altsInfo.alts.map(a=>{
+          const lab=(a.label||'').replace(/"/g,'&quot;');
+          return `<option value="${lab}||${a.matCostEach}" ${currentLabel===a.label?'selected':''}>${a.label} — $${a.matCostEach.toFixed(2)}</option>`;
+        });
+        // Insert a "current/keep" option if the current label isn't in the alts list
+        const inAlts = altsInfo.alts.some(a=>a.label===currentLabel);
+        if(!inAlts){
+          optsArr.unshift(`<option selected disabled>${currentLabel} (current)</option>`);
+        }
+        swapHtml =
+          '<select onchange="swapItemMaterial(this)" '
+          + 'data-type="'+type+'" data-orig="'+safeOrig+'" data-unit="'+unitForAlt+'" data-unit-price="'+unitMatPrice+'" '
+          + 'style="background:rgba(20,28,40,0.9);color:var(--text2);border:1px solid rgba(208,208,208,0.18);'
+          + 'border-radius:5px;padding:2px 6px;font-size:10px;font-family:inherit;cursor:pointer;max-width:100%">'
+          + optsArr.join('')
+          + '<option value="__custom__">Custom…</option>'
+          + (isOverridden?'<option value="__reset__">↺ Reset to default</option>':'')
+          + '</select>';
+      } else {
+        // Free-form edit pencil for items without role match
+        swapHtml =
+          '<button onclick="(function(b){var orig=b.dataset.orig;var nm=prompt(\'Material name:\', b.dataset.curName);'
+          + 'if(nm==null)return;var pr=prompt(\'Unit price:\', b.dataset.curPrice||0);if(pr==null)return;'
+          + 'setItemOverride(b.dataset.type,orig,{name:nm,matCostEach:parseFloat(pr)||0});})(this)" '
+          + 'data-type="'+type+'" data-orig="'+safeOrig+'" data-cur-name="'+(item.name||'').replace(/"/g,'&quot;')+'" '
+          + 'data-cur-price="'+(item.matCostEach!=null?item.matCostEach:unitMatPrice)+'" '
+          + 'title="Edit material" '
+          + 'style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:10px;padding:0;margin-left:4px">✎ edit</button>';
+      }
+      // Qty editor (inline number input)
+      const qtyEditor = '<input type="number" min="0" step="0.5" value="'+item.qty+'" '
+        +'onchange="editTakeoffQty(this)" data-type="'+type+'" data-orig="'+safeOrig+'" '
+        +'style="width:55px;background:rgba(20,28,40,0.9);color:var(--text2);border:1px solid rgba(208,208,208,0.18);'
+        +'border-radius:4px;padding:1px 4px;font-size:10px;font-family:inherit;text-align:right">';
+      // Remove (×) button — sets qty=0
+      const removeBtn = '<button onclick="removeTakeoffItem(this)" data-type="'+type+'" data-orig="'+safeOrig+'" '
+        +'title="Remove item" style="background:none;border:none;color:#aa6060;cursor:pointer;font-size:11px;padding:0 4px;margin-left:2px">×</button>';
+
+      const overrideBadge = isOverridden
+        ? '<span style="background:rgba(255,204,0,0.15);color:#ffcc00;padding:1px 5px;border-radius:3px;font-size:9px;margin-left:6px">modified</span>'
+        : '';
+
       const unitMatCost = item.qty>0&&item.matCost>0 ? (item.matCost/item.qty).toFixed(2) : null;
       const nameHtml = '<div>'
-        +'<div style="font-size:12px;font-weight:500;color:var(--text)">'+item.name+'</div>'
+        +'<div style="font-size:12px;font-weight:500;color:var(--text);display:flex;align-items:center;flex-wrap:wrap;gap:4px">'
+        +'<span>'+item.name+'</span>'+overrideBadge+removeBtn+'</div>'
+        +'<div style="margin-top:3px;display:flex;flex-wrap:wrap;gap:6px;align-items:center">'
+        +qtyEditor+'<span style="font-size:10px;color:var(--text3)">'+item.unit+'</span>'
+        +swapHtml
+        +'</div>'
         +'<div style="font-size:10px;color:var(--text3);margin-top:2px;line-height:1.6">'
-        +'<span style="color:var(--text2)">'+item.qty+' '+item.unit+'</span>'
-        +(unitMatCost?'<span style="color:var(--text3)"> · $'+unitMatCost+'/'+item.unit+' mat</span>':'')
+        +(unitMatCost?'<span style="color:var(--text3)">$'+unitMatCost+'/'+item.unit+' mat</span>':'')
         +(item.note?'<br><span style="font-style:italic">'+item.note+'</span>':'')
         +(item.laborHrs>0?'<br><span style="color:var(--accent)">'+item.laborHrs.toFixed(1)+' hrs @ $'+Math.round(labRate)+'/hr</span>':'')
         +'</div></div>';
