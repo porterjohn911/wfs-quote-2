@@ -2381,6 +2381,13 @@ function toCalcDeck(){
     'Stairs': stairs>0?(stairs+' run(s), '+rises+' risers'):'None',
   };
 
+  // Augment with full per-phase material list (fasteners, connectors, flashing,
+  // sealants, consumables, permits) sourced from AWC DCA6 / Simpson / IRC 2021.
+  extendTakeoffWithCompleteList('deck', items, {
+    len, wid, ht, joc, rail, postQty, joistCount, rises, stairs,
+    sqft, perim: 2*(len+wid), railType,
+  });
+
   toRenderResults(items, summary, 'deck');
 }
 
@@ -2510,6 +2517,11 @@ function toCalcRoof(){
     'Drip edge': dripEdgeLF+' lf',
   };
 
+  extendTakeoffWithCompleteList('roof', items, {
+    blen, bwid, eaveExt, roofSqFt, eavePerim, rakePerim,
+    ridge, valley, shingle, sheetsNeeded, tearoff, gutterLF, penetr,
+  });
+
   toRenderResults(items, summary, 'roof');
 }
 
@@ -2620,6 +2632,10 @@ function toCalcFraming(){
     'Headers': openings+' openings',
     'Ceiling joists': ceil?(ceilJoistQty+' pcs'):'Trusses/open',
   };
+
+  extendTakeoffWithCompleteList('framing', items, {
+    extPerim, ht, totalStuds, openings, doors, windows, studSz, sheath,
+  });
 
   toRenderResults(items, summary, 'framing');
 }
@@ -2744,7 +2760,318 @@ function toCalcConcrete(){
     'Perimeter': perim.toFixed(0)+' lf',
   };
 
+  extendTakeoffWithCompleteList('concrete', items, {
+    perim, sqft, orderCY, piers, vapor,
+  });
+
   toRenderResults(items, summary, 'concrete');
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// EXTENDED TAKEOFF — ensure each trade's material list includes every SKU a
+// builder actually needs on site: fasteners, structural connectors, flashing,
+// sealants, consumables, tools-as-materials, permits & inspection fees.
+//
+// Quantities derived from AWC DCA6, Simpson Strong-Tie C-C-2024, ACI 318,
+// IRC 2021, GAF Pro Field Guide, DuPont Tyvek installation guides, and
+// Stego Industries vapor-barrier instructions.
+// Prices are 2025-Q2 SE-TN contractor baseline; override per job via the
+// Pricing tab (saved values supersede these defaults).
+// ══════════════════════════════════════════════════════════════════════════
+function _i(name, qty, unit, orderUnit, matCostEach){
+  return {name, qty: Math.max(0, Math.ceil(qty*10)/10), unit, orderUnit: orderUnit||unit, matCostEach};
+}
+function _pushIfPositive(items, cat, ...newItems){
+  if(!items[cat]) items[cat] = [];
+  items[cat].push(...newItems.filter(it=>it.qty>0));
+}
+
+function extendTakeoffWithCompleteList(type, items, c){
+  if(!c) c={};
+  const P = _pushIfPositive;
+  if(type==='deck'){
+    const {len=0,wid=0,ht=0,joc=16,rail=0,postQty=0,joistCount=0,rises=0,stairs=0,sqft=0,perim=0,railType='wood'}=c;
+    // Site Prep & Layout — completely missing from current calc
+    P(items, 'Foundation & Posts',
+      _i('Mason\'s Twine 500\' Roll', 1, 'roll', 'roll', 6),
+      _i('Marking Paint (utility orange)', 2, 'can', 'can', 7),
+      _i('Layout Stakes 1×2×24"', 4 + Math.ceil(perim/10), 'ea', 'bundle(50)', 1.20),
+      _i('Silt Fence 100\' Roll', Math.ceil(perim/100), 'roll', 'roll', 42),
+      _i('6-mil Ground-Cover Poly 20×100', Math.ceil(sqft/2000), 'roll', 'roll', 95),
+      // Rebar cage inside sonotubes (was missing entirely)
+      _i('#4 Rebar 20\' Stick (3 per pier)', Math.ceil(postQty*3*3.5/20), 'ea', 'ea', 14),
+      _i('16-ga Tie Wire 3.5 lb Roll', 1, 'roll', 'roll', 11),
+      _i('⅝"×8" Anchor Bolt + Nut + Washer (post base)', postQty, 'set', 'box(25)', 5.20),
+    );
+    // Ledger flashing + connector hardware (IRC R507.9)
+    P(items, 'Framing & Structure',
+      _i('Z-Flashing 5"×3"×10\' (deck ledger)', Math.ceil(len/10), 'ea', 'ea', 14),
+      _i('Vycor Deck Protector 4"×75\' (ledger tape)', Math.ceil(len/75), 'roll', 'roll', 46),
+      _i('FastenMaster LedgerLOK 5" (alt to lag)', Math.ceil(len*12/16*2), 'ea', 'box(50)', 1.56),
+      _i('Simpson SDN 10d×1½" Hanger Nail, 1 lb', Math.ceil(joistCount*2*10/155), 'lb', 'lb', 11),
+      _i('H2.5A Hurricane Tie (joist-to-beam)', joistCount, 'ea', 'box(100)', 0.95),
+      _i('DTT2Z Lateral Load Tie (IRC R507.9.2)', 4, 'ea', 'ea', 14),
+      _i('SDWH27600DB ¼"×6" Screw (DTT2Z, 8 each)', 32, 'ea', 'box(50)', 1.40),
+      _i('PL Premium Construction Adhesive 28 oz', Math.ceil(joistCount/4), 'tube', 'tube', 9),
+      _i('Stainless 8d Ring-Shank Trim Nail, 1 lb', 1, 'lb', 'lb', 14),
+    );
+    if(stairs>0){
+      P(items, 'Stairs',
+        _i('LSCZ Stair Stringer Connector', stairs*6, 'ea', 'box(50)', 7),
+        _i('1×8 PT Riser Board', Math.ceil((rises-1)*stairs*1.10), 'ea', 'ea', 16),
+        _i('Stair Tread Non-slip Strip', (rises-1)*stairs, 'ea', 'ea', 7),
+        _i('Simpson SDWS22250 2½" Structural Screw', stairs*16, 'ea', 'box(50)', 0.80),
+        _i('Handrail Stock 2×6 PT × 12\'', Math.ceil(stairs*(rises*10/12)/12), 'ea', 'ea', 14),
+      );
+    }
+    if(rail>0){
+      const railLabel = (railType||'wood')+' Railing';
+      P(items, railLabel,
+        _i('DTT1Z Deck Tension Tie (guard post)', Math.ceil(rail/6)*2, 'ea', 'box(50)', 11),
+        _i('SDS25300 ¼"×3" Screw (DTT1Z, 7 each)', Math.ceil(rail/6)*14, 'ea', 'box(100)', 1.10),
+        _i('SDWS22600 6" Structural Screw (post-to-rim, 4 each)', Math.ceil(rail/6)*8, 'ea', 'box(50)', 1.80),
+      );
+    }
+    P(items, 'Miscellaneous',
+      _i('Polyurethane Sealant 10 oz (Geocel 2300)', 6, 'tube', 'tube', 11),
+      _i('PT End-Cut Preservative qt (Copper Coat)', 1, 'qt', 'qt', 18),
+      _i('Carbide Circular Blade 7¼" (PT-rated)', 1, 'ea', 'ea', 18),
+      _i('Recip Saw Blade Pack', 1, 'pack', 'pack', 18),
+      _i('Building Permit Fee (allowance)', 1, 'ea', 'ea', 150),
+      _i('Inspection Fee', 1, 'ea', 'ea', 75),
+    );
+  }
+  else if(type==='roof'){
+    const {blen=0,bwid=0,eaveExt=0,roofSqFt=0,eavePerim=0,rakePerim=0,ridge=0,valley=0,shingle='arch',sheetsNeeded=0,tearoff=0,gutterLF=0,penetr=0}=c;
+    if(tearoff>0){
+      P(items, 'Tear-Off',
+        _i('30-yd Dumpster (tear-off haul)', Math.ceil(roofSqFt/1500), 'ea', 'ea', 425),
+        _i('Magnetic Nail Sweeper Rental (day)', 1, 'day', 'day', 18),
+        _i('Roof Safety Harness Kit', 1, 'ea', 'ea', 185),
+      );
+    }
+    P(items, 'Sheathing',
+      _i('H2.5A Hurricane Tie (truss-to-plate)', Math.ceil((blen+bwid)*2/2), 'ea', 'box(100)', 0.95),
+      _i('Plastic Cap Nail 1" 3000 ct Pail (underlayment)', Math.ceil(roofSqFt/1500), 'pail', 'pail', 58),
+    );
+    P(items, 'Flashing & Trim',
+      _i('Kick-out Flashing (Quick-Flash QSC-1)', 2, 'ea', 'ea', 14),
+      _i('Apron Flashing 10\' (chimney/dormer)', penetr>0?2:0, 'ea', 'ea', 22),
+      _i('Counter Flashing 10\' (saw-kerf reglet)', penetr>0?2:0, 'ea', 'ea', 26),
+      _i('Cobra Ridge Vent 20\' Roll', ridge>0?Math.ceil(ridge/20):0, 'roll', 'roll', 48),
+      _i('Soffit Vent Strip 8\'×3"', Math.ceil((blen+eaveExt*2)*2/8), 'ea', 'ea', 14),
+    );
+    if(shingle!=='metal'){
+      P(items, 'Roofing Material',
+        _i('Roof Cement 10.1 oz Tube', Math.ceil(roofSqFt/400), 'tube', 'tube', 7),
+        _i('Roof Cement 1 gal (flashing bed)', 1, 'gal', 'gal', 28),
+        _i('Starter Strip Bundle', Math.ceil((eavePerim+rakePerim)/100), 'bundle', 'bundle', 58),
+      );
+    }
+    if(gutterLF>0){
+      P(items, 'Gutters & Drainage',
+        _i('Gutter Sealant 10 oz Tube', Math.ceil(gutterLF/50), 'tube', 'tube', 9),
+        _i('Splash Block (per downspout)', Math.max(2, Math.ceil(gutterLF/50)*2), 'ea', 'ea', 7),
+        _i('1¼" Zip Screw 100 ct Box', 1, 'box', 'box', 14),
+        _i('1×6 PVC Fascia 18\' (new const)', Math.ceil(gutterLF/18*1.10), 'ea', 'ea', 52),
+        _i('Vented Aluminum Soffit 12\'×12"', Math.ceil(gutterLF*1.5/12), 'ea', 'ea', 18),
+        _i('F-Channel + J-Channel 12\'', Math.ceil(gutterLF/12)*2, 'ea', 'ea', 9),
+      );
+    }
+    P(items, 'Summary',
+      _i('Building Permit Fee (allowance)', 1, 'ea', 'ea', 150),
+      _i('Roofing Inspection Fee', 1, 'ea', 'ea', 75),
+    );
+  }
+  else if(type==='framing'){
+    const {extPerim=0,ht=0,totalStuds=0,openings=0,doors=0,windows=0,studSz='2x4',sheath=false}=c;
+    P(items, 'Studs & Plates',
+      _i('Sill Sealer Foam ¼"×6"×50\'', Math.ceil(extPerim/50), 'roll', 'roll', 14),
+      _i('Termite Shield Aluminum 6"×50\' (TN R318)', Math.ceil(extPerim/50), 'roll', 'roll', 46),
+      _i('PT Sill Plate '+(studSz==='2x6'?'2×6':'2×4')+'×16\'', Math.ceil(extPerim/16*1.10), 'ea', 'ea', studSz==='2x6'?19:11),
+      _i('CS16 Coiled Strap (top-plate splice)', Math.ceil(extPerim/20), 'ea', 'ea', 4.80),
+    );
+    P(items, 'Hardware & Fasteners',
+      _i('3"×3"×0.229" Plate Washer (BPS½, per anchor bolt)', Math.ceil(extPerim/6), 'ea', 'box(100)', 1.60),
+      _i('A35 Framing Angle (corner/intersection)', 12, 'ea', 'box(50)', 1.10),
+      _i('L70 Heavy Angle', 4, 'ea', 'ea', 4),
+      _i('Pneumatic 3¼" Framing Nail Clip 4000 ct', Math.ceil(totalStuds*4/4000), 'box', 'box', 88),
+      _i('Fiberglass Batt R-'+(studSz==='2x6'?20:13)+' (bag)', Math.ceil(totalStuds/(studSz==='2x6'?16:24)), 'bag', 'bag', studSz==='2x6'?78:52),
+      _i('Great Stuff Fireblock Foam 24 oz', Math.ceil(extPerim/40), 'can', 'can', 11),
+      _i('Acoustic Sealant (Tremco) 29 oz', 4, 'tube', 'tube', 14),
+    );
+    if(openings>0){
+      P(items, 'Headers',
+        _i('Window Sill Pan (Jamsill/SureSill)', windows, 'ea', 'ea', 18),
+        _i('DuPont FlexWrap NF 4"×75\' (sill flashing)', Math.ceil(windows*8/75), 'roll', 'roll', 52),
+        _i('Butyl Flashing Tape 4"×75\' (jambs/head)', Math.ceil(openings*12/75), 'roll', 'roll', 34),
+        _i('Great Stuff Pro Window Foam 24 oz', Math.ceil(openings*0.5), 'can', 'can', 11),
+        _i('Shim Bundle ⅛" (per opening)', openings, 'bundle', 'bundle', 4),
+        _i('½" Plywood Header Spacer (2×6 wall)', studSz==='2x6'?Math.ceil(openings/3):0, 'sheet', 'sheet', 42),
+      );
+    }
+    if(sheath){
+      P(items, 'Wall Sheathing',
+        _i('Tyvek Tape 1.88"×165\' (wrap seams)', Math.ceil(extPerim*ht/30/165), 'roll', 'roll', 24),
+        _i('1" Plastic-Cap Staple 1000 ct (wrap fastener)', Math.ceil(extPerim*ht*4/1000), 'box', 'box', 32),
+      );
+    }
+    P(items, 'Summary',
+      _i('Building Permit Fee (allowance)', 1, 'ea', 'ea', 150),
+      _i('Framing Inspection Fee', 1, 'ea', 'ea', 75),
+    );
+  }
+  else if(type==='concrete'){
+    const {perim=0,sqft=0,orderCY=0,piers=0,vapor=false}=c;
+    P(items, 'Foundation Forms',
+      _i('Layout Stakes 1×2×24"', Math.ceil(perim/8), 'ea', 'bundle(50)', 1.20),
+      _i('Mason\'s Twine 500\' Roll', 1, 'roll', 'roll', 6),
+      _i('Marking Paint (utility orange)', 3, 'can', 'can', 7),
+      _i('Silt Fence 100\' Roll', Math.ceil(perim/100)+1, 'roll', 'roll', 42),
+      _i('Plate Compactor Rental (day)', 1, 'day', 'day', 85),
+      _i('Double-head Form Nail 8d, 5 lb', 1, 'box', 'box', 24),
+      _i('Screed Rail 1×4 Aluminum 10\'', Math.ceil((perim/4)/10)+1, 'ea', 'ea', 34),
+    );
+    if(vapor){
+      P(items, 'Base & Moisture',
+        _i('Stego Tape 4"×180\' (seam sealing)', Math.ceil(perim/180), 'roll', 'roll', 48),
+        _i('Stego Mastic 29 oz (penetration seal)', 2, 'tube', 'tube', 18),
+      );
+    }
+    P(items, 'Rebar & Reinforcement',
+      _i('#4 Dowel 18" L (footing-to-stem)', Math.ceil(perim/2), 'ea', 'ea', 1.80),
+      _i('Rebar Cap OSHA 25/bag', Math.ceil(Math.ceil(sqft/40)*2/25), 'bag', 'bag', 14),
+      _i('Continuous High Chair 5\' (rebar support)', Math.ceil(perim/5), 'ea', 'ea', 7),
+    );
+    P(items, 'Finishing',
+      _i('Bull Float Magnesium 48"', 1, 'ea', 'ea', 48),
+      _i('Fresno Float 48"', 1, 'ea', 'ea', 58),
+      _i('Edger ¼" R', 1, 'ea', 'ea', 24),
+      _i('Groover ¾" D (control joint)', 1, 'ea', 'ea', 26),
+      _i('Diamond Saw Blade 10" (control joint cut)', 1, 'ea', 'ea', 48),
+      _i('Concrete Washout Bag (Outpak)', 1, 'ea', 'ea', 48),
+      _i('Plastic Sheeting 20\'×100\' (rain cover)', 1, 'roll', 'roll', 58),
+      _i('Sika SL Self-leveling Joint Sealant 29 oz', Math.max(4, Math.ceil(perim/25)), 'tube', 'tube', 14),
+      _i('Backer Rod ⅜"×100\'', Math.ceil(perim/100), 'roll', 'roll', 11),
+      _i('Trowel Machine Rental (slabs >800 sf)', sqft>800?1:0, 'day', 'day', 145),
+    );
+    P(items, 'Concrete',
+      _i('½"Ø × 10" Anchor J-Bolt + Nut + Cut Washer', Math.ceil(perim/6)+4, 'set', 'box(25)', 4.20),
+      _i('3"×3"×0.229" Plate Washer (BPS½)', Math.ceil(perim/6)+4, 'ea', 'box(100)', 1.60),
+      _i('Concrete Pump Truck (if access poor)', orderCY>15?1:0, 'day', 'day', 985),
+    );
+    if(piers>0){
+      P(items, 'Sonotube Piers',
+        _i('#4 Rebar 20\' Stick (3 vert/pier)', Math.ceil(piers*3*3.5/20), 'ea', 'ea', 14),
+        _i('16-ga Tie Wire Roll (additional)', 1, 'roll', 'roll', 11),
+      );
+    }
+    P(items, 'Summary',
+      _i('Building Permit Fee (allowance)', 1, 'ea', 'ea', 150),
+      _i('Concrete Inspection Fee', 1, 'ea', 'ea', 75),
+    );
+  }
+  else if(type==='porch'){
+    const {len=0,dep=0,sqft=0,perim=0,attached=false,ridgeLF=0,screening='none',fans=0,lights=0,totalCols=0}=c;
+    P(items, 'Foundation',
+      _i('Layout Stakes 1×2×24"', Math.ceil(perim/8), 'ea', 'bundle(50)', 1.20),
+      _i('Mason\'s Twine 500\' Roll', 1, 'roll', 'roll', 6),
+      _i('Marking Paint (utility orange)', 2, 'can', 'can', 7),
+    );
+    P(items, 'Drip Edge & Flashing',
+      _i('Apron Flashing 10\' (porch-to-wall)', attached?Math.ceil(len/10*1.10):0, 'ea', 'ea', 22),
+      _i('Counter Flashing 10\' (kerf into siding)', attached?Math.ceil(len/10*1.10):0, 'ea', 'ea', 26),
+      _i('Step Flashing 4×4×8" 50/box', attached?1:0, 'box', 'box', 42),
+      _i('Kick-out Flashing', attached?2:0, 'ea', 'ea', 14),
+      _i('Pipe Boot Flashing EPDM', 1, 'ea', 'ea', 14),
+      _i('Cobra Ridge Vent 20\' Roll', ridgeLF>0?Math.ceil(ridgeLF/20):0, 'roll', 'roll', 48),
+      _i('1×6 PVC Fascia 18\'', Math.ceil((len+dep*2)/18*1.10), 'ea', 'ea', 52),
+      _i('Vented Aluminum Soffit 12\'×12"', Math.ceil((len+dep*2)*1.5/12), 'ea', 'ea', 18),
+      _i('F + J Channel 12\'', Math.ceil((len+dep*2)/12)*2, 'ea', 'ea', 9),
+    );
+    if(fans>0 || lights>0){
+      P(items, 'Electrical (Rough-In)',
+        _i('LED 4" Wet-rated Recessed Can', lights, 'ea', 'ea', 42),
+        _i('Damp-rated 52" Ceiling Fan', fans, 'ea', 'ea', 185),
+        _i('Junction Box 4" Round', fans+lights, 'ea', 'ea', 4),
+        _i('12-2 NM-B Romex 250\' Roll', 1, 'roll', 'roll', 98),
+        _i('Wire Nut Assortment Bag', 1, 'bag', 'bag', 14),
+        _i('Cable Staple 1000 ct', 1, 'box', 'box', 24),
+        _i('Decora Switch + Plate', 2, 'ea', 'ea', 7),
+        _i('GFCI Outlet + Weatherproof Cover', 1, 'ea', 'ea', 32),
+      );
+    }
+    if(screening==='screen'){
+      P(items, 'Screening / Enclosure',
+        _i('Screen Tight Base Channel 8\'', Math.ceil((len+dep*2)/8*1.10), 'ea', 'ea', 11),
+        _i('Screen Tight Cap 8\'', Math.ceil((len+dep*2)/8*1.10), 'ea', 'ea', 7),
+        _i('Spline ¼" × 500\' Roll', 1, 'roll', 'roll', 24),
+        _i('Spline Roller Tool', 1, 'ea', 'ea', 14),
+      );
+    }
+    if(totalCols>0){
+      P(items, 'Columns & Posts',
+        _i('Simpson CCQ66 Column Cap', totalCols, 'ea', 'ea', 48),
+        _i('SDS25300 ¼"×3" Screw (CCQ, 8 each)', totalCols*8, 'ea', 'box(100)', 1.10),
+        _i('MSTA24 Strap (post-to-beam)', totalCols*2, 'ea', 'ea', 14),
+      );
+    }
+    P(items, 'Miscellaneous',
+      _i('Exterior Primer 1 gal (Sherwin Multipurpose)', Math.ceil(perim*8/300), 'gal', 'gal', 52),
+      _i('Exterior Paint 1 gal (SuperPaint)', Math.ceil(perim*8/300), 'gal', 'gal', 78),
+      _i('Big Stretch Caulk 10 oz', 12, 'tube', 'tube', 11),
+      _i('Building Permit Fee (allowance)', 1, 'ea', 'ea', 175),
+      _i('Inspection Fee', 1, 'ea', 'ea', 75),
+    );
+  }
+  else if(type==='carport'){
+    const {len=0,wid=0,ht=0,perim=0,sqft=0,postCount=4,ridgeLF=0,roofMat='metal',sides='none'}=c;
+    P(items, 'Foundation',
+      _i('Layout Stakes 1×2×24"', Math.ceil(perim/8), 'ea', 'bundle(50)', 1.20),
+      _i('Mason\'s Twine 500\' Roll', 1, 'roll', 'roll', 6),
+      _i('Marking Paint', 2, 'can', 'can', 7),
+      _i('Sonotube 12"Ø × 48"', postCount, 'ea', 'ea', 24),
+      _i('#4 Rebar 20\' Stick (cage per pier)', Math.ceil(postCount*5*3/20), 'ea', 'ea', 14),
+      _i('16-ga Tie Wire Roll', 1, 'roll', 'roll', 11),
+      _i('Simpson ABU66Z Post Base', postCount, 'ea', 'ea', 28),
+      _i('⅝"×8" Wedge Anchor (for ABU)', postCount, 'ea', 'box(25)', 4),
+    );
+    P(items, 'Roof Framing',
+      _i('Simpson CCQ66 Post Cap', postCount, 'ea', 'ea', 48),
+      _i('SDS25300 ¼"×3" Screw (CCQ, 8 each)', postCount*8, 'ea', 'box(100)', 1.10),
+      _i('MSTA36 Strap (post-to-beam tension)', postCount*2, 'ea', 'ea', 18),
+      _i('Simpson H10A Heavy Hurricane Tie', Math.ceil(len*12/24+1)*2, 'ea', 'ea', 3.40),
+      _i('SDWS22600 6" Structural Screw (beam-to-post)', postCount*4, 'ea', 'box(50)', 1.80),
+    );
+    if(roofMat==='metal'||roofMat==='tin'){
+      P(items, 'Roofing Material',
+        _i('Z-closure Foam 3\' (eave/ridge)', Math.ceil(((len*2)+(ridgeLF||0))/3), 'ea', 'ea', 4.80),
+        _i('Eave/Rake Trim 10\'6"', Math.ceil((len+wid)*2/10.5), 'ea', 'ea', 36),
+        _i('Butyl Seam Sealant Tape ⅛"×½"×30\'', Math.ceil(len/30), 'roll', 'roll', 14),
+      );
+    }
+    if(sides && sides!=='none'){
+      P(items, 'Side Walls',
+        _i('Tyvek HomeWrap 9\'×100\'', 1, 'roll', 'roll', 185),
+        _i('Tyvek Tape 1.88"×165\'', 1, 'roll', 'roll', 24),
+        _i('1" Plastic-cap Staple 1000 ct', 1, 'box', 'box', 32),
+      );
+    }
+    P(items, 'Electrical (Rough-In)',
+      _i('LED Barn Light (wet-rated)', 1, 'ea', 'ea', 115),
+      _i('12-2 UF-B Underground Feeder 100\'', 1, 'roll', 'roll', 78),
+      _i('Junction Box 4" + Cover', 1, 'ea', 'ea', 5),
+      _i('GFCI Outlet + Weatherproof Cover', 1, 'ea', 'ea', 32),
+    );
+    P(items, 'Miscellaneous',
+      _i('Solid-color Stain 1 gal (Behr Premium PT)', Math.ceil((perim*ht)/300), 'gal', 'gal', 48),
+      _i('Big Stretch Caulk 10 oz', 6, 'tube', 'tube', 11),
+      _i('Concrete Pad Sealer 5 gal', sqft>0?1:0, 'pail', 'pail', 185),
+      _i('Building Permit Fee (allowance)', 1, 'ea', 'ea', 175),
+      _i('Zoning / Setback Verification Fee', 1, 'ea', 'ea', 85),
+      _i('Inspection Fee', 1, 'ea', 'ea', 75),
+    );
+  }
 }
 
 // ══════════════════════════════════════════════════════════
@@ -7911,6 +8238,12 @@ function toCalcPorch(){
     'Ceiling': ceilMat==='open'?'Open/exposed':ceilMat.toUpperCase(),
   };
 
+  extendTakeoffWithCompleteList('porch', items, {
+    len, dep, sqft, perim: 2*(len+dep), attached,
+    ridgeLF: typeof ridgeLF!=='undefined'?ridgeLF:0,
+    screening, fans, lights, totalCols,
+  });
+
   toRenderResults(items, summary, 'porch');
 }
 
@@ -9899,6 +10232,12 @@ function toCalcCarport(){
     'Foundation': foundType.replace('_',' '),
     'Walls': sides==='open'?'Open (no walls)':wallMat+' ('+sides+')',
   };
+
+  extendTakeoffWithCompleteList('carport', items, {
+    len, wid, ht, perim: 2*(len+wid), sqft,
+    postCount: totalCols, ridgeLF: typeof ridgeLF!=='undefined'?ridgeLF:0,
+    roofMat, sides,
+  });
 
   toRenderResults(items, summary, 'carport');
 }
