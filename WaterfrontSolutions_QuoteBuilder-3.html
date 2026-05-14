@@ -4529,6 +4529,7 @@ function pvBuild(type, params){
   const H=parseInt(c.style.height)||Math.round(W*0.7);
 
   pvBuildPhaseBar(type);
+  pvAnnReset();
 
   if(type==='deck')          pvBuildDeck(params,W,H);
   else if(type==='porch')    pvBuildPorch(params,W,H);
@@ -4551,6 +4552,12 @@ function pvBuild(type, params){
 }
 
 // ── DECK BUILD ────────────────────────────────────────────────────────────
+// Drawing conventions per AWC DCA6 & IRC 2021 R507. Members drawn to true-scale
+// lumber dims (1.5" actual for 2× nominal). Plan view shows ledger (dashed),
+// joists at true OC, doubled beam, posts on Ø12" sonotube footings, decking
+// boards with gaps. Annotations: multi-tier dim strings, joist-spacing string,
+// section cut A-A, detail bubbles 1/A3.1 (ledger) & 2/A3.1 (footing), grid
+// bubbles, code reference panel.
 function pvBuildDeck(p, W, H){
   const {len,wid,ht,joc,rail,postSz,rises,stairs} = p;
   const o = _pvOrient;
@@ -4560,164 +4567,346 @@ function pvBuildDeck(p, W, H){
   pvSetFrame(SCALE, OX, OY, DW, DH, p);
   const paN=Math.max(2,Math.ceil(len/8)+1), paN2=Math.max(2,Math.ceil(wid/8)+1);
   const jocPx=joc/12*SCALE;
+  // True-scale lumber dims
+  const lumberW = Math.max(1.5/12*SCALE, 1.4);          // 2× actual 1.5"
+  const beamW   = Math.max(3/12*SCALE, 2.4);             // (2) 2× = 3"
+  const ledgerW = lumberW;
+  const rimW    = lumberW;
+  const postSzPx = postSz==='6x6' ? Math.max(5.5/12*SCALE,5) : Math.max(3.5/12*SCALE,4);
+  const decking_h = Math.max(5.25/12*SCALE, 2);          // 5/4×6 actual 5.5"
+  const decking_gap = Math.max(0.125/12*SCALE, 0.4);     // 1/8" board gap
+  const footDia = Math.max(12/12*SCALE, 12);             // Ø12" sonotube
+  const footR = footDia/2;
 
   if(o==='plan'||o==='section'){
-    // Phase 0: Site prep
-    pvAdd({id:'layout_line_h',label:'Layout Line (EW)',x:OX-20,y:OY+DH/2,w:DW+40,h:0.5,rot:0,layer:'center',phase:0});
-    pvAdd({id:'layout_line_v',label:'Layout Line (NS)',x:OX+DW/2,y:OY-20,w:0.5,h:DH+40,rot:0,layer:'center',phase:0});
-    pvAdd({id:'batter_tl',label:'Batter Board TL',x:OX-30,y:OY-30,w:20,h:4,rot:0,layer:'wood',phase:0});
-    pvAdd({id:'batter_tr',label:'Batter Board TR',x:OX+DW+10,y:OY-30,w:20,h:4,rot:0,layer:'wood',phase:0});
-    pvAdd({id:'batter_bl',label:'Batter Board BL',x:OX-30,y:OY+DH+26,w:20,h:4,rot:0,layer:'wood',phase:0});
-    pvAdd({id:'batter_br',label:'Batter Board BR',x:OX+DW+10,y:OY+DH+26,w:20,h:4,rot:0,layer:'wood',phase:0});
-    pvAdd({id:'string_h1',label:'Mason String',x:OX-30,y:OY,w:DW+60,h:0,rot:0,layer:'center',phase:0});
-    pvAdd({id:'string_h2',label:'Mason String',x:OX-30,y:OY+DH,w:DW+60,h:0,rot:0,layer:'center',phase:0});
+    // Phase 0 — Site Prep: batter boards & mason strings extended past corners
+    pvAdd({id:'cl_h',label:'C/L (Layout EW)',x:OX-32,y:OY+DH/2,w:DW+64,h:0.5,rot:0,layer:'center',phase:0});
+    pvAdd({id:'cl_v',label:'C/L (Layout NS)',x:OX+DW/2,y:OY-32,w:0.5,h:DH+64,rot:0,layer:'center',phase:0});
+    pvAdd({id:'batter_tl',label:'BATTER BOARD',x:OX-32,y:OY-32,w:22,h:4,rot:0,layer:'wood',phase:0});
+    pvAdd({id:'batter_tr',label:'BATTER BOARD',x:OX+DW+10,y:OY-32,w:22,h:4,rot:0,layer:'wood',phase:0});
+    pvAdd({id:'batter_bl',label:'BATTER BOARD',x:OX-32,y:OY+DH+28,w:22,h:4,rot:0,layer:'wood',phase:0});
+    pvAdd({id:'batter_br',label:'BATTER BOARD',x:OX+DW+10,y:OY+DH+28,w:22,h:4,rot:0,layer:'wood',phase:0});
+    pvAdd({id:'string_t',label:'Mason String',x:OX-32,y:OY,w:DW+64,h:0.5,rot:0,layer:'hidden',phase:0});
+    pvAdd({id:'string_b',label:'Mason String',x:OX-32,y:OY+DH,w:DW+64,h:0.5,rot:0,layer:'hidden',phase:0});
 
-    // Phase 1: Footings (concrete cylinders shown as circles in plan)
+    // Phase 1 — Footings: Ø12" sonotube + (3) #4 vertical rebar cage
     for(let pi=0;pi<paN;pi++) for(let pj=0;pj<paN2;pj++){
       const fx=OX+pi*(DW/(paN-1)), fy=OY+pj*(DH/(paN2-1));
-      pvAdd({id:`footing_${pi}_${pj}`,label:'12" Sonotube Footing',x:fx-8,y:fy-8,w:16,h:16,rot:0,layer:'concrete',phase:1,shape:'circle'});
-      pvAdd({id:`foot_rebar_${pi}_${pj}`,label:'Rebar Cage in Footing',x:fx-5,y:fy-5,w:10,h:10,rot:0,layer:'rebar',phase:1,shape:'circle'});
+      pvAdd({id:`footing_${pi}_${pj}`,label:'Ø12" SONOTUBE FTG · 48" DEEP',
+        x:fx-footR,y:fy-footR,w:footDia,h:footDia,rot:0,layer:'concrete',phase:1,shape:'circle'});
+      const rebarR = footR*0.55;
+      pvAdd({id:`rebar_${pi}_${pj}`,label:'(3) #4 VERT REBAR CAGE',
+        x:fx-rebarR,y:fy-rebarR,w:rebarR*2,h:rebarR*2,rot:0,layer:'rebar',phase:1,shape:'circle'});
     }
 
-    // Phase 2: Posts & beam
-    const postSz2=postSz==='6x6'?9:6;
+    // Phase 2 — Posts (true-scale, centered on footing), beam, ledger
     for(let pi=0;pi<paN;pi++) for(let pj=0;pj<paN2;pj++){
-      const px=OX+pi*(DW/(paN-1))-postSz2/2, py=OY+pj*(DH/(paN2-1))-postSz2/2;
-      pvAdd({id:`post_${pi}_${pj}`,label:postSz+' PT Post',x:px,y:py,w:postSz2,h:postSz2,rot:0,layer:'wood',phase:2});
-      pvAdd({id:`postbase_${pi}_${pj}`,label:'Post Base Hardware',x:px-1,y:py-1,w:postSz2+2,h:postSz2+2,rot:0,layer:'steel',phase:2,shape:'outline'});
+      const fx=OX+pi*(DW/(paN-1)), fy=OY+pj*(DH/(paN2-1));
+      pvAdd({id:`post_${pi}_${pj}`,label:postSz+' PT POST',
+        x:fx-postSzPx/2,y:fy-postSzPx/2,w:postSzPx,h:postSzPx,rot:0,layer:'wood',phase:2});
+      pvAdd({id:`postbase_${pi}_${pj}`,label:'SIMPSON ABU66Z POST BASE',
+        x:fx-postSzPx/2-1.5,y:fy-postSzPx/2-1.5,w:postSzPx+3,h:postSzPx+3,rot:0,
+        layer:'steel',phase:2,shape:'outline'});
     }
-    // Beams (doubled) along each row
+    // Doubled beam along each post row (centered on row Y)
     for(let pj=0;pj<paN2;pj++){
       const by=OY+pj*(DH/(paN2-1));
-      pvAdd({id:`beam_a_${pj}`,label:'Dbl 2×10 Beam',x:OX,y:by-3,w:DW,h:3,rot:0,layer:'wood',phase:2});
-      pvAdd({id:`beam_b_${pj}`,label:'Dbl 2×10 Beam',x:OX,y:by,  w:DW,h:3,rot:0,layer:'wood',phase:2});
+      pvAdd({id:`beam_${pj}`,label:'(2) 2×10 PT BEAM',
+        x:OX,y:by-beamW/2,w:DW,h:beamW,rot:0,layer:'wood',phase:2});
     }
-    // Ledger
-    pvAdd({id:'ledger',label:'Ledger (Lag Bolted)',x:OX,y:OY-4,w:DW,h:4,rot:0,layer:'woodDk',phase:2});
+    // Ledger (dashed — hidden behind house sheathing)
+    pvAdd({id:'house_wall',label:'HOUSE WALL (BEYOND)',
+      x:OX-8,y:OY-ledgerW-6,w:DW+16,h:1,rot:0,layer:'hidden',phase:2});
+    pvAdd({id:'ledger',label:'2×10 PT LEDGER w/ ½"Ø LAG @ 16" O.C.',
+      x:OX,y:OY-ledgerW,w:DW,h:ledgerW,rot:0,layer:'woodDk',phase:2});
 
-    // Phase 3: Joists
-    const jCount=Math.floor(DW/jocPx)+1;
+    // Phase 3 — Joists & blocking (joists constrained between ledger and rim)
+    const jCount=Math.max(1,Math.floor(DW/jocPx));
     for(let ji=0;ji<=jCount;ji++){
-      pvAdd({id:`joist_${ji}`,label:'2×10 Joist',x:OX+ji*jocPx-1,y:OY,w:2,h:DH,rot:0,layer:'wood',phase:3});
+      const jx = ji===jCount ? OX+DW-lumberW : OX+ji*jocPx;
+      pvAdd({id:`joist_${ji}`,label:'2×10 PT JOIST',
+        x:jx,y:OY+ledgerW,w:lumberW,h:DH-ledgerW-rimW,rot:0,layer:'wood',phase:3});
     }
-    // Blocking mid-span
-    for(let ji=0;ji<jCount;ji++){
-      pvAdd({id:`block_${ji}`,label:'Blocking',x:OX+ji*jocPx,y:OY+DH/2-1.5,w:jocPx,h:3,rot:0,layer:'wood',phase:3});
+    // Rim joist (perimeter opposite ledger) + end joists
+    pvAdd({id:'rim_joist',label:'2×10 PT RIM JOIST',
+      x:OX,y:OY+DH-rimW,w:DW,h:rimW,rot:0,layer:'wood',phase:3});
+    pvAdd({id:'end_joist_l',label:'2×10 PT END JOIST',
+      x:OX,y:OY+ledgerW,w:lumberW,h:DH-ledgerW-rimW,rot:0,layer:'wood',phase:3});
+    pvAdd({id:'end_joist_r',label:'2×10 PT END JOIST',
+      x:OX+DW-lumberW,y:OY+ledgerW,w:lumberW,h:DH-ledgerW-rimW,rot:0,layer:'wood',phase:3});
+    // Mid-span blocking (dashed — hidden beneath decking)
+    if(wid>8){
+      for(let ji=0;ji<jCount;ji++){
+        pvAdd({id:`block_${ji}`,label:'SOLID BLOCKING @ MID-SPAN',
+          x:OX+ji*jocPx+lumberW,y:OY+DH/2-1,w:jocPx-lumberW,h:2,rot:0,layer:'hidden',phase:3});
+      }
     }
-    // Joist hangers
+    // Joist hangers at ledger
     for(let ji=0;ji<=jCount;ji++){
-      pvAdd({id:`hanger_t_${ji}`,label:'Joist Hanger',x:OX+ji*jocPx-2,y:OY,w:4,h:4,rot:0,layer:'steel',phase:3,shape:'outline'});
-      pvAdd({id:`hanger_b_${ji}`,label:'Joist Hanger',x:OX+ji*jocPx-2,y:OY+DH-4,w:4,h:4,rot:0,layer:'steel',phase:3,shape:'outline'});
+      const jx = ji===jCount ? OX+DW-lumberW : OX+ji*jocPx;
+      pvAdd({id:`hgr_${ji}`,label:'SIMPSON LUS210 JOIST HANGER',
+        x:jx-1,y:OY,w:lumberW+2,h:ledgerW+1,rot:0,layer:'steel',phase:3,shape:'outline'});
     }
 
-    // Phase 4: Decking boards
-    const boardH=5.5/12*SCALE;
-    for(let bi=0;bi*boardH<=DH;bi++){
-      pvAdd({id:`board_${bi}`,label:'5/4×6 Decking',x:OX,y:OY+bi*boardH,w:DW,h:Math.max(boardH-0.5,1),rot:0,layer:'wood',phase:4});
+    // Phase 4 — Decking: boards running perpendicular to joists w/ gaps
+    for(let bi=0; ;bi++){
+      const by = OY + bi*decking_h;
+      if(by >= OY+DH) break;
+      pvAdd({id:`board_${bi}`,label:'5/4×6 PT DECKING',
+        x:OX,y:by,w:DW,h:Math.max(decking_h-decking_gap,0.6),rot:0,layer:'wood',phase:4});
     }
-    // Fascia
-    pvAdd({id:'fascia_l',label:'Fascia Board',x:OX-5,y:OY,w:5,h:DH,rot:0,layer:'woodDk',phase:4});
-    pvAdd({id:'fascia_r',label:'Fascia Board',x:OX+DW,y:OY,w:5,h:DH,rot:0,layer:'woodDk',phase:4});
-    pvAdd({id:'fascia_t',label:'Fascia Board',x:OX,y:OY-5,w:DW,h:5,rot:0,layer:'woodDk',phase:4});
-    pvAdd({id:'fascia_b',label:'Fascia Board',x:OX,y:OY+DH,w:DW,h:5,rot:0,layer:'woodDk',phase:4});
+    // Picture-frame fascia
+    pvAdd({id:'fascia_t',label:'1×8 FASCIA',x:OX-4,y:OY-4,w:DW+8,h:4,rot:0,layer:'woodDk',phase:4});
+    pvAdd({id:'fascia_b',label:'1×8 FASCIA',x:OX-4,y:OY+DH,w:DW+8,h:4,rot:0,layer:'woodDk',phase:4});
+    pvAdd({id:'fascia_l',label:'1×8 FASCIA',x:OX-4,y:OY,w:4,h:DH,rot:0,layer:'woodDk',phase:4});
+    pvAdd({id:'fascia_r',label:'1×8 FASCIA',x:OX+DW,y:OY,w:4,h:DH,rot:0,layer:'woodDk',phase:4});
 
-    // Phase 5: Railing
+    // Phase 5 — Guard posts at corners + ≤6'-0" O.C. intermediate; stairs
     if(rail>0){
-      const rPostSpPlan=6*SCALE;
-      for(let rx=0;rx<=DW;rx+=rPostSpPlan){
-        pvAdd({id:`rail_post_t_${Math.floor(rx)}`,label:'Rail Post 4×4',x:OX+rx-2,y:OY-5,w:4,h:6,rot:0,layer:'woodDk',phase:5});
-        pvAdd({id:`rail_post_b_${Math.floor(rx)}`,label:'Rail Post 4×4',x:OX+rx-2,y:OY+DH-1,w:4,h:6,rot:0,layer:'woodDk',phase:5});
+      const rPostSp = Math.max(4,Math.min(6,len/Math.max(1,Math.ceil(len/6))))*SCALE;
+      const rPostW = Math.max(3.5/12*SCALE,4);
+      for(let rx=0;rx<=DW+0.5;rx+=rPostSp){
+        const gx = OX+Math.min(rx,DW)-rPostW/2;
+        pvAdd({id:`gpost_b_${Math.floor(rx)}`,label:'4×4 PT GUARD POST',
+          x:gx,y:OY+DH-rPostW/2,w:rPostW,h:rPostW+4,rot:0,layer:'woodDk',phase:5});
       }
-      for(let ry=rPostSpPlan;ry<DH;ry+=rPostSpPlan){
-        pvAdd({id:`rail_post_r_${Math.floor(ry)}`,label:'Rail Post 4×4',x:OX+DW-1,y:OY+ry-2,w:6,h:4,rot:0,layer:'woodDk',phase:5});
+      for(let ry=rPostSp;ry<DH-rPostSp/2;ry+=rPostSp){
+        pvAdd({id:`gpost_l_${Math.floor(ry)}`,label:'4×4 PT GUARD POST',
+          x:OX-2,y:OY+ry-rPostW/2,w:rPostW+4,h:rPostW,rot:0,layer:'woodDk',phase:5});
+        pvAdd({id:`gpost_r_${Math.floor(ry)}`,label:'4×4 PT GUARD POST',
+          x:OX+DW-rPostW,y:OY+ry-rPostW/2,w:rPostW+4,h:rPostW,rot:0,layer:'woodDk',phase:5});
       }
-      pvAdd({id:'top_rail_t',label:'Top Rail',x:OX-2,y:OY-8,w:DW+4,h:3,rot:0,layer:'wood',phase:5});
-      pvAdd({id:'top_rail_b',label:'Top Rail',x:OX-2,y:OY+DH+2,w:DW+4,h:3,rot:0,layer:'wood',phase:5});
-      pvAdd({id:'rail_cap_t',label:'Rail Cap',x:OX-3,y:OY-11,w:DW+6,h:4,rot:0,layer:'woodDk',phase:5});
-      pvAdd({id:'rail_cap_b',label:'Rail Cap',x:OX-3,y:OY+DH+5,w:DW+6,h:4,rot:0,layer:'woodDk',phase:5});
     }
-    // Stairs
     if(rises>0){
-      const treadD=10/12*SCALE;
+      const treadD = 10/12*SCALE;
+      const stairW = 36/12*SCALE;     // R311.7.1 — 36" min width
+      const stairX = OX+DW*0.3;
       for(let ri=0;ri<rises;ri++){
-        pvAdd({id:`stair_${ri}`,label:'Stair Tread',x:OX+DW*0.3,y:OY+DH+ri*treadD,w:3*SCALE,h:treadD,rot:0,layer:'wood',phase:5});
+        pvAdd({id:`tread_${ri}`,label:'STAIR TREAD',
+          x:stairX,y:OY+DH+ri*treadD,w:stairW,h:Math.max(treadD-1,2),rot:0,layer:'wood',phase:5});
       }
-      pvAdd({id:'stringer_l',label:'Stringer',x:OX+DW*0.3-3,y:OY+DH,w:3,h:rises*treadD,rot:0,layer:'woodDk',phase:5});
-      pvAdd({id:'stringer_r',label:'Stringer',x:OX+DW*0.3+3*SCALE,y:OY+DH,w:3,h:rises*treadD,rot:0,layer:'woodDk',phase:5});
+      pvAdd({id:'stringer_l',label:'(3) 2×12 PT STRINGER',
+        x:stairX-3,y:OY+DH,w:3,h:rises*treadD,rot:0,layer:'woodDk',phase:5});
+      pvAdd({id:'stringer_r',label:'(3) 2×12 PT STRINGER',
+        x:stairX+stairW,y:OY+DH,w:3,h:rises*treadD,rot:0,layer:'woodDk',phase:5});
     }
-    // Phase 6: inspection marks
-    pvAdd({id:'insp_stamp',label:'✓ Inspection Passed',x:OX+DW-40,y:OY-22,w:40,h:14,rot:0,layer:'annotate',phase:6,shape:'label'});
+
+    // ── ANNOTATIONS (plan view) ──────────────────────────────────────────
+    // Multi-tier dim strings — outer overall, mid bays, inner joist count
+    pvAnn({kind:'dim_h', x1:OX, x2:OX+DW, y:OY-32, label:_ftIn(len), tier:3, dir:'up'});
+    if(paN>1){
+      const bayFt = len/(paN-1);
+      for(let pi=0;pi<paN-1;pi++){
+        pvAnn({kind:'dim_h', x1:OX+pi*(DW/(paN-1)), x2:OX+(pi+1)*(DW/(paN-1)),
+          y:OY-32, label:_ftIn(bayFt), tier:2, dir:'up'});
+      }
+    }
+    pvAnn({kind:'dim_h', x1:OX, x2:OX+DW, y:OY-32,
+      label:`${jCount} SPA @ ${joc}" O.C. = ${_ftIn(jCount*joc/12)}`, tier:1, dir:'up'});
+    pvAnn({kind:'dim_v', y1:OY, y2:OY+DH, x:OX-32, label:_ftIn(wid), tier:1, dir:'left'});
+
+    // Joist direction arrow (parallel to joists, inside field)
+    pvAnn({kind:'dirv', y1:OY+ledgerW+10, y2:OY+DH-rimW-10, x:OX+DW*0.5,
+      text:`2×10 PT JOISTS @ ${joc}" O.C.`, color:'#00ff88'});
+
+    // Section cut A-A (crosses long axis)
+    pvAnn({kind:'section', x1:OX-22, y1:OY+DH*0.55, x2:OX+DW+22, y2:OY+DH*0.55,
+      tag:'A', sheet:'A-3', dir:'down'});
+
+    // Detail callouts: 1/A3.1 = ledger, 2/A3.1 = footing
+    pvAnn({kind:'detail', x:OX-34, y:OY-22, num:'1', sheet:'A3.1',
+      leadFromX:OX+10, leadFromY:OY-ledgerW/2});
+    pvAnn({kind:'detail', x:OX+DW+30, y:OY+DH+30, num:'2', sheet:'A3.1',
+      leadFromX:OX+DW-footR, leadFromY:OY+DH-footR});
+
+    // Grid bubbles
+    for(let pi=0;pi<paN;pi++){
+      pvAnn({kind:'grid', x:OX+pi*(DW/(paN-1)), y:OY-60,
+        label:String.fromCharCode(65+pi)});
+    }
+    for(let pj=0;pj<paN2;pj++){
+      pvAnn({kind:'grid', x:OX-60, y:OY+pj*(DH/(paN2-1)), label:String(pj+1)});
+    }
+
+    // Stair direction
+    if(rises>0){
+      const treadD=10/12*SCALE, stairW=36/12*SCALE, stairX=OX+DW*0.3;
+      pvAnn({kind:'dir', x1:stairX+4, x2:stairX+stairW-4,
+        y:OY+DH+rises*treadD+18, text:`DN ${rises}R`, color:'#ffcc00'});
+    }
+
+    // Code reference panel (printed on the drawing, left margin)
+    pvAnn({kind:'code', x:6, y:H-204, w:218,
+      title:'GENERAL NOTES — IRC 2021',
+      lines:[
+        '• LL=40psf, DL=10psf (R301.5)',
+        '• PT lumber AC2 ground-contact',
+        '• Ledger ½"Ø lag @ 16" O.C.',
+        '  staggered + Z-flash (R507.9)',
+        '• Footings ≥ frost line (R403.1.4)',
+        '• Hangers Simpson LUS210 G185',
+        '• Lateral tension DTT2Z (R507.9.2)',
+        '• Guard '+(ht>2.5?'42':'36')+'" min, 4" sphere',
+        '  (R312.1)',
+        rises>0 ? `• ${rises}R @ ${(ht*12/Math.max(rises,1)).toFixed(2)}" ≤ 7¾"`:'',
+        rises>0 ? '  Tread 10" min (R311.7.5)':'',
+        '• Handrail 34–38" abv nosing',
+        '  (R311.7.8)',
+      ].filter(Boolean)});
 
   } else {
-    // ELEVATION / SECTION view
+    // ── ELEVATION VIEW ───────────────────────────────────────────────────
     const SCLE=Math.min((W*0.72)/len,(H*0.6)/Math.max(ht+4,6),22);
     const EW=len*SCLE; const EHpost=ht*SCLE;
     const OXe=(W-EW)/2; const GY=H*0.68;
-    // Grade line, earth
-    pvAdd({id:'earth',label:'Earth',x:0,y:GY,w:W,h:H-GY,rot:0,layer:'earth',phase:0});
-    pvAdd({id:'grade_line',label:'Grade Line',x:0,y:GY,w:W,h:0,rot:0,layer:'section',phase:0});
-    // Batter boards (elevation)
-    pvAdd({id:'bat_l',label:'Batter Board',x:OXe-30,y:GY-30,w:4,h:30,rot:0,layer:'wood',phase:0});
-    pvAdd({id:'bat_r',label:'Batter Board',x:OXe+EW+26,y:GY-30,w:4,h:30,rot:0,layer:'wood',phase:0});
-    pvAdd({id:'string_elv',label:'Layout String',x:OXe-30,y:GY-28,w:EW+60,h:0,rot:0,layer:'center',phase:0});
+    const footDepth = Math.max(36, ht*12+12)*SCLE/12;
+    const deckT = Math.max(decking_h, 4);
+    const joistDepth = 9.25/12*SCLE; // 2×10 actual 9.25" depth in elevation
+
+    // Earth hatch + grade line via annotation
+    pvAnn({kind:'earth', x:0, y:GY, w:W, h:H-GY});
+
+    // Batter boards & string
+    pvAdd({id:'bat_l',label:'BATTER BOARD',x:OXe-32,y:GY-32,w:4,h:32,rot:0,layer:'wood',phase:0});
+    pvAdd({id:'bat_r',label:'BATTER BOARD',x:OXe+EW+28,y:GY-32,w:4,h:32,rot:0,layer:'wood',phase:0});
+    pvAdd({id:'str_elv',label:'Mason String',x:OXe-32,y:GY-30,w:EW+64,h:0.5,rot:0,layer:'hidden',phase:0});
+
     // Footings below grade
-    const jocElv=joc/12*SCLE;
     for(let pi=0;pi<paN;pi++){
       const fpx=OXe+pi*(EW/(paN-1));
-      pvAdd({id:`foot_elv_${pi}`,label:'Concrete Footing',x:fpx-10,y:GY+4,w:20,h:16,rot:0,layer:'concrete',phase:1});
-      pvAdd({id:`rebar_elv_${pi}`,label:'Rebar in Footing',x:fpx-4,y:GY+5,w:1.5,h:14,rot:0,layer:'rebar',phase:1});
-      pvAdd({id:`rebar2_elv_${pi}`,label:'Rebar in Footing',x:fpx+2.5,y:GY+5,w:1.5,h:14,rot:0,layer:'rebar',phase:1});
-      // Post base anchor bolt
-      pvAdd({id:`jbolt_${pi}`,label:'J-Bolt Anchor',x:fpx-1,y:GY,w:2,h:4,rot:0,layer:'steel',phase:1});
+      const footW=12/12*SCLE;
+      pvAdd({id:`foot_elv_${pi}`,label:'Ø12" SONOTUBE',
+        x:fpx-footW/2,y:GY,w:footW,h:footDepth,rot:0,layer:'concrete',phase:1});
+      pvAdd({id:`reb1_${pi}`,label:'#4 VERT',
+        x:fpx-footW/3,y:GY+4,w:1.2,h:footDepth-8,rot:0,layer:'rebar',phase:1});
+      pvAdd({id:`reb2_${pi}`,label:'#4 VERT',
+        x:fpx+footW/3-1.2,y:GY+4,w:1.2,h:footDepth-8,rot:0,layer:'rebar',phase:1});
+      pvAdd({id:`jbolt_${pi}`,label:'½"Ø ANCHOR BOLT',
+        x:fpx-1,y:GY-8,w:2,h:12,rot:0,layer:'steel',phase:1});
       // Post
-      const postW=postSz==='6x6'?9:6;
-      pvAdd({id:`post_elv_${pi}`,label:postSz+' PT Post',x:fpx-postW/2,y:GY-EHpost,w:postW,h:EHpost,rot:0,layer:'wood',phase:2});
-      pvAdd({id:`postbase_elv_${pi}`,label:'Post Base',x:fpx-postW/2-2,y:GY-postW-2,w:postW+4,h:postW+2,rot:0,layer:'steel',phase:2,shape:'outline'});
+      const pw = postSz==='6x6'?Math.max(5.5/12*SCLE,7):Math.max(3.5/12*SCLE,5);
+      pvAdd({id:`post_elv_${pi}`,label:postSz+' PT POST',
+        x:fpx-pw/2,y:GY-EHpost,w:pw,h:EHpost,rot:0,layer:'wood',phase:2});
+      pvAdd({id:`pb_${pi}`,label:'SIMPSON ABU66Z',
+        x:fpx-pw/2-2,y:GY-3,w:pw+4,h:6,rot:0,layer:'steel',phase:2,shape:'outline'});
     }
-    // Beam
-    pvAdd({id:'beam_elv',label:'Dbl 2×10 Beam',x:OXe,y:GY-EHpost-8,w:EW,h:8,rot:0,layer:'wood',phase:2});
-    pvAdd({id:'ledger_elv',label:'Ledger',x:OXe-4,y:GY-EHpost-8,w:4,h:8,rot:0,layer:'woodDk',phase:2});
-    // Joists section view (visible ends)
-    pvAdd({id:'joist_band',label:'Joist Band Board',x:OXe,y:GY-EHpost-16,w:EW,h:8,rot:0,layer:'wood',phase:3});
-    const jCount2=Math.min(Math.floor(EW/jocElv)+1,20);
-    for(let ji=0;ji<=jCount2;ji++){
-      pvAdd({id:`joist_sec_${ji}`,label:'Joist (Section)',x:OXe+ji*jocElv-2,y:GY-EHpost-16,w:4,h:8,rot:0,layer:'woodDk',phase:3,shape:'section'});
+
+    // Beam & joist band & decking
+    pvAdd({id:'beam_elv',label:'(2) 2×10 PT BEAM',
+      x:OXe,y:GY-EHpost-joistDepth,w:EW,h:joistDepth,rot:0,layer:'wood',phase:2});
+    pvAdd({id:'ledger_elv',label:'2×10 PT LEDGER',
+      x:OXe-4,y:GY-EHpost-joistDepth,w:4,h:joistDepth,rot:0,layer:'woodDk',phase:2});
+    pvAdd({id:'rim_elv',label:'2×10 PT RIM JOIST',
+      x:OXe,y:GY-EHpost-joistDepth,w:EW,h:joistDepth,rot:0,layer:'wood',phase:3});
+
+    const deckTopY = GY-EHpost-joistDepth-deckT;
+    pvAdd({id:'deck_top',label:'5/4×6 PT DECKING',
+      x:OXe-5,y:deckTopY,w:EW+10,h:deckT,rot:0,layer:'wood',phase:4});
+    // Board joints (every 16")
+    const bj=16/12*SCLE;
+    for(let bi=1;bi*bj<EW;bi++){
+      pvAdd({id:`bj_${bi}`,label:'Board Joint',
+        x:OXe+bi*bj,y:deckTopY,w:0.5,h:deckT,rot:0,layer:'hidden',phase:4});
     }
-    // Blocking
-    pvAdd({id:'blocking_elv',label:'Mid-Span Blocking',x:OXe,y:GY-EHpost-16,w:EW,h:2,rot:0,layer:'woodDk',phase:3});
-    // Decking
-    const deckT=5;
-    pvAdd({id:'deck_surface',label:'Decking Surface',x:OXe-5,y:GY-EHpost-16-deckT,w:EW+10,h:deckT,rot:0,layer:'wood',phase:4});
-    // Board lines
-    const bPx=5.5/12*SCLE;
-    for(let bi=0;bi*bPx<EW;bi+=3) pvAdd({id:`bline_${bi}`,label:'Board Joint',x:OXe+bi*bPx,y:GY-EHpost-16-deckT,w:0.5,h:deckT,rot:0,layer:'hidden',phase:4});
-    // Fascia
-    pvAdd({id:'fascia_elv_l',label:'Fascia Board',x:OXe-8,y:GY-EHpost-8,w:6,h:EHpost+8+deckT,rot:0,layer:'woodDk',phase:4});
-    pvAdd({id:'fascia_elv_r',label:'Fascia Board',x:OXe+EW+2,y:GY-EHpost-8,w:6,h:EHpost+8+deckT,rot:0,layer:'woodDk',phase:4});
-    const deckTopY=GY-EHpost-16-deckT;
+    // Fascia each end
+    pvAdd({id:'fasc_l_elv',label:'1×8 FASCIA',
+      x:OXe-5,y:GY-EHpost-joistDepth-1,w:5,h:joistDepth+deckT+2,rot:0,layer:'woodDk',phase:4});
+    pvAdd({id:'fasc_r_elv',label:'1×8 FASCIA',
+      x:OXe+EW,y:GY-EHpost-joistDepth-1,w:5,h:joistDepth+deckT+2,rot:0,layer:'woodDk',phase:4});
+
+    // Guard rail per code
     if(rail>0){
-      const railH=3.5*SCLE;
-      pvAdd({id:'rail_top',label:'Top Rail',x:OXe-4,y:deckTopY-railH-5,w:EW+8,h:5,rot:0,layer:'wood',phase:5});
-      pvAdd({id:'rail_cap',label:'Rail Cap',x:OXe-5,y:deckTopY-railH-9,w:EW+10,h:5,rot:0,layer:'woodDk',phase:5});
-      pvAdd({id:'rail_bot',label:'Bottom Rail',x:OXe-4,y:deckTopY-8,w:EW+8,h:4,rot:0,layer:'wood',phase:5});
-      const balSp=4.5/12*SCLE;
-      for(let bx=balSp;bx<EW-balSp;bx+=balSp){
-        pvAdd({id:`bal_${Math.floor(bx)}`,label:'Baluster',x:OXe+bx-1,y:deckTopY-railH,w:2,h:railH,rot:0,layer:'wood',phase:5});
+      const guardHt = (ht>2.5?42:36)/12*SCLE;
+      const balSp = 4/12*SCLE;
+      for(let bx=balSp/2;bx<EW;bx+=balSp){
+        pvAdd({id:`bal_${Math.floor(bx)}`,label:'2×2 BALUSTER · 4" CLR MAX',
+          x:OXe+bx-0.75,y:deckTopY-guardHt+3,w:1.5,h:guardHt-6,rot:0,layer:'wood',phase:5});
       }
-      const rPostSp=6*SCLE;
-      for(let rpx=0;rpx<=EW;rpx+=rPostSp){
-        pvAdd({id:`rpost_${Math.floor(rpx)}`,label:'Rail Post',x:OXe+rpx-2,y:deckTopY-railH-2,w:4,h:railH+10,rot:0,layer:'woodDk',phase:5});
+      pvAdd({id:'g_cap',label:'2×6 GUARD CAP',
+        x:OXe-6,y:deckTopY-guardHt,w:EW+12,h:4,rot:0,layer:'woodDk',phase:5});
+      pvAdd({id:'g_top',label:'2×4 TOP RAIL',
+        x:OXe-3,y:deckTopY-guardHt+4,w:EW+6,h:2.5,rot:0,layer:'wood',phase:5});
+      pvAdd({id:'g_bot',label:'2×4 BOTTOM RAIL',
+        x:OXe-3,y:deckTopY-6,w:EW+6,h:2.5,rot:0,layer:'wood',phase:5});
+      const gpostSp = 6*SCLE;
+      for(let rpx=0;rpx<=EW;rpx+=gpostSp){
+        pvAdd({id:`gpe_${Math.floor(rpx)}`,label:'4×4 GUARD POST',
+          x:OXe+rpx-2,y:deckTopY-guardHt-2,w:4,h:guardHt+4,rot:0,layer:'woodDk',phase:5});
       }
     }
+
+    // Stairs with true rise/run
     if(rises>0){
-      const rH=7.5/12*SCLE, tD=10/12*SCLE;
+      const totalRiseIn = ht*12;
+      const rH = (totalRiseIn/rises)/12*SCLE;
+      const tD = 10/12*SCLE;
+      const sxStart = OXe+EW*0.25;
+      const syStart = deckTopY+deckT;
+      // Stringers
+      pvAdd({id:'str_l_elv',label:'(3) 2×12 PT STRINGER',
+        x:sxStart-3,y:syStart,w:3,h:rises*rH,rot:0,layer:'woodDk',phase:5});
+      pvAdd({id:'str_r_elv',label:'(3) 2×12 PT STRINGER',
+        x:sxStart+rises*tD,y:syStart,w:3,h:rises*rH,rot:0,layer:'woodDk',phase:5});
       for(let ri=0;ri<rises;ri++){
-        pvAdd({id:`stair_elv_${ri}`,label:'Stair Tread',x:OXe+EW*0.25+ri*tD,y:deckTopY+(ri+1)*rH,w:tD,h:rH,rot:0,layer:'wood',phase:5});
+        pvAdd({id:`tread_elv_${ri}`,label:'2×10 PT TREAD',
+          x:sxStart+ri*tD,y:syStart+(ri+1)*rH-3,w:tD+1,h:3,rot:0,layer:'wood',phase:5});
+        pvAdd({id:`riser_${ri}`,label:'1× RISER',
+          x:sxStart+ri*tD,y:syStart+ri*rH,w:1,h:rH,rot:0,layer:'wood',phase:5});
       }
-      pvAdd({id:'str_l',label:'Stair Stringer',x:OXe+EW*0.25-3,y:deckTopY,w:3,h:rises*(rH),rot:0,layer:'woodDk',phase:5});
-      pvAdd({id:'str_r',label:'Stair Stringer',x:OXe+EW*0.25+rises*tD,y:deckTopY,w:3,h:rises*rH,rot:0,layer:'woodDk',phase:5});
     }
-    pvAdd({id:'insp_elv',label:'✓ Final Inspection',x:OXe+EW*0.4,y:deckTopY-28,w:60,h:14,rot:0,layer:'annotate',phase:6,shape:'label'});
+
+    // ── ANNOTATIONS (elevation) ──────────────────────────────────────────
+    // Elevation tags on left margin
+    pvAnn({kind:'elev', x:6, y:deckTopY, label:`□ +0'-0" T.O. DECK`, anchor:'left'});
+    pvAnn({kind:'elev', x:6, y:GY, label:`□ -${_ftIn(ht)} GRADE`, anchor:'left'});
+    pvAnn({kind:'elev', x:6, y:GY+footDepth, label:`□ B.O. FTG (BELOW FROST)`, anchor:'left'});
+    // Deck height dim
+    pvAnn({kind:'dim_v', y1:deckTopY, y2:GY, x:OXe-32, label:_ftIn(ht), tier:1, dir:'left'});
+    // Footing depth dim
+    pvAnn({kind:'dim_v', y1:GY, y2:GY+footDepth, x:OXe-32, label:_ftIn(footDepth/SCLE), tier:1, dir:'left'});
+    // Overall deck length below
+    pvAnn({kind:'dim_h', x1:OXe, x2:OXe+EW, y:GY+footDepth+24, label:_ftIn(len), tier:1, dir:'down'});
+
+    // Guard rail height
+    if(rail>0){
+      const guardHt = (ht>2.5?42:36)/12*SCLE;
+      pvAnn({kind:'dim_v', y1:deckTopY-guardHt, y2:deckTopY, x:OXe+EW+30,
+        label:`${ht>2.5?42:36}" GUARD`, tier:1, dir:'right'});
+    }
+
+    // Stair dim — total rise & run
+    if(rises>0){
+      const tD=10/12*SCLE, rH=(ht*12/rises)/12*SCLE;
+      const sxStart=OXe+EW*0.25, syStart=deckTopY+deckT;
+      pvAnn({kind:'dim_h', x1:sxStart, x2:sxStart+rises*tD,
+        y:syStart+rises*rH+30, label:`${rises}T @ 10" = ${_ftIn(rises*10/12)} RUN`,
+        tier:1, dir:'down'});
+      pvAnn({kind:'dim_v', y1:syStart, y2:syStart+rises*rH, x:sxStart+rises*tD+38,
+        label:`${rises}R @ ${(ht*12/rises).toFixed(2)}" = ${_ftIn(ht)} RISE`,
+        tier:1, dir:'right'});
+    }
+
+    // Section identifier overlay
+    pvAnn({kind:'code', x:8, y:8, w:88, title:'SECTION A-A', lines:['SEE 1/A-3'], color:'#00e5ff'});
+
+    // Detail callouts on elevation
+    pvAnn({kind:'detail', x:OXe-34, y:GY-EHpost-joistDepth/2, num:'1', sheet:'A3.1',
+      leadFromX:OXe, leadFromY:GY-EHpost-joistDepth/2});
+    pvAnn({kind:'detail', x:OXe+30, y:GY+footDepth+12, num:'2', sheet:'A3.1',
+      leadFromX:OXe, leadFromY:GY+footDepth/2});
+
+    // Code notes for elevation
+    pvAnn({kind:'code', x:W-208, y:H-176, w:200,
+      title:'STRUCTURAL — DECK',
+      lines:[
+        `• Total Rise: ${_ftIn(ht)}`,
+        `• Joist Span ≤ ${_ftIn(wid)} (R507.6)`,
+        `• Beam Span ≤ ${_ftIn(len/(paN-1))} (R507.5)`,
+        `• Footing depth: ${_ftIn(footDepth/SCLE)}`,
+        '• Anchor: ½"Ø G185 galv. bolt',
+        '• Frost depth per local AHJ',
+        rises>0 ? `• Stair ${rises}R total = ${_ftIn(ht)}`:'',
+      ].filter(Boolean)});
   }
 }
 
@@ -5468,6 +5657,336 @@ function pvRenderProcessDims(type, p){
   el.innerHTML = html;
 }
 
+// ══════════════════════════════════════════════════════════════════════════
+// ANNOTATION PASS — real CAD primitives drawn after elements, before titleblock
+// Multi-tier dim strings, section cut bubbles, detail callouts, elevation
+// tags, slope arrows, joist/stud direction arrows, code-note text boxes,
+// material hatches. pvBuild* clears _pvAnn and pushes pvAnn({kind:...});
+// pvDraw renders them via pvDrawAnnotations.
+// ══════════════════════════════════════════════════════════════════════════
+let _pvAnn = [];
+function pvAnn(a){ _pvAnn.push(a); }
+function pvAnnReset(){ _pvAnn = []; }
+
+function _ftIn(feet){
+  if(!isFinite(feet)) return '—';
+  const sign = feet<0?'-':''; feet=Math.abs(feet);
+  const totalEighths = Math.round(feet*12*8);
+  const ft = Math.floor(totalEighths/(12*8));
+  const remIn8 = totalEighths - ft*12*8;
+  const inches = Math.floor(remIn8/8);
+  const eighths = remIn8 - inches*8;
+  if(eighths===0) return sign + (inches===0 ? `${ft}'-0"` : `${ft}'-${inches}"`);
+  const frac = ({1:'⅛',2:'¼',3:'⅜',4:'½',5:'⅝',6:'¾',7:'⅞'})[eighths] || '';
+  return sign + `${ft}'-${inches} ${frac}"`;
+}
+
+function pvAnnDimH(ctx, a){
+  const {x1,x2,y,label,tier,dir} = a;
+  const offset = (tier||1)===1 ? 0 : (tier===2 ? 18 : 34);
+  const upDir = dir==='down' ? 1 : -1;
+  const dy = y + offset*upDir;
+  ctx.save();
+  ctx.strokeStyle=CAD.dim; ctx.lineWidth=0.7; ctx.setLineDash([]);
+  const extStart = y + (upDir>0 ? 4 : -4);
+  const extEnd = dy + (upDir>0 ? -3 : 3);
+  ctx.beginPath(); ctx.moveTo(x1, extStart); ctx.lineTo(x1, extEnd); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x2, extStart); ctx.lineTo(x2, extEnd); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x1, dy); ctx.lineTo(x2, dy); ctx.stroke();
+  const t=4;
+  [x1,x2].forEach(xt=>{ ctx.beginPath(); ctx.moveTo(xt-t, dy+t); ctx.lineTo(xt+t, dy-t); ctx.stroke(); });
+  ctx.font='bold 9px monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  const txt = label || _ftIn(Math.abs(x2-x1)/(_pvFrame?_pvFrame.scale:1));
+  const tw = ctx.measureText(txt).width;
+  ctx.fillStyle='rgba(13,17,23,0.94)';
+  ctx.fillRect((x1+x2)/2 - tw/2 - 5, dy + (upDir>0 ? 4 : -10), tw+10, 12);
+  ctx.fillStyle=CAD.dimText;
+  ctx.fillText(txt, (x1+x2)/2, dy + (upDir>0 ? 10 : -4));
+  ctx.restore();
+}
+
+function pvAnnDimV(ctx, a){
+  const {y1,y2,x,label,tier,dir} = a;
+  const offset = (tier||1)===1 ? 0 : (tier===2 ? 18 : 34);
+  const lrDir = dir==='right' ? 1 : -1;
+  const dx = x + offset*lrDir;
+  ctx.save();
+  ctx.strokeStyle=CAD.dim; ctx.lineWidth=0.7; ctx.setLineDash([]);
+  const extStart = x + (lrDir>0 ? 4 : -4);
+  const extEnd = dx + (lrDir>0 ? -3 : 3);
+  ctx.beginPath(); ctx.moveTo(extStart, y1); ctx.lineTo(extEnd, y1); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(extStart, y2); ctx.lineTo(extEnd, y2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(dx, y1); ctx.lineTo(dx, y2); ctx.stroke();
+  const t=4;
+  [y1,y2].forEach(yt=>{ ctx.beginPath(); ctx.moveTo(dx-t, yt-t); ctx.lineTo(dx+t, yt+t); ctx.stroke(); });
+  const txt = label || _ftIn(Math.abs(y2-y1)/(_pvFrame?_pvFrame.scale:1));
+  ctx.save();
+  ctx.translate(dx + (lrDir>0 ? 8 : -8), (y1+y2)/2);
+  ctx.rotate(-Math.PI/2);
+  ctx.font='bold 9px monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  const tw = ctx.measureText(txt).width;
+  ctx.fillStyle='rgba(13,17,23,0.94)';
+  ctx.fillRect(-tw/2 - 5, -7, tw+10, 12);
+  ctx.fillStyle=CAD.dimText; ctx.fillText(txt, 0, 0);
+  ctx.restore();
+  ctx.restore();
+}
+
+function pvAnnSectionCut(ctx, a){
+  const {x1,y1,x2,y2,tag,sheet,dir} = a;
+  ctx.save();
+  ctx.strokeStyle=CAD.section; ctx.lineWidth=1.4; ctx.setLineDash([10,3,3,3]);
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  ctx.setLineDash([]);
+  [[x1,y1],[x2,y2]].forEach(([bx,by])=>{
+    ctx.fillStyle='rgba(13,17,23,0.96)';
+    ctx.strokeStyle=CAD.section; ctx.lineWidth=1.2;
+    ctx.beginPath(); ctx.arc(bx,by,11,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(bx-11,by); ctx.lineTo(bx+11,by); ctx.stroke();
+    ctx.fillStyle=CAD.section; ctx.font='bold 9px monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(tag, bx, by-4);
+    ctx.font='bold 7px monospace';
+    ctx.fillText(sheet, bx, by+5);
+  });
+  const dx = x2-x1, dy = y2-y1; const len = Math.hypot(dx,dy)||1;
+  const px = -dy/len, py = dx/len;
+  const dirSign = dir==='left' ? -1 : 1;
+  [[x1,y1],[x2,y2]].forEach(([bx,by])=>{
+    const ax = bx + px*16*dirSign, ay = by + py*16*dirSign;
+    ctx.strokeStyle=CAD.section; ctx.lineWidth=1.2;
+    ctx.beginPath();
+    ctx.moveTo(bx+px*11*dirSign, by+py*11*dirSign);
+    ctx.lineTo(ax, ay);
+    ctx.stroke();
+    ctx.fillStyle=CAD.section;
+    const tipX = ax, tipY = ay;
+    const baseX = bx+px*12*dirSign, baseY = by+py*12*dirSign;
+    const perpX = (dy/len)*3, perpY = -(dx/len)*3;
+    ctx.beginPath();
+    ctx.moveTo(tipX, tipY);
+    ctx.lineTo(baseX+perpX, baseY+perpY);
+    ctx.lineTo(baseX-perpX, baseY-perpY);
+    ctx.closePath(); ctx.fill();
+  });
+  ctx.restore();
+}
+
+function pvAnnDetailBubble(ctx, a){
+  const {x, y, num, sheet, leadFromX, leadFromY} = a;
+  ctx.save();
+  if(leadFromX!==undefined && leadFromY!==undefined){
+    ctx.strokeStyle=CAD.annotate; ctx.lineWidth=0.7; ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(leadFromX, leadFromY); ctx.lineTo(x, y); ctx.stroke();
+    ctx.fillStyle=CAD.annotate;
+    ctx.beginPath(); ctx.arc(leadFromX, leadFromY, 1.5, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.fillStyle='rgba(13,17,23,0.96)';
+  ctx.strokeStyle=CAD.annotate; ctx.lineWidth=1.2;
+  ctx.beginPath(); ctx.arc(x, y, 11, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x-11, y); ctx.lineTo(x+11, y); ctx.stroke();
+  ctx.fillStyle=CAD.annotate;
+  ctx.font='bold 9px monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(num, x, y-4);
+  ctx.font='bold 7px monospace';
+  ctx.fillText(sheet, x, y+5);
+  ctx.restore();
+}
+
+function pvAnnElevTag(ctx, a){
+  const {x, y, label, anchor} = a;
+  ctx.save();
+  ctx.font='bold 9px monospace';
+  const tw = ctx.measureText(label).width + 10;
+  const ax = anchor==='right' ? x-tw-6 : x+6;
+  ctx.fillStyle='rgba(13,17,23,0.96)';
+  ctx.fillRect(ax, y-7, tw, 14);
+  ctx.strokeStyle=CAD.annotate; ctx.lineWidth=1; ctx.setLineDash([]);
+  ctx.strokeRect(ax, y-7, tw, 14);
+  ctx.fillStyle=CAD.annotate;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(label, ax+tw/2, y);
+  // Flag tick
+  ctx.beginPath();
+  if(anchor==='right'){
+    ctx.moveTo(ax+tw+6, y); ctx.lineTo(ax+tw, y-4); ctx.lineTo(ax+tw, y+4);
+  } else {
+    ctx.moveTo(ax-6, y); ctx.lineTo(ax, y-4); ctx.lineTo(ax, y+4);
+  }
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+function pvAnnSlopeArrow(ctx, a){
+  const {x, y, pitch, dir} = a;
+  const W = 36, sign = dir==='left' ? -1 : 1;
+  const dx = W*sign, dy = (pitch/12)*W*-1;
+  ctx.save();
+  ctx.strokeStyle=CAD.annotate; ctx.fillStyle=CAD.annotate;
+  ctx.lineWidth=0.8; ctx.setLineDash([]);
+  // Run + rise triangle
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x+dx, y);
+  ctx.lineTo(x+dx, y+dy);
+  ctx.closePath();
+  ctx.stroke();
+  // Slope label "n:12"
+  ctx.font='bold 9px monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillStyle='rgba(13,17,23,0.92)';
+  ctx.fillRect(x+dx*0.3, y+8, 30, 12);
+  ctx.fillStyle=CAD.annotate;
+  ctx.fillText(pitch+':12', x+dx*0.3+15, y+14);
+  ctx.restore();
+}
+
+function pvAnnDirectionArrow(ctx, a){
+  const {x1, x2, y, text, color} = a;
+  const col = color||CAD.annotate;
+  ctx.save();
+  ctx.strokeStyle=col; ctx.fillStyle=col; ctx.lineWidth=0.9; ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(x2, y); ctx.stroke();
+  const ah=6;
+  ctx.beginPath();
+  ctx.moveTo(x1, y); ctx.lineTo(x1+ah, y-ah/2); ctx.lineTo(x1+ah, y+ah/2); ctx.closePath(); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(x2, y); ctx.lineTo(x2-ah, y-ah/2); ctx.lineTo(x2-ah, y+ah/2); ctx.closePath(); ctx.fill();
+  ctx.font='bold 9px monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  const tw = ctx.measureText(text).width + 10;
+  ctx.fillStyle='rgba(13,17,23,0.96)';
+  ctx.fillRect((x1+x2)/2 - tw/2, y-7, tw, 14);
+  ctx.strokeStyle=col; ctx.lineWidth=0.6; ctx.strokeRect((x1+x2)/2 - tw/2, y-7, tw, 14);
+  ctx.fillStyle=col; ctx.fillText(text, (x1+x2)/2, y);
+  ctx.restore();
+}
+
+function pvAnnDirectionArrowV(ctx, a){
+  const {y1, y2, x, text, color} = a;
+  const col = color||CAD.annotate;
+  ctx.save();
+  ctx.strokeStyle=col; ctx.fillStyle=col; ctx.lineWidth=0.9; ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(x, y1); ctx.lineTo(x, y2); ctx.stroke();
+  const ah=6;
+  ctx.beginPath();
+  ctx.moveTo(x, y1); ctx.lineTo(x-ah/2, y1+ah); ctx.lineTo(x+ah/2, y1+ah); ctx.closePath(); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(x, y2); ctx.lineTo(x-ah/2, y2-ah); ctx.lineTo(x+ah/2, y2-ah); ctx.closePath(); ctx.fill();
+  ctx.save();
+  ctx.translate(x, (y1+y2)/2);
+  ctx.rotate(-Math.PI/2);
+  ctx.font='bold 9px monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  const tw = ctx.measureText(text).width + 10;
+  ctx.fillStyle='rgba(13,17,23,0.96)';
+  ctx.fillRect(-tw/2, -7, tw, 14);
+  ctx.strokeStyle=col; ctx.lineWidth=0.6; ctx.strokeRect(-tw/2, -7, tw, 14);
+  ctx.fillStyle=col; ctx.fillText(text, 0, 0);
+  ctx.restore();
+  ctx.restore();
+}
+
+function pvAnnGridBubble(ctx, a){
+  const {x, y, label} = a;
+  ctx.save();
+  ctx.fillStyle='rgba(13,17,23,0.96)';
+  ctx.strokeStyle=CAD.annotate; ctx.lineWidth=1; ctx.setLineDash([]);
+  ctx.beginPath(); ctx.arc(x, y, 9, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+  ctx.fillStyle=CAD.annotate; ctx.font='bold 9px monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(label, x, y);
+  ctx.restore();
+}
+
+function pvAnnCodeNote(ctx, a){
+  const {x, y, w, lines, title, color} = a;
+  const col = color || CAD.annotate;
+  ctx.save();
+  const pad=5, lineH=10;
+  const titleH = title ? 12 : 0;
+  const boxH = lines.length*lineH + pad*2 + titleH;
+  ctx.fillStyle='rgba(0,40,20,0.88)';
+  ctx.fillRect(x, y, w, boxH);
+  ctx.strokeStyle=col; ctx.lineWidth=0.7; ctx.setLineDash([]);
+  ctx.strokeRect(x, y, w, boxH);
+  ctx.textAlign='left'; ctx.textBaseline='top';
+  if(title){
+    ctx.fillStyle=CAD.dimText; ctx.font='bold 9px monospace';
+    ctx.fillText(title, x+pad, y+pad);
+  }
+  ctx.font='8px monospace'; ctx.fillStyle=col;
+  lines.forEach((line,i)=>{
+    ctx.fillText(line, x+pad, y+pad+titleH+i*lineH);
+  });
+  ctx.restore();
+}
+
+function pvAnnEarthHatch(ctx, a){
+  const {x, y, w, h} = a;
+  ctx.save();
+  ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+  ctx.fillStyle='rgba(60,42,26,0.4)';
+  ctx.fillRect(x,y,w,h);
+  ctx.strokeStyle='rgba(140,100,60,0.7)'; ctx.lineWidth=0.45; ctx.setLineDash([]);
+  for(let i=-h; i<w; i+=6){
+    ctx.beginPath(); ctx.moveTo(x+i, y); ctx.lineTo(x+i+h, y+h); ctx.stroke();
+  }
+  ctx.strokeStyle='rgba(170,130,80,0.95)'; ctx.lineWidth=0.7;
+  for(let i=2; i<w; i+=8){
+    const tuftLen = 3+((i*37)%5)*0.4;
+    ctx.beginPath();
+    ctx.moveTo(x+i, y); ctx.lineTo(x+i-1, y+tuftLen);
+    ctx.moveTo(x+i, y); ctx.lineTo(x+i+1, y+tuftLen);
+    ctx.stroke();
+  }
+  ctx.restore();
+  ctx.save();
+  ctx.strokeStyle='rgba(200,160,110,0.95)'; ctx.lineWidth=1.4; ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x+w, y); ctx.stroke();
+  ctx.restore();
+}
+
+function pvAnnConcreteHatch(ctx, a){
+  const {x, y, w, h} = a;
+  ctx.save();
+  ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+  ctx.fillStyle='rgba(110,120,130,0.4)';
+  ctx.fillRect(x,y,w,h);
+  for(let i=0; i<Math.min(w*h/14, 90); i++){
+    const r = 0.4 + ((i*7919)%5)*0.3;
+    const sx = x + ((i*9973)%1000)/1000*w;
+    const sy = y + ((i*7321)%1000)/1000*h;
+    ctx.fillStyle = `rgba(${100+((i*23)%40)},${110+((i*17)%30)},${120+((i*13)%25)},0.6)`;
+    ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.strokeStyle='rgba(80,90,100,0.4)'; ctx.lineWidth=0.4;
+  for(let i=0; i<Math.min(w*h/280, 14); i++){
+    const sx = x + ((i*1721)%1000)/1000*w;
+    const sy = y + ((i*4099)%1000)/1000*h;
+    ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx+3, sy-3); ctx.stroke();
+  }
+  ctx.strokeStyle='rgba(170,180,190,0.7)'; ctx.lineWidth=0.8;
+  ctx.strokeRect(x,y,w,h);
+  ctx.restore();
+}
+
+function pvDrawAnnotations(ctx, W, H){
+  if(!_pvAnn || _pvAnn.length===0) return;
+  ctx.save();
+  ctx.setLineDash([]);
+  _pvAnn.forEach(a=>{
+    if(a.kind==='dim_h')           pvAnnDimH(ctx, a);
+    else if(a.kind==='dim_v')      pvAnnDimV(ctx, a);
+    else if(a.kind==='section')    pvAnnSectionCut(ctx, a);
+    else if(a.kind==='detail')     pvAnnDetailBubble(ctx, a);
+    else if(a.kind==='elev')       pvAnnElevTag(ctx, a);
+    else if(a.kind==='slope')      pvAnnSlopeArrow(ctx, a);
+    else if(a.kind==='dir')        pvAnnDirectionArrow(ctx, a);
+    else if(a.kind==='dirv')       pvAnnDirectionArrowV(ctx, a);
+    else if(a.kind==='grid')       pvAnnGridBubble(ctx, a);
+    else if(a.kind==='code')       pvAnnCodeNote(ctx, a);
+    else if(a.kind==='earth')      pvAnnEarthHatch(ctx, a);
+    else if(a.kind==='conc_hatch') pvAnnConcreteHatch(ctx, a);
+  });
+  ctx.restore();
+}
+
 function pvDraw(){
   const c=_pvCanvas||document.getElementById('process-canvas');
   if(!c) return;
@@ -5535,7 +6054,10 @@ function pvDraw(){
     }
   }
 
-  // ── Blueprint overlay: dimension strings, title block, scale bar, north arrow
+  // ── Annotation pass (real CAD primitives: dim strings, section cuts, etc.)
+  pvDrawAnnotations(ctx, W, H);
+
+  // ── Blueprint overlay: title block, scale bar, north arrow
   pvDrawBlueprintOverlay(ctx, W, H);
 
   ctx.restore();
