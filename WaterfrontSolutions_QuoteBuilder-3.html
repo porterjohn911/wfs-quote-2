@@ -1341,7 +1341,7 @@ const TASKS = [
   {name:"Debris haul-off / cleanup",cat:"Site Work",icon:"🚛",unit:"load",unitLabel:"loads",hrsPerUnit:2.5,rateKey:"gen",matPerUnit:0,notes:"Per dump truck load"},
   {name:"Form & pour footer (12\"×8\")",cat:"Concrete",icon:"🏗️",unit:"lf",unitLabel:"lin ft",hrsPerUnit:.45,rateKey:"sk",matPerUnit:8,notes:"Incl. forms, rebar, concrete"},
   {name:"Form & pour footer (16\"×8\")",cat:"Concrete",icon:"🏗️",unit:"lf",unitLabel:"lin ft",hrsPerUnit:.55,rateKey:"sk",matPerUnit:12,notes:"Standard residential footer"},
-  {name:"Pier / sonotube footing",cat:"Concrete",icon:"🔩",unit:"ea",unitLabel:"each",hrsPerUnit:2.8,rateKey:"sk",matPerUnit:48,notes:"12\" tube, 3 ft deep, incl. rebar"},
+  {name:"Pier / sonotube footing",cat:"Concrete",icon:"🔩",unit:"ea",unitLabel:"each",hrsPerUnit:1.8,rateKey:"sk",matPerUnit:38,notes:"12\" tube, 3 ft deep, incl. rebar; auger crew rate"},
   {name:"Concrete slab — 4\" reinforced",cat:"Concrete",icon:"🟫",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:.08,rateKey:"sk",matPerUnit:6,notes:"Incl. gravel, vapor barrier, wire mesh"},
   {name:"Concrete slab — 6\" reinforced",cat:"Concrete",icon:"🟫",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:.1,rateKey:"sk",matPerUnit:8.5,notes:"Garage or heavy load slab"},
   {name:"CMU block wall — 8\" standard",cat:"Masonry",icon:"🧱",unit:"sqft",unitLabel:"sq ft of wall",hrsPerUnit:.28,rateKey:"mason",matPerUnit:4.5,notes:"~1.125 blocks/sqft; mortar incl."},
@@ -1352,7 +1352,7 @@ const TASKS = [
   {name:"Deck joist framing (16\" OC)",cat:"Deck",icon:"🪵",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:.062,rateKey:"sk",matPerUnit:2.5,notes:"Incl. joist hangers"},
   {name:"Deck decking — pressure treated",cat:"Deck",icon:"🪵",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.055,rateKey:"sk",matPerUnit:3.8,notes:"5/4×6 PT; incl. fasteners"},
   {name:"Deck decking — composite / Trex",cat:"Deck",icon:"🪵",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.065,rateKey:"sk",matPerUnit:13.5,notes:"Hidden fastener system"},
-  {name:"Deck posts — 4×4 or 6×6 set",cat:"Deck",icon:"🪵",unit:"ea",unitLabel:"each",hrsPerUnit:1.5,rateKey:"sk",matPerUnit:19.5,notes:"Incl. post base, plumb & brace"},
+  {name:"Deck posts — 4×4 or 6×6 set",cat:"Deck",icon:"🪵",unit:"ea",unitLabel:"each",hrsPerUnit:0.9,rateKey:"sk",matPerUnit:19.5,notes:"Incl. post base, plumb & brace (sonotubes pre-augered)"},
   {name:"Deck railings — wood balusters",cat:"Deck",icon:"🪵",unit:"lf",unitLabel:"lin ft",hrsPerUnit:0.75,rateKey:"sk",matPerUnit:15.5,notes:"Top/bottom rail + balusters 4\" OC"},
   {name:"Deck stairs — wood stringers",cat:"Deck",icon:"🪵",unit:"riser",unitLabel:"risers",hrsPerUnit:1.25,rateKey:"sk",matPerUnit:24,notes:"Per riser incl. treads"},
   {name:"Deck ledger & beam install",cat:"Deck",icon:"🪵",unit:"lf",unitLabel:"lin ft",hrsPerUnit:0.5,rateKey:"sk",matPerUnit:7.5,notes:"Lag bolts, hangers, beam pockets"},
@@ -2888,12 +2888,12 @@ const ALT_CATALOG = {
     {label:'ccSPF kit 200 bf',           matCostEach:385},
   ],
   column: [
-    {label:'6×6 PT Post',          matCostEach:58},
-    {label:'PVC Wrap 8" Round',    matCostEach:285},
-    {label:'PVC Wrap 10" Round',   matCostEach:325},
-    {label:'PVC Wrap 12" Square Fluted', matCostEach:385},
-    {label:'Fiberglass Round 8"',  matCostEach:215},
-    {label:'Cedar 6×6 Wrapped',    matCostEach:185},
+    {label:'6×6 PT Post',          matCostEach:32},
+    {label:'PVC Wrap 8" Round',    matCostEach:215},
+    {label:'PVC Wrap 10" Round',   matCostEach:265},
+    {label:'PVC Wrap 12" Square Fluted', matCostEach:325},
+    {label:'Fiberglass Round 8"',  matCostEach:195},
+    {label:'Cedar 6×6 Wrapped',    matCostEach:165},
   ],
   paint: [
     {label:'Sherwin Multipurpose Primer 1 gal',  matCostEach:52},
@@ -3395,9 +3395,9 @@ function toRenderResults(items, summary, type){
     'Deck Accessories':    {lf:0.10, ea:0.40, sqft:0.10, panel:1.5,  default:0.15},
     'Railing':             {lf:0.55, ea:0.15, default:0.30},
     'Railing / Half-Walls':{lf:0.55, ea:0.25, default:0.35},
-    'Concrete':            {CY:3.0, bag:0.05, ea:0.5, default:0.10},
-    'Foundation':          {CY:3.5, bag:0.08, ea:0.5, default:0.12},
-    'Columns & Posts':     {ea:1.2, lf:0.5, default:0.30},
+    'Concrete':            {CY:3.0, bag:0.05, ea:0.25, default:0.08},
+    'Foundation':          {CY:3.5, bag:0.05, ea:0.20, default:0.10},
+    'Columns & Posts':     {ea:0.80, lf:0.35, default:0.20},
     'Floor Framing':       {default:0.12},
     'Ceiling':             {lf:0.08, sqft:0.08, default:0.10},
     'Electrical (Rough-In)':{ea:0.75, lf:0.05, default:0.25},
@@ -7718,20 +7718,29 @@ const PRICE_MAP = (()=>{
   const add = (name, mat, hrs, rate='sk') => { map[name]={mat,hrs,rate,unit:'ea'}; };
 
   // ── FOUNDATION & POSTS ─────────────────────────────────────────────────
-  add('6×6 PT Post',              22,  1.50, 'sk');
-  add('4×4 PT Post',              13,  1.25, 'sk');
-  add('4×4 Post Base (ABA44)',     7.20, 0.20, 'sk');
-  add('6×6 Post Base (ABA66)',     9.80, 0.20, 'sk');
-  add('80lb Concrete (Quikrete)',  6.45, 0.08, 'sk');
-  add('Sonotube Forms 12"',       12,  0.30, 'sk');
-  add('Anchor Bolt J-bolt 1/2"×10"', 2.10, 0.15, 'sk');
-  add('J-Bolt Anchor Sets',       4.20, 0.20, 'sk');
-  add('1/2"×6" Lag Bolts (ledger)', 0.75, 0.10, 'sk');
-  add('Concrete Footings (80lb bags)', 6.45, 0.08, 'sk');
-  add('Post Base Hardware ABA44',  7.20, 0.20, 'sk');
-  add('Post Base Hardware ABA66',  9.80, 0.20, 'sk');
-  add('Base Plate Weld Flanges',  18,  0.50, 'sk');
-  add('Helical Pier Installation (contractor)', 175, 1.0, 'sub');
+  // Labor reflects per-unit install time when crew is on site, sonotubes
+  // pre-augered. Setting a post (plumb, brace, fasten) ≈ 0.6–0.8 hr.
+  // Hardware items intentionally light — they're installed alongside posts.
+  add('6×6 PT Post',              22,  0.80, 'sk');
+  add('4×4 PT Post',              13,  0.60, 'sk');
+  add('4×4 Post Base (ABA44)',     7.20, 0.08, 'sk');
+  add('6×6 Post Base (ABA66)',     9.80, 0.08, 'sk');
+  add('80lb Concrete (Quikrete)',  6.45, 0.05, 'sk');
+  add('Sonotube Forms 12"',       12,  0.20, 'sk');
+  add('Anchor Bolt J-bolt 1/2"×10"', 2.10, 0.08, 'sk');
+  add('J-Bolt Anchor Sets',       4.20, 0.10, 'sk');
+  add('J-Bolt Anchor Sets 1/2"',  4.20, 0.10, 'sk');
+  add('Anchor Bolts 1/2"×10" (set in concrete)', 2.10, 0.10, 'sk');
+  add('1/2"×6" Lag Bolts (ledger)', 0.75, 0.05, 'sk');
+  add('Concrete Footings (80lb bags)', 6.45, 0.05, 'sk');
+  add('Post Base Hardware ABA44',  7.20, 0.08, 'sk');
+  add('Post Base Hardware ABA66',  9.80, 0.08, 'sk');
+  add('Post Base Hardware 6x6pt',  9.80, 0.08, 'sk');
+  add('Post Base Hardware 4x4pt',  7.20, 0.08, 'sk');
+  add('Post Cap Hardware',         8.50, 0.10, 'sk');
+  add('Base Plate Weld Flanges',  18,  0.35, 'sk');
+  // Helical pier contractor price is turnkey — includes their labor.
+  add('Helical Pier Installation (contractor)', 195, 0, 'sub');
 
   // ── FRAMING & STRUCTURE ────────────────────────────────────────────────
   // Lumber priced per board (common sizes)
@@ -7897,8 +7906,20 @@ const PRICE_MAP = (()=>{
   add('Outdoor Rated Junction Box',   12,  0.50,'elec');
 
   // ── CARPORT ─────────────────────────────────────────────────────────────
-  add('Steel tube (3.5" sq)',         22,  0.40,'sk');
+  // Carport/porch column-name variants (per-foot of post, set/plumb/brace).
+  // Material here is per-piece including a typical 10–12' length.
+  add('6×6 PT Timber',                32,  0.80,'sk');  // ~10' post
+  add('4×4 PT Timber',                17,  0.55,'sk');
+  add('6×6 PT Column',                32,  0.80,'sk');  // porch wood column variant
+  add('4×4 PT Column',                17,  0.55,'sk');
+  add('6×6 Wrapped Column',           95,  1.10,'sk');  // PT post + PVC wrap kit
+  add('4×4 Wrapped Column',           75,  0.90,'sk');
+  add('6×6 Fiberglass Column',       210,  1.00,'sk');  // round fiberglass column
+  add('3.5" Sq Steel Tube',           48,  0.70,'sk');  // ~10' length steel column
+  add('3" Round Steel Pipe',          38,  0.65,'sk');
+  add('Steel tube (3.5" sq)',         22,  0.40,'sk');  // per-lf legacy
   add('Steel pipe (3" round)',         18,  0.35,'sk');
+  add('Exterior Wood Sealer (gal)',   28,  0.20,'paint');
   add('Steel Primer Spray Paint',     12,  0.10,'paint');
   add('Welding Rod / Wire',            8.50, 0.10,'sk');
   add('Steel Header Beam (4"×2" tube, 20\' sticks)', 85, 0.30,'sk');
