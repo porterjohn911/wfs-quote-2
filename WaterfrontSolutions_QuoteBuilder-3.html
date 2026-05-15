@@ -852,7 +852,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
         </div>
       </div>
 
-      <!-- FRAMING inputs -->
+      <!-- FRAMING / ROOM ADDITION inputs -->
       <div id="to-framing" class="to-panel" style="display:none">
         <div class="section">
           <div class="section-head"><span class="section-title">Room / Addition Dimensions</span></div>
@@ -872,16 +872,16 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
               </div>
             </div>
             <div class="field-row">
-              <div class="field"><label>Exterior walls only?</label>
-                <select id="fr-extonly" onchange="toCalc()">
-                  <option value="no">No — include interior walls</option>
-                  <option value="yes">Yes — exterior only</option>
-                </select>
-              </div>
               <div class="field"><label>Stud size</label>
                 <select id="fr-stud" onchange="toCalc()">
-                  <option value="2x6">2×6 (exterior)</option>
-                  <option value="2x4">2×4 (interior)</option>
+                  <option value="2x6">2×6 (exterior, R-21 cavity)</option>
+                  <option value="2x4">2×4 (interior, R-13 cavity)</option>
+                </select>
+              </div>
+              <div class="field"><label>Interior walls?</label>
+                <select id="fr-extonly" onchange="toCalc()">
+                  <option value="no">Include interior partitions</option>
+                  <option value="yes">Exterior only — open room</option>
                 </select>
               </div>
             </div>
@@ -889,17 +889,154 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
               <div class="field"><label>Doors (qty)</label><input type="number" id="fr-doors" value="2" min="0" step="1" oninput="toCalc()"/></div>
               <div class="field"><label>Windows (qty)</label><input type="number" id="fr-windows" value="4" min="0" step="1" oninput="toCalc()"/></div>
             </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-head"><span class="section-title">Foundation</span></div>
+          <div class="section-body">
             <div class="field-row">
-              <div class="field"><label>Include sheathing?</label>
-                <select id="fr-sheath" onchange="toCalc()">
-                  <option value="yes">Yes — OSB wall sheathing</option>
-                  <option value="no">No</option>
+              <div class="field"><label>Foundation type</label>
+                <select id="fr-foundation" onchange="toCalc()">
+                  <option value="crawl">Crawlspace — CMU stem wall on footing</option>
+                  <option value="slab">Slab-on-grade — monolithic w/ thickened edge</option>
+                  <option value="pier">Pier-and-beam — poured piers, no perimeter wall</option>
+                  <option value="basement">Full basement — 8' poured walls</option>
+                  <option value="existing">Match existing — tie into house foundation</option>
                 </select>
               </div>
-              <div class="field"><label>Include ceiling joists?</label>
+              <div class="field"><label>Footing depth (in, below grade)</label>
+                <input type="number" id="fr-footdep" value="24" min="12" max="60" step="2" oninput="toCalc()"/>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-head"><span class="section-title">Roof</span></div>
+          <div class="section-body">
+            <div class="field-row">
+              <div class="field"><label>Roof type</label>
+                <select id="fr-rooftype" onchange="toCalc()">
+                  <option value="gable">Gable — stick-framed rafters + ridge</option>
+                  <option value="shed">Shed — single-slope tie-in to existing</option>
+                  <option value="hip">Hip — 4-sided slope</option>
+                  <option value="truss">Engineered trusses (gable)</option>
+                  <option value="flat">Low-slope / flat — TPO membrane</option>
+                </select>
+              </div>
+              <div class="field"><label>Pitch (rise:12)</label>
+                <select id="fr-pitch" onchange="toCalc()">
+                  <option value="4">4:12</option>
+                  <option value="6" selected>6:12</option>
+                  <option value="8">8:12</option>
+                  <option value="10">10:12</option>
+                  <option value="12">12:12</option>
+                </select>
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field"><label>Roofing material</label>
+                <select id="fr-roofmat" onchange="toCalc()">
+                  <option value="arch">Architectural shingles (30-yr)</option>
+                  <option value="metal">Standing seam metal (24-ga)</option>
+                  <option value="3tab">3-tab shingles (budget)</option>
+                  <option value="metalexp">Exposed-fastener metal (29-ga)</option>
+                </select>
+              </div>
+              <div class="field"><label>Ceiling type</label>
                 <select id="fr-ceil" onchange="toCalc()">
-                  <option value="yes">Yes</option>
-                  <option value="no">No (trusses / open)</option>
+                  <option value="flat">Flat ceiling — joists + drywall</option>
+                  <option value="cathedral">Cathedral — drywall on rafters</option>
+                  <option value="vaulted">Vaulted w/ collar ties</option>
+                  <option value="open">Open / exposed framing</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-head"><span class="section-title">Exterior & Interior Finish</span></div>
+          <div class="section-body">
+            <div class="field-row">
+              <div class="field"><label>Exterior siding</label>
+                <select id="fr-siding" onchange="toCalc()">
+                  <option value="vinyl">Vinyl D5 lap siding</option>
+                  <option value="hardie">James Hardie fiber-cement lap</option>
+                  <option value="lp">LP SmartSide engineered wood</option>
+                  <option value="bb">Board & batten (LP/cedar)</option>
+                  <option value="brick">Brick veneer (over wrap)</option>
+                  <option value="match">Match existing (allowance)</option>
+                </select>
+              </div>
+              <div class="field"><label>Interior wall finish</label>
+                <select id="fr-intfinish" onchange="toCalc()">
+                  <option value="dw_paint">½" drywall + primer + 2 coat paint</option>
+                  <option value="dw_texture">½" drywall + knockdown texture + paint</option>
+                  <option value="shiplap">Shiplap accent + drywall balance</option>
+                  <option value="dw_only">½" drywall only (no finish)</option>
+                </select>
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field"><label>Flooring</label>
+                <select id="fr-floor" onchange="toCalc()">
+                  <option value="lvp">Luxury vinyl plank (LVP)</option>
+                  <option value="hardwood">Solid hardwood ¾"</option>
+                  <option value="engineered">Engineered hardwood</option>
+                  <option value="tile">Porcelain tile</option>
+                  <option value="carpet">Carpet + pad</option>
+                  <option value="stained">Stained / sealed concrete (slab only)</option>
+                  <option value="none">Subfloor only (owner finishes)</option>
+                </select>
+              </div>
+              <div class="field"><label>Trim level</label>
+                <select id="fr-trim" onchange="toCalc()">
+                  <option value="builder">Builder-grade — colonial casing + 3¼" base</option>
+                  <option value="standard">Standard — craftsman casing + 5¼" base</option>
+                  <option value="premium">Premium — 7" base + crown + chair rail</option>
+                  <option value="minimal">Minimal — square casing + 2¼" base</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-head"><span class="section-title">Systems (rough-in)</span></div>
+          <div class="section-body">
+            <div class="field-row">
+              <div class="field"><label>Electrical scope</label>
+                <select id="fr-elec" onchange="toCalc()">
+                  <option value="basic">Basic — code-min outlets, 1 light + switch</option>
+                  <option value="standard">Standard — receptacles per IRC, 3-4 lights, 2 switches</option>
+                  <option value="full">Full — ceiling fan, recessed lights, dedicated circuits</option>
+                  <option value="subpanel">Full + new subpanel (100A)</option>
+                </select>
+              </div>
+              <div class="field"><label>Plumbing scope</label>
+                <select id="fr-plumb" onchange="toCalc()">
+                  <option value="none">None</option>
+                  <option value="halfbath">Half-bath rough (toilet + lav)</option>
+                  <option value="fullbath">Full-bath rough (tub/shower + toilet + lav)</option>
+                  <option value="kitchenette">Kitchenette (sink + DW + drain)</option>
+                </select>
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field"><label>HVAC</label>
+                <select id="fr-hvac" onchange="toCalc()">
+                  <option value="extend">Extend existing — 2 supply runs + return</option>
+                  <option value="minisplit">New ductless mini-split (18k BTU)</option>
+                  <option value="minisplit_lg">New ductless mini-split (24k BTU)</option>
+                  <option value="none">None (owner provides)</option>
+                </select>
+              </div>
+              <div class="field"><label>Include sheathing?</label>
+                <select id="fr-sheath" onchange="toCalc()">
+                  <option value="yes">Yes — 7/16" OSB walls + ZIP tape</option>
+                  <option value="no">No (let-in bracing only)</option>
                 </select>
               </div>
             </div>
@@ -2562,115 +2699,680 @@ function toCalcRoof(){
 
 // ── FRAMING TAKEOFF ───────────────────────────────────────
 function toCalcFraming(){
-  const len    = parseFloat(document.getElementById('fr-len').value)||20;
-  const wid    = parseFloat(document.getElementById('fr-wid').value)||14;
-  const ht     = parseFloat(document.getElementById('fr-ht').value)||9;
-  const oc     = parseInt(document.getElementById('fr-oc').value)||16;
-  const extonly= document.getElementById('fr-extonly').value==='yes';
-  const studSz = document.getElementById('fr-stud').value;
-  const doors  = parseInt(document.getElementById('fr-doors').value)||0;
-  const windows= parseInt(document.getElementById('fr-windows').value)||0;
-  const sheath = document.getElementById('fr-sheath').value==='yes';
-  const ceil   = document.getElementById('fr-ceil').value==='yes';
+  // ── INPUTS ──────────────────────────────────────────────────────────────
+  const len      = parseFloat(document.getElementById('fr-len').value)||20;
+  const wid      = parseFloat(document.getElementById('fr-wid').value)||14;
+  const ht       = parseFloat(document.getElementById('fr-ht').value)||9;
+  const oc       = parseInt  (document.getElementById('fr-oc').value)||16;
+  const extonly  = document.getElementById('fr-extonly').value==='yes';
+  const studSz   = document.getElementById('fr-stud').value; // '2x4' | '2x6'
+  const doors    = parseInt(document.getElementById('fr-doors').value)||0;
+  const windows  = parseInt(document.getElementById('fr-windows').value)||0;
+  const sheath   = document.getElementById('fr-sheath')?.value==='yes';
+  const foundation = document.getElementById('fr-foundation')?.value || 'crawl';
+  const footDep    = parseInt(document.getElementById('fr-footdep')?.value)||24;
+  const roofType   = document.getElementById('fr-rooftype')?.value || 'gable';
+  const pitch      = parseInt(document.getElementById('fr-pitch')?.value)||6;
+  const roofMat    = document.getElementById('fr-roofmat')?.value || 'arch';
+  const ceiling    = document.getElementById('fr-ceil')?.value || 'flat';
+  const siding     = document.getElementById('fr-siding')?.value || 'vinyl';
+  const intFinish  = document.getElementById('fr-intfinish')?.value || 'dw_paint';
+  const flooring   = document.getElementById('fr-floor')?.value || 'lvp';
+  const trim       = document.getElementById('fr-trim')?.value || 'builder';
+  const elecScope  = document.getElementById('fr-elec')?.value || 'standard';
+  const plumbScope = document.getElementById('fr-plumb')?.value || 'none';
+  const hvacScope  = document.getElementById('fr-hvac')?.value || 'extend';
 
-  const sqft = len * wid;
+  // ── DERIVED GEOMETRY ────────────────────────────────────────────────────
+  const sqft       = len * wid;
+  const extPerim   = (len + wid) * 2;
+  // Interior partition LF (one rough partition) — only when not exterior-only.
+  const intLF      = extonly ? 0 : Math.max(len, wid);
+  // Stud length rounds up to nearest standard 8/9/10.
+  const studLen    = ht <= 8 ? 8 : ht <= 9 ? 9 : 10;
+  // Wall area minus opening cutouts (door ≈ 3×7, window ≈ 3×4 average).
+  const wallArea   = extPerim * ht;
+  const openArea   = doors * 21 + windows * 12;
+  const netWallArea= Math.max(0, wallArea - openArea);
+  // Ceiling area (cathedral ceilings get slope-multiplied)
+  const pitchMult  = Math.sqrt(1 + (pitch/12)**2);
+  const ceilArea   = (ceiling==='cathedral' || ceiling==='vaulted')
+                     ? sqft * pitchMult : sqft;
+  // Interior wall area (ceiling height × interior LF) painted on both faces
+  const intWallArea= intLF * ht * 2;
+  // Total drywall surface = exterior walls (one face) + interior walls (both)
+  //                       + ceiling (if flat or cathedral)
+  const dwallArea  = netWallArea + intWallArea +
+                     (ceiling==='open' ? 0 : ceilArea);
+  // Roof plan area + roof surface (sloped)
+  const roofSqft   = sqft * pitchMult;
+  // Stud count — 1 per OC + extras at corners/openings/intersections
+  const extStuds   = Math.ceil(extPerim*12/oc) + 8 + doors*4 + windows*4;
+  const intStuds   = extonly ? 0 : Math.ceil(intLF*12/16) + 4;
+  const totalStuds = Math.ceil((extStuds + intStuds) * 1.10);
+  // Plates — top double + bottom single = 3x lineal of all walls
+  const plateLF    = (extPerim + intLF) * 3;
+  const platePcs   = Math.ceil(plateLF / 16 * 1.08);
+  // Footing/foundation lineal feet
+  const foundLF    = foundation==='pier' ? 0 : extPerim;
+  // CMU block count: 8×8×16 blocks. Crawl height ~30" → 4 courses of
+  // 16"-long blocks gives 3 blocks/LF (0.75 blocks/lf/course × 4 courses).
+  // 10% added for waste, breakage, and access openings.
+  const cmuQty     = foundation==='crawl' ? Math.ceil(foundLF * 3 * 1.10) : 0;
+  // Footing concrete CY: 8" deep × 16" wide perimeter footer
+  const footCY     = foundLF * (8/12) * (16/12) / 27;
+  // Slab CY: 4" thickened-edge slab
+  const slabCY     = foundation==='slab' ? sqft * (4/12) / 27 : 0;
+  // Pier count for pier-and-beam (every 8' along perim + interior beams)
+  const pierQty    = foundation==='pier' ? Math.ceil(extPerim/8)+4 : 0;
+  // Basement wall CY: 8' tall × 10" thick
+  const basementCY = foundation==='basement' ? extPerim * 8 * (10/12) / 27 : 0;
 
-  // EXTERIOR WALLS
-  const extPerim = (len + wid) * 2;
-  const extStudCount = Math.ceil((extPerim * 12) / oc) + 8; // +8 corners
-  // Plate — top double plate + single bottom = 3x perimeter
-  const extPlateLinFt = extPerim * 3;
-  const extPlatePcs = Math.ceil(extPlateLinFt / 16);
-
-  // INTERIOR WALLS (rough estimate — ~30% of perimeter for average room)
-  let intStudCount=0, intPlatePcs=0;
-  if(!extonly){
-    const intWallLinFt = (len + wid); // rough interior walls
-    intStudCount = Math.ceil((intWallLinFt * 12) / 16) + 4;
-    intPlatePcs = Math.ceil(intWallLinFt * 3 / 16);
-  }
-
-  const totalStuds = extStudCount + intStudCount;
-  // Stud length: round up to nearest even
-  const studLen = Math.ceil(ht) % 2 === 0 ? Math.ceil(ht) : Math.ceil(ht)+1;
-  const studPcs = Math.ceil(totalStuds * 1.10); // 10% waste/cripples
-
-  // HEADERS — doubled LVL or 2x lumber over openings
-  const openings = doors + windows;
-  const headerLinFt = openings * 6; // avg 6ft header per opening
-  const headerPcs = openings * 2; // doubled
-
-  // SHEATHING
-  let sheathSheets=0;
-  if(sheath){
-    const wallArea = extPerim * ht;
-    const openArea = doors*21 + windows*15; // door ~3x7, window ~3x5 sqft
-    sheathSheets = Math.ceil((wallArea - openArea) / 32 * 1.08);
-  }
-
-  // CEILING JOISTS
-  let ceilJoistQty=0, ceilJoistLen=0;
-  if(ceil){
-    ceilJoistLen = wid<=16?wid:Math.ceil(wid/2)+2;
-    ceilJoistQty = Math.ceil((len*12)/oc)+1;
-  }
-
-  // HARDWARE
-  const framingNailLbs = Math.ceil(totalStuds * 0.15);
-  const jstHangers = ceil ? ceilJoistQty*2 : 0;
-
-  // HOUSE WRAP
-  const houseWrapSqft = extPerim * ht;
-  const houseWrapRolls = Math.ceil(houseWrapSqft / 1500 * 1.10); // 9ft wide rolls
-
-  // WINDOW / DOOR ROUGH OPENINGS hardware
-  const roHardware = openings;
-
-  render2D('framing',{len,wid,ht,oc,doors,windows});
+  // ── RENDER (drawing function unchanged) ─────────────────────────────────
+  render2D('framing',{len,wid,ht,oc,doors,windows,
+                      foundation,roofType,pitch,roofMat,siding,flooring});
 
   const studLabel = studSz==='2x6'?'2×6':'2×4';
-  const items = {
-    'Studs & Plates': [
-      {name: studLabel+'×'+studLen+"' Studs", qty: studPcs, unit:'pcs', orderUnit:'pcs'},
-      {name: studLabel+"×16' Plate Stock (top/bottom)", qty: extPlatePcs+intPlatePcs, unit:'pcs', orderUnit:'pcs'},
-    ],
-    'Headers': [
-      {name:"2×10×12' LVL/Header Stock", qty: headerPcs, unit:'pcs', orderUnit:'pcs'},
-      {name:'Cripple/Jack Studs (cut from stud stock)', qty: openings*4, unit:'pcs', orderUnit:'pcs'},
-    ],
-    ...(sheath?{'Wall Sheathing': [
-      {name:'7/16" OSB Wall Sheathing (4×8 sheets)', qty: sheathSheets, unit:'sheets', orderUnit:'sheets'},
-      {name:'House Wrap (roll, 9\'×150\')', qty: houseWrapRolls, unit:'rolls', orderUnit:'rolls'},
-      {name:'Sheathing Nails (8d common)', qty: Math.ceil(sheathSheets*0.6), unit:'lbs', orderUnit:'5lb box'},
-    ]}:{}),
-    ...(ceil?{'Ceiling Joists': [
-      {name:"2×8×"+ceilJoistLen+"' Ceiling Joists", qty: ceilJoistQty, unit:'pcs', orderUnit:'pcs'},
-      {name:'Joist Hangers (LUS28)', qty: jstHangers, unit:'ea', orderUnit:'box(25)'},
-    ]}:{}),
-    'Hardware & Fasteners': [
-      {name:'Framing Nails (16d / 3.5")', qty: framingNailLbs, unit:'lbs', orderUnit:'25lb box'},
-      {name:'Structural Screws (3" GRK)', qty: openings*20, unit:'ea', orderUnit:'box(50)'},
-      {name:'Anchor Bolts (J-bolt 1/2"×10")', qty: Math.ceil(extPerim/6), unit:'ea', orderUnit:'box(25)'},
-      {name:'Hurricane Ties (H2.5A)', qty: ceilJoistQty*2||extStudCount, unit:'ea', orderUnit:'box(50)'},
-    ],
-    'Summary': [
-      {name:'FLOOR AREA', qty: sqft.toFixed(0), unit:'sq ft', orderUnit:''},
-      {name:'EXT. WALL PERIMETER', qty: extPerim.toFixed(0), unit:'lin ft', orderUnit:''},
-      {name:'TOTAL STUDS', qty: studPcs, unit:'pcs', orderUnit:''},
-    ],
+
+  // ── ITEMS ───────────────────────────────────────────────────────────────
+  // Each item is a row. Where the name matches a PRICE_MAP entry the unit
+  // pricing comes from that map; otherwise the category-default labor table
+  // and the optional matCostEach fallback are used.
+  const items = {};
+  const addCat = (cat, ...rows) => {
+    items[cat] = (items[cat]||[]).concat(rows.filter(r=>r && r.qty>0));
   };
+
+  // ─── SITE & DEMO ────────────────────────────────────────────────────────
+  addCat('Site & Demolition',
+    {name:'Site Layout & Batter Boards',           qty:1,  unit:'lot', matCostEach:45},
+    {name:'Site Survey / Stake-Out',               qty:1,  unit:'lot', matCostEach:0, laborHrsEach:4},
+    {name:'Demolition — Cut Existing Siding (lf)', qty:Math.min(len,wid), unit:'lf', matCostEach:0, laborHrsEach:0.30},
+    {name:'Temporary Wall Bracing 2×4×10',         qty:Math.ceil(extPerim/8), unit:'pcs', matCostEach:6.50},
+  );
+
+  // ─── FOUNDATION ────────────────────────────────────────────────────────
+  if(foundation === 'crawl'){
+    addCat('Foundation — Excavation',
+      {name:'Excavation (machine, 1 day)',         qty:1, unit:'day'},
+      {name:'Hand-Dig Footing Trench (lf)',         qty:Math.ceil(foundLF*0.20), unit:'lf'},
+    );
+    addCat('Foundation — Concrete',
+      {name:'Footing Concrete (CY, ready-mix)',     qty:Math.ceil(footCY*1.10*10)/10, unit:'CY'},
+      {name:'Footing Form 2×8×12\' (rentable)',     qty:Math.ceil(foundLF/12*2), unit:'pcs'},
+      {name:'Footing Rebar #4 20\' stick',          qty:Math.ceil(foundLF*2/20), unit:'pcs'},
+      {name:'Rebar Tie Wire (3lb roll)',            qty:1, unit:'roll'},
+    );
+    addCat('Foundation — CMU / Stem',
+      {name:'CMU Block 8×8×16 (stem wall)',         qty:cmuQty, unit:'ea'},
+      {name:'Type N Mortar Mix 80lb',               qty:Math.ceil(cmuQty/30), unit:'bag'},
+      {name:'Sand for Mortar (TON)',                qty:Math.max(1, Math.round(cmuQty/250*10)/10), unit:'TON'},
+      {name:'Foundation Vent 16×8 (crawlspace)',    qty:Math.ceil(sqft/150), unit:'ea'},
+      {name:'Crawlspace Access Door 18×24',         qty:1, unit:'ea'},
+      {name:'Vapor Barrier 6mil (crawl floor)',     qty:Math.ceil(sqft*1.10), unit:'sqft'},
+    );
+  } else if(foundation === 'slab'){
+    addCat('Foundation — Excavation',
+      {name:'Excavation (machine, 1 day)',         qty:1, unit:'day'},
+      {name:'Crushed Gravel #57 (TON)',             qty:Math.ceil(sqft*4/12/27*1.4), unit:'TON'},
+    );
+    addCat('Foundation — Concrete',
+      {name:'Footing Concrete (CY, ready-mix)',     qty:Math.ceil(footCY*1.10*10)/10, unit:'CY', note:'thickened edge'},
+      {name:'Slab Concrete (CY, ready-mix 3000psi)', qty:Math.ceil(slabCY*1.10*10)/10, unit:'CY'},
+      {name:'Slab Wire Mesh 6×6 W2.9 (5×10 sheet)', qty:Math.ceil(sqft/50), unit:'ea'},
+      {name:'Slab Vapor Barrier 10mil',             qty:Math.ceil(sqft*1.10), unit:'sqft'},
+      {name:'Slab Thickened-Edge Form',             qty:Math.ceil(extPerim/12), unit:'pcs'},
+      {name:'Footing Rebar #4 20\' stick',          qty:Math.ceil(foundLF*2/20), unit:'pcs'},
+    );
+  } else if(foundation === 'pier'){
+    addCat('Foundation — Excavation',
+      {name:'Hand-Dig Footing Trench (lf)',         qty:pierQty*2, unit:'lf'},
+    );
+    addCat('Foundation — Concrete',
+      {name:'Sonotube 12" × 4\'',                   qty:pierQty, unit:'ea'},
+      {name:'Pier Concrete (80lb bag)',             qty:pierQty*5, unit:'bag'},
+      {name:'Footing Rebar #4 20\' stick',          qty:Math.ceil(pierQty*4/20), unit:'pcs'},
+      {name:'Pier Bracket / Cap Hardware',          qty:pierQty, unit:'ea'},
+    );
+  } else if(foundation === 'basement'){
+    addCat('Foundation — Excavation',
+      {name:'Excavation (machine, 1 day)',         qty:2, unit:'day'},
+      {name:'Crushed Gravel #57 (TON)',             qty:Math.ceil(sqft*0.15), unit:'TON'},
+    );
+    addCat('Foundation — Concrete',
+      {name:'Footing Concrete (CY, ready-mix)',     qty:Math.ceil(footCY*1.10*10)/10, unit:'CY'},
+      {name:'Poured Wall Concrete (CY)',            qty:Math.ceil(basementCY*1.05*10)/10, unit:'CY'},
+      {name:'Poured Wall Form Rental (lf)',         qty:foundLF, unit:'lf'},
+      {name:'Footing Rebar #4 20\' stick',          qty:Math.ceil(foundLF*4/20), unit:'pcs'},
+      {name:'Slab Concrete (CY, ready-mix 3000psi)', qty:Math.ceil(sqft*(4/12)/27*1.10*10)/10, unit:'CY'},
+      {name:'Waterproofing Membrane (5gal pail)',   qty:Math.ceil(foundLF*8/100), unit:'pail'},
+      {name:'Drain Tile 4" Perforated (10\' stick)', qty:Math.ceil(foundLF/10), unit:'pcs'},
+    );
+  } else if(foundation === 'existing'){
+    addCat('Foundation — Concrete',
+      {name:'Foundation Tie-In Epoxy + Dowels',     qty:Math.ceil(foundLF/4), unit:'set'},
+      {name:'Foundation Engineering / Layout (allow)', qty:1, unit:'lot'},
+    );
+  }
+
+  // Sill plate + anchorage (all foundation types except slab w/ embedded studs)
+  if(foundation !== 'existing'){
+    addCat('Sill & Anchorage',
+      {name:'Foundation Sill Plate '+(studSz==='2x6'?'2×6':'2×4')+'×16\' PT',
+        qty:Math.ceil(extPerim/16*1.10), unit:'pcs'},
+      {name:'Sill Seal Foam 5½"×50\' roll',         qty:Math.ceil(extPerim/50), unit:'roll'},
+      {name:'Anchor Bolt 1/2"×10" J-bolt',          qty:Math.ceil(extPerim/6)+4, unit:'ea'},
+      {name:'Termite Shield Aluminum 6"×50\'',      qty:Math.ceil(extPerim/50), unit:'roll'},
+    );
+  }
+
+  // ─── FLOOR FRAMING (crawl + pier + basement) ───────────────────────────
+  const needsFloorFrame = foundation==='crawl' || foundation==='pier' || foundation==='basement';
+  if(needsFloorFrame){
+    const joistLen = wid <= 16 ? 16 : 12;  // 16ft joists, or 12ft + middle beam
+    const joistCount = Math.ceil(len*12/16) + 1;
+    const joistsLF = joistCount * wid;
+    addCat('Floor Framing',
+      {name:'Rim Joist 2×10×16\' PT',               qty:Math.ceil(extPerim/16*1.10), unit:'pcs'},
+      {name:'Floor Joist 2×10×'+joistLen+'\' SPF',  qty:joistCount, unit:'pcs'},
+      {name:'Floor Joist Hanger LUS210',            qty:joistCount * 2, unit:'ea'},
+      {name:'Joist Blocking 2×10×8\' SPF',          qty:Math.ceil(joistsLF/16), unit:'pcs'},
+      {name:'Beam — Triple 2×10 PT girder (lf)',    qty: wid>16 ? len : 0, unit:'lf'},
+      {name:'Subfloor 3/4" T&G OSB (4×8)',          qty:Math.ceil(sqft/32*1.08), unit:'sheets'},
+      {name:'Subfloor Adhesive PL Premium',         qty:Math.ceil(joistsLF/40), unit:'tubes'},
+      {name:'Subfloor Screws (5lb)',                qty:Math.ceil(sqft/100), unit:'lbs'},
+    );
+  }
+
+  // ─── WALL FRAMING ──────────────────────────────────────────────────────
+  // Plate stock = top double + bottom single = 3× total wall LF. Interior
+  // partitions sit on subfloor so bottom plate is SPF, not PT.
+  addCat('Wall Framing',
+    {name:studLabel+' Wall Studs '+studLen+'\'',    qty:totalStuds, unit:'pcs'},
+    {name:studLabel+' × 16\' SPF Plate Stock',      qty:platePcs, unit:'pcs', matCostEach:studSz==='2x6'?15.50:9.20, laborHrsEach:0.06},
+    {name:'A35 Framing Angle (corner/intersection)', qty:Math.ceil(extPerim/8)+8, unit:'ea', matCostEach:1.10, laborHrsEach:0.05},
+    {name:'Hurricane Ties H2.5A',                    qty:totalStuds, unit:'ea'},
+    {name:'Framing Nails 16d (25lb)',                qty:Math.max(1, Math.ceil(totalStuds/50)), unit:'box', matCostEach:72, laborHrsEach:0.05},
+    {name:'CS16 Coiled Strap (top-plate splice)',   qty:Math.ceil(extPerim/20), unit:'ea', matCostEach:4.80, laborHrsEach:0.10},
+  );
+
+  // ─── HEADERS & OPENINGS ────────────────────────────────────────────────
+  if(doors + windows > 0){
+    const opens = doors + windows;
+    addCat('Headers & Openings',
+      {name:'LVL Header',                           qty:opens*2, unit:'ea'},
+      {name:'Jack Studs',                           qty:opens*2, unit:'pcs'},
+      {name:'Cripple/Jack Studs (cut from stud stock)', qty:opens*4, unit:'pcs', matCostEach:4.85, laborHrsEach:0.15},
+      {name:'1/2" Plywood Header Spacer (2×6 wall)',qty:studSz==='2x6'?Math.ceil(opens/3):0, unit:'sheet', matCostEach:42, laborHrsEach:0.10},
+      {name:'Structural Screws (3" GRK)',           qty:opens*20, unit:'ea'},
+    );
+  }
+
+  // ─── SHEATHING / WRB ───────────────────────────────────────────────────
+  if(sheath){
+    const sheathSheets = Math.ceil(netWallArea/32*1.08);
+    addCat('Wall Framing',
+      {name:'7/16" OSB Wall Sheathing (4×8 sheets)', qty:sheathSheets, unit:'sheets', matCostEach:17, laborHrsEach:0.18},
+      {name:'House Wrap (9\'×150\' roll)',          qty:Math.ceil(netWallArea/1500)+1, unit:'rolls'},
+      {name:'Tyvek Tape 1.88"×165\' (wrap seams)',  qty:Math.ceil(netWallArea/30/165)+1, unit:'roll', matCostEach:24, laborHrsEach:0.02},
+      {name:'1" Plastic-Cap Staple 1000ct',          qty:Math.ceil(netWallArea*4/1000), unit:'box', matCostEach:32, laborHrsEach:0.01},
+    );
+  }
+
+  // ─── ROOF FRAMING ──────────────────────────────────────────────────────
+  if(roofType === 'truss'){
+    const trussCount = Math.ceil(len*12/24) + 1;
+    addCat('Roof Framing',
+      {name:'Engineered Roof Truss (ea, ~6:12)',    qty:trussCount, unit:'ea'},
+      {name:'Truss Setting Crane (half-day)',       qty:1, unit:'day'},
+      {name:'Hurricane Ties H2.5A',                 qty:trussCount*2, unit:'ea'},
+      {name:'Ridge Vent 4\' section',               qty:Math.ceil(len/4), unit:'pcs'},
+    );
+  } else {
+    // Stick-framed rafters
+    const rafterSize = wid <= 12 ? '2×8' : wid <= 16 ? '2×10' : '2×12';
+    const rafterStock = 'Rafter '+rafterSize+'×16\' SPF';
+    // Each rafter spans half the width × pitch multiplier, two per pair
+    const rafterPairs = Math.ceil(len*12/oc) + 1;
+    const rafterCount = roofType==='shed' ? rafterPairs : rafterPairs * 2;
+    addCat('Roof Framing',
+      {name:rafterStock,                            qty:rafterCount, unit:'pcs'},
+      ...(roofType==='gable' || roofType==='hip' ? [
+        {name:'Ridge Board 2×12×16\'',              qty:Math.ceil(len/16), unit:'pcs'}
+      ] : []),
+      ...(ceiling==='cathedral' || ceiling==='vaulted' ? [
+        {name:'Collar Tie 2×6×10\' SPF',            qty:rafterPairs, unit:'pcs'}
+      ] : []),
+      ...(ceiling==='flat' ? [
+        {name:'Ceiling Joist 2×8×16\' SPF',         qty:Math.ceil(len*12/oc)+1, unit:'pcs'},
+        {name:'Floor Joist Hanger LUS210',          qty:(Math.ceil(len*12/oc)+1)*2, unit:'ea'}
+      ] : []),
+      {name:'Hurricane Ties H2.5A',                 qty:rafterCount, unit:'ea'},
+      {name:'Framing Nails 16d (25lb)',             qty:Math.max(1, Math.ceil(rafterCount/40)), unit:'box', matCostEach:72, laborHrsEach:0.05},
+    );
+  }
+
+  // ─── ROOFING (sheathing + underlayment + finish) ───────────────────────
+  if(roofType !== 'flat' || roofMat !== 'arch'){
+    // Roof sheathing
+    addCat('Roof Framing',
+      {name:'Roof Sheathing 7/16" OSB (4×8)',       qty:Math.ceil(roofSqft/32*1.08), unit:'sheets'},
+      {name:'Sheathing Nails (1-3/4")',             qty:Math.ceil(roofSqft/100), unit:'lbs'},
+    );
+  }
+  addCat('Roofing',
+    {name:'Ice & Water Shield (200sf roll)',        qty:Math.ceil(roofSqft*0.15/200)+1, unit:'roll'},
+    {name:'Synthetic Underlayment (10sq roll)',     qty:Math.ceil(roofSqft/1000)+1, unit:'roll'},
+    {name:'Drip Edge 10\' Aluminum',                qty:Math.ceil(extPerim/10)+2, unit:'pcs'},
+  );
+  if(roofMat === 'arch'){
+    const bundles = Math.ceil(roofSqft/33*1.08);
+    addCat('Roofing',
+      {name:'Architectural Shingles (bundle, 33sf)', qty:bundles, unit:'bundle'},
+      {name:'Starter Strip Shingles (bundle)',       qty:Math.ceil(extPerim/100)+1, unit:'bundle'},
+      {name:'Ridge Cap Shingles (bundle)',           qty:Math.ceil(len/35)+1, unit:'bundle'},
+      {name:'Roofing Nails Coil 1¾" (5lb)',          qty:Math.ceil(bundles/8), unit:'lb'},
+    );
+  } else if(roofMat === '3tab'){
+    const bundles = Math.ceil(roofSqft/33*1.10);
+    addCat('Roofing',
+      {name:'3-Tab Shingles (bundle, 33sf)',         qty:bundles, unit:'bundle'},
+      {name:'Starter Strip Shingles (bundle)',       qty:Math.ceil(extPerim/100)+1, unit:'bundle'},
+      {name:'Ridge Cap Shingles (bundle)',           qty:Math.ceil(len/35)+1, unit:'bundle'},
+      {name:'Roofing Nails Coil 1¾" (5lb)',          qty:Math.ceil(bundles/8), unit:'lb'},
+    );
+  } else if(roofMat === 'metal'){
+    addCat('Roofing',
+      {name:'Standing Seam Panel 24-ga (sqft)',     qty:Math.ceil(roofSqft*1.08), unit:'sqft'},
+      {name:'Standing Seam Clips + Screws (per sq)', qty:Math.ceil(roofSqft/100)+1, unit:'sq'},
+      {name:'Standing Seam Ridge Cap (lf)',          qty:Math.ceil(len*1.08), unit:'lf'},
+      {name:'Butyl Tape Closure Strip',              qty:Math.ceil(len/30)+2, unit:'rolls'},
+    );
+  } else if(roofMat === 'metalexp'){
+    addCat('Roofing',
+      {name:'Exposed-Fastener Metal 29-ga (sqft)',  qty:Math.ceil(roofSqft*1.08), unit:'sqft'},
+      {name:'Metal Roof Screw w/EPDM (250 box)',    qty:Math.ceil(roofSqft/60), unit:'box'},
+      {name:'Standing Seam Ridge Cap (lf)',          qty:Math.ceil(len*1.08), unit:'lf'},
+      {name:'Foam Closure Strips',                   qty:Math.ceil(len/4)+2, unit:'pcs', matCostEach:8.50, laborHrsEach:0.05},
+    );
+  }
+  // Flashing for the roof-to-existing-house tie-in
+  addCat('Roof Flashing & Tie-In',
+    {name:'Step Flashing (3"×4"×8" — 100/box)',     qty:roofType==='shed'?2:1, unit:'box'},
+    {name:'Counter Flashing (10\')',                qty:Math.ceil(Math.min(len,wid)/10)+1, unit:'pcs'},
+    {name:'Roof-to-Wall Flashing (tie-in lf)',      qty:Math.min(len,wid), unit:'lf'},
+    {name:'Plumbing Boot Flashing (1.5-3" pipe)',   qty:plumbScope!=='none'?1:0, unit:'ea'},
+    {name:'Caulk Exterior Sashco Big Stretch 10oz', qty:Math.ceil(extPerim/40)+2, unit:'tube'},
+  );
+
+  // ─── EXTERIOR SIDING & TRIM ────────────────────────────────────────────
+  const sidingSqft = netWallArea;
+  if(siding === 'vinyl'){
+    addCat('Exterior Siding & Trim',
+      {name:'Vinyl Siding D5 (square 100sf)',       qty:Math.ceil(sidingSqft/100*1.10), unit:'sq'},
+      {name:'Vinyl Starter / J-Channel (10\')',     qty:Math.ceil(extPerim/10*2), unit:'pcs'},
+      {name:'Vinyl Corner Post (10\')',             qty:Math.ceil(ht/10)*4, unit:'pcs'},
+    );
+  } else if(siding === 'hardie'){
+    addCat('Exterior Siding & Trim',
+      {name:'Hardie Plank Lap 8.25"×12\' primed',   qty:Math.ceil(sidingSqft/8.25*1.10), unit:'pcs'},
+      {name:'Hardie Trim 5/4×4×12\'',               qty:Math.ceil((extPerim+ht*4)/12), unit:'pcs'},
+      {name:'LP/Hardie Stainless Nails 2½" (5lb)',  qty:Math.ceil(sidingSqft/250), unit:'lb'},
+    );
+  } else if(siding === 'lp'){
+    addCat('Exterior Siding & Trim',
+      {name:'LP SmartSide Lap 8"×16\'',             qty:Math.ceil(sidingSqft/10.67*1.10), unit:'pcs'},
+      {name:'Hardie Trim 5/4×4×12\'',               qty:Math.ceil((extPerim+ht*4)/12), unit:'pcs', note:'LP trim equiv'},
+      {name:'LP/Hardie Stainless Nails 2½" (5lb)',  qty:Math.ceil(sidingSqft/250), unit:'lb'},
+    );
+  } else if(siding === 'bb'){
+    addCat('Exterior Siding & Trim',
+      {name:'LP Board & Batten Panel 4×8',          qty:Math.ceil(sidingSqft/32*1.10), unit:'pcs'},
+      {name:'Hardie Trim 5/4×4×12\'',               qty:Math.ceil((extPerim+ht*4)/12*1.5), unit:'pcs', note:'batten + trim'},
+      {name:'LP/Hardie Stainless Nails 2½" (5lb)',  qty:Math.ceil(sidingSqft/250), unit:'lb'},
+    );
+  } else if(siding === 'brick'){
+    addCat('Exterior Siding & Trim',
+      {name:'Brick Veneer (per sqft, modular)',     qty:Math.ceil(sidingSqft*1.05), unit:'sqft'},
+      {name:'Brick Ties (corrugated, box 250)',     qty:Math.ceil(sidingSqft/30/250)+1, unit:'box'},
+      {name:'Brick Mortar Type N (80lb)',           qty:Math.ceil(sidingSqft/30), unit:'bag'},
+      {name:'Brick Sill Pre-Cast (lf)',             qty:windows*4, unit:'lf'},
+    );
+  } else if(siding === 'match'){
+    addCat('Exterior Siding & Trim',
+      {name:'Existing-Siding Match Allowance (sqft)', qty:Math.ceil(sidingSqft), unit:'sqft'},
+    );
+  }
+  // Trim that applies to every siding choice
+  addCat('Exterior Siding & Trim',
+    {name:'Fascia 1×6 Primed (16\')',               qty:Math.ceil((len*2+wid*2)/16)+2, unit:'pcs'},
+    {name:'Soffit Vented Aluminum (12" wide, sqft)', qty:Math.ceil((len*2+wid*2)*1.0), unit:'sqft'},
+    {name:'Frieze Board 1×4 (16\')',                qty:Math.ceil(extPerim/16)+1, unit:'pcs'},
+  );
+
+  // ─── DOORS (exterior) ─────────────────────────────────────────────────
+  if(doors > 0){
+    // Assume 1 exterior door, balance interior (if interior partitions exist)
+    const extDoorQty = Math.min(doors, extonly ? doors : 1);
+    addCat('Doors (Exterior)',
+      {name:'Exterior Door — Steel 36" prehung (R-5)', qty:extDoorQty, unit:'ea'},
+      {name:'Door Lockset — Keyed Entry',           qty:extDoorQty, unit:'ea'},
+      {name:'Window Flashing Tape 4"×75\' (DuPont)', qty:Math.ceil(extDoorQty/3)+1, unit:'roll', note:'door pan flashing'},
+      {name:'Great Stuff Pro Window Foam 24oz',     qty:extDoorQty, unit:'can', matCostEach:11, laborHrsEach:0.10},
+      {name:'Caulk Exterior Sashco Big Stretch 10oz', qty:extDoorQty*2, unit:'tube'},
+    );
+    // Interior doors (rest)
+    const intDoorQty = Math.max(0, doors - extDoorQty);
+    if(intDoorQty > 0){
+      addCat('Doors (Interior)',
+        {name:'Interior Door — Hollow-core 30" prehung', qty:intDoorQty, unit:'ea'},
+        {name:'Door Hinges Heavy-Duty (3/pkg)',     qty:intDoorQty, unit:'pkg', matCostEach:8.50, laborHrsEach:0.10},
+      );
+    }
+  }
+
+  // ─── WINDOWS ───────────────────────────────────────────────────────────
+  if(windows > 0){
+    addCat('Windows',
+      {name:'Window — Vinyl Double-Hung 30×54 (Low-E)', qty:windows, unit:'ea'},
+      {name:'Window Flashing Tape 4"×75\' (DuPont)', qty:Math.ceil(windows*8/75)+1, unit:'roll'},
+      {name:'Window Sill Pan Jamsill (ea)',         qty:windows, unit:'ea'},
+      {name:'Window Foam Great Stuff Pro 24oz',     qty:Math.ceil(windows/2), unit:'can'},
+      {name:'Window Shim Bundle ⅛"',                qty:windows, unit:'bundle'},
+    );
+  }
+
+  // ─── INSULATION ────────────────────────────────────────────────────────
+  // Wall batt: R-21 for 2×6, R-13 (or R-15) for 2×4
+  const wallBattName = studSz==='2x6'
+    ? 'Fiberglass Batt R-21 (2×6 cavity, 67sf)'
+    : 'Fiberglass Batt R-13 (kraft, 88 sqft bag)';
+  const wallBattCov = studSz==='2x6' ? 67 : 88;
+  const ceilingBattName = ceiling==='cathedral' || ceiling==='vaulted'
+    ? 'Fiberglass Batt R-30 (ceiling, 88sf)'
+    : 'Fiberglass Batt R-38 (ceiling, 88sf)';
+  addCat('Insulation',
+    {name:wallBattName,                             qty:Math.ceil(netWallArea/wallBattCov*1.08), unit:'bag'},
+    ...(ceiling!=='open' ? [{name:ceilingBattName,  qty:Math.ceil(ceilArea/88*1.08), unit:'bag'}] : []),
+    ...(needsFloorFrame ? [{name:'Fiberglass Batt R-21 (2×6 cavity, 67sf)', qty:Math.ceil(sqft/67*1.08), unit:'bag', note:'floor insulation'}] : []),
+    ...(extonly ? [] : [{name:'Fiberglass Batt R-15 high-density (88sf)', qty:Math.ceil(intWallArea/88), unit:'bag', note:'interior sound insulation'}]),
+    {name:'Acoustic Sealant Tremco 29oz',           qty:Math.ceil(extPerim/40), unit:'tube'},
+    {name:'Rim Joist Foam Board 2" (4×8)',          qty:needsFloorFrame?Math.ceil(extPerim/16):0, unit:'sheet'},
+  );
+
+  // ─── DRYWALL ───────────────────────────────────────────────────────────
+  if(intFinish !== 'dw_only' || intFinish === 'dw_only'){
+    const dwSheets = Math.ceil(dwallArea / 32 * 1.08);
+    const ceilDw = ceiling!=='open' ? Math.ceil(ceilArea/32*1.08) : 0;
+    addCat('Drywall',
+      {name:'1/2" Drywall 4×12 sheet',              qty:Math.max(0, dwSheets - ceilDw), unit:'sheet'},
+      {name:'5/8" Type-X Drywall 4×8 (ceiling/fire)', qty:ceilDw, unit:'sheet'},
+      {name:'Joint Compound 4.5gal box',            qty:Math.ceil(dwallArea/200), unit:'box'},
+      {name:'Joint Tape 2"×500\'',                  qty:Math.ceil(dwallArea/500)+1, unit:'roll'},
+      {name:'Corner Bead Metal 8\'',                qty:Math.ceil(extPerim/8) + (extonly?0:Math.ceil(intLF/8)*2), unit:'pcs'},
+      {name:'Drywall Screws 1¼" 5lb',               qty:Math.ceil(dwSheets/15), unit:'lb'},
+      ...(intFinish === 'dw_texture' ? [
+        {name:'Knockdown Texture Spray Hopper (rent/day)', qty:1, unit:'day'},
+        {name:'Spray Texture Mud (boxed, ea)',      qty:Math.ceil(dwallArea/150), unit:'box'}
+      ]: []),
+      ...(intFinish === 'shiplap' ? [
+        {name:'Shiplap Pine 1×6×8\' (ea)',          qty:Math.ceil(sqft*0.30/4), unit:'pcs', note:'accent wall coverage'}
+      ] : []),
+      {name:'Drywall Sanding Block / Sponge',       qty:6, unit:'ea'},
+    );
+  }
+
+  // ─── INTERIOR PAINT ────────────────────────────────────────────────────
+  if(intFinish === 'dw_paint' || intFinish === 'dw_texture' || intFinish === 'shiplap'){
+    const paintSqft = dwallArea;
+    addCat('Interior Paint & Finish',
+      {name:'Primer Drywall PVA (5gal)',            qty:Math.ceil(paintSqft/1750)+1, unit:'gal'},
+      {name:'Interior Paint (5gal, semi-gloss)',    qty:Math.ceil(paintSqft/350/2)+1, unit:'gal', note:'2 coats'},
+      {name:'Interior Paint Trim Enamel (gal)',     qty:Math.ceil((extPerim+intLF*2)*4/350)+1, unit:'gal'},
+      {name:'Roller Covers + Sleeves Kit',          qty:2, unit:'kit'},
+      {name:'Painter\'s Tape 1.88"×60yd (3/pk)',    qty:2, unit:'pkg'},
+      {name:'Drop Cloth Canvas 9×12',               qty:3, unit:'ea'},
+    );
+  }
+
+  // ─── FLOORING ──────────────────────────────────────────────────────────
+  if(flooring === 'lvp'){
+    addCat('Flooring',
+      {name:'LVP Flooring — Mid-grade (per sqft)',  qty:Math.ceil(sqft*1.08), unit:'sqft'},
+      {name:'LVP Underlayment Foam (per sqft)',     qty:Math.ceil(sqft*1.05), unit:'sqft'},
+      {name:'Floor Transition Strip (ea)',          qty:doors, unit:'ea'},
+    );
+  } else if(flooring === 'hardwood'){
+    addCat('Flooring',
+      {name:'Solid Hardwood ¾" Oak (per sqft)',     qty:Math.ceil(sqft*1.08), unit:'sqft'},
+      {name:'Hardwood Underlayment 15# Felt',       qty:Math.ceil(sqft*1.05), unit:'sqft'},
+      {name:'Floor Transition Strip (ea)',          qty:doors, unit:'ea'},
+    );
+  } else if(flooring === 'engineered'){
+    addCat('Flooring',
+      {name:'Engineered Hardwood ¾" (per sqft)',    qty:Math.ceil(sqft*1.08), unit:'sqft'},
+      {name:'LVP Underlayment Foam (per sqft)',     qty:Math.ceil(sqft*1.05), unit:'sqft'},
+      {name:'Floor Transition Strip (ea)',          qty:doors, unit:'ea'},
+    );
+  } else if(flooring === 'tile'){
+    addCat('Flooring',
+      {name:'Porcelain Tile 12×24 (per sqft)',      qty:Math.ceil(sqft*1.15), unit:'sqft'},
+      {name:'Tile Backer ¼" cement board (3×5)',    qty:Math.ceil(sqft/15), unit:'sheet'},
+      {name:'Tile Thinset 50lb',                    qty:Math.ceil(sqft/40), unit:'bag'},
+      {name:'Tile Grout 25lb',                      qty:Math.ceil(sqft/60), unit:'bag'},
+      {name:'Tile Spacers + Wedges',                qty:2, unit:'pkg'},
+      {name:'Floor Transition Strip (ea)',          qty:doors, unit:'ea'},
+    );
+  } else if(flooring === 'carpet'){
+    const sqyd = Math.ceil(sqft/9*1.10);
+    addCat('Flooring',
+      {name:'Carpet — Standard Plush (per sqyd)',   qty:sqyd, unit:'sqyd'},
+      {name:'Carpet Pad 8lb (per sqyd)',            qty:sqyd, unit:'sqyd'},
+      {name:'Carpet Tack Strip (per lf)',           qty:Math.ceil(extPerim+intLF*2), unit:'lf'},
+      {name:'Floor Transition Strip (ea)',          qty:doors, unit:'ea'},
+    );
+  } else if(flooring === 'stained'){
+    addCat('Flooring',
+      {name:'Concrete Stain (5gal — slab)',         qty:Math.ceil(sqft/350)+1, unit:'gal'},
+      {name:'Concrete Sealer Solvent (5gal)',       qty:Math.ceil(sqft/400)+1, unit:'gal'},
+    );
+  }
+
+  // ─── INTERIOR TRIM ─────────────────────────────────────────────────────
+  if(trim !== 'none'){
+    const baseLF = extPerim + intLF*2 - doors*3; // subtract door openings
+    const baseName = trim==='builder' ? 'Baseboard 3¼" Colonial Primed (16\')'
+                   : trim==='standard' ? 'Baseboard 5¼" Craftsman Primed (16\')'
+                   : trim==='premium'  ? 'Baseboard 7" Premium Primed (16\')'
+                                        : 'Baseboard 2¼" Square Edge (16\')';
+    const caseName = trim==='standard' || trim==='premium'
+                   ? 'Door Casing Craftsman (per opening)'
+                   : 'Door Casing 2¼" Colonial (per opening)';
+    addCat('Interior Trim',
+      {name:baseName,                               qty:Math.ceil(baseLF/16*1.10), unit:'pcs'},
+      {name:caseName,                               qty:doors*2, unit:'opening', note:'both sides'},
+      {name:'Window Casing Set (per window)',       qty:windows, unit:'window'},
+      ...(trim==='premium' ? [
+        {name:'Crown Molding 3¼" Primed (16\')',    qty:Math.ceil((extPerim+intLF*2)/16*1.10), unit:'pcs'},
+        {name:'Chair Rail 2½" Primed (16\')',       qty:Math.ceil((extPerim+intLF*2)/16*1.10), unit:'pcs', note:'optional'}
+      ] : []),
+      {name:'Finish Nails 2" Galvanized (5lb)',     qty:2, unit:'box'},
+      {name:'Caulk Paintable Latex 10oz',           qty:Math.ceil(baseLF/40), unit:'tube'},
+      {name:'Wood Putty / Filler (qt)',             qty:1, unit:'qt'},
+    );
+  }
+
+  // ─── ELECTRICAL ────────────────────────────────────────────────────────
+  // IRC E3901: receptacles every 12' along walls + within 6' of any door.
+  // Wall plug count is roughly perim/12 + 2.
+  const outletQty = Math.max(4, Math.ceil(extPerim/12)+2);
+  const electricalConfig = {
+    basic:    {outlets: Math.max(4, outletQty-2), gfci: 0,            lights: 1, switches: 1, recessed: 0,  fan: 0, subpanel: false},
+    standard: {outlets: outletQty,                gfci: plumbScope!=='none'?1:0, lights: 2, switches: 2, recessed: 2,  fan: 0, subpanel: false},
+    full:     {outlets: outletQty+2,              gfci: plumbScope!=='none'?2:1, lights: 2, switches: 3, recessed: 4,  fan: 1, subpanel: false},
+    subpanel: {outlets: outletQty+4,              gfci: 2,            lights: 3, switches: 4, recessed: 6,  fan: 1, subpanel: true},
+  }[elecScope] || {outlets:outletQty, gfci:0, lights:1, switches:2, recessed:0, fan:0, subpanel:false};
+  const ec = electricalConfig;
+  addCat('Electrical',
+    {name:'Outlet — Standard 15A Tamper-Resistant', qty:ec.outlets, unit:'ea'},
+    ...(ec.gfci>0 ? [{name:'Outlet — GFCI 15A (kitchen/bath)', qty:ec.gfci, unit:'ea'}] : []),
+    {name:'Outlet Box Single-Gang (NM cable)',      qty:ec.outlets+ec.gfci+ec.switches, unit:'ea'},
+    {name:'Switch — Single-Pole 15A',               qty:Math.max(1, ec.switches-1), unit:'ea'},
+    ...(ec.switches>=3 ? [{name:'Switch — 3-Way 15A', qty:2, unit:'ea'}] : []),
+    {name:'Light Fixture — Standard Ceiling LED',  qty:ec.lights, unit:'ea'},
+    ...(ec.recessed>0 ? [{name:'Recessed Light — 4" LED Canless', qty:ec.recessed, unit:'ea'}] : []),
+    ...(ec.fan>0 ? [{name:'Ceiling Fan Box (fan-rated, braced)', qty:ec.fan, unit:'ea'}] : []),
+    {name:'Smoke / CO Combo Detector (10-yr)',     qty:1, unit:'ea'},
+    {name:'14/2 NM-B Romex (250\' roll)',          qty:Math.max(1, Math.ceil((ec.outlets+ec.lights+ec.recessed)*25/250)), unit:'roll'},
+    ...(ec.fan>0 || elecScope==='full' || elecScope==='subpanel' ? [
+      {name:'12/2 NM-B Romex (250\' roll)',         qty:1, unit:'roll'}
+    ] : []),
+    ...(ec.switches>=3 ? [{name:'12/3 NM-B Romex (250\' roll, 3-way)', qty:1, unit:'roll'}] : []),
+    {name:'Wire Nuts Assorted (jar 175ct)',         qty:1, unit:'jar'},
+    {name:'Cable Staples 1/2" (box 300ct)',         qty:1, unit:'box'},
+    {name:'Breaker 15A Single-Pole (matched)',      qty:Math.ceil((ec.outlets+ec.lights+ec.recessed)/10)+1, unit:'ea'},
+    {name:'Breaker 20A Single-Pole (matched)',      qty:ec.gfci>0?2:1, unit:'ea'},
+    ...(ec.subpanel ? [
+      {name:'Sub-Panel 100A 20-space (load center)', qty:1, unit:'ea'},
+      {name:'Sub-Panel Feed SER 4-wire 2/0 (per lf)', qty:50, unit:'lf'},
+      {name:'Grounding Rod 8\' + Clamp',           qty:1, unit:'ea'}
+    ] : []),
+    {name:'Electrical Inspection Fee',              qty:1, unit:'ea'},
+  );
+
+  // ─── PLUMBING (optional) ──────────────────────────────────────────────
+  if(plumbScope !== 'none'){
+    const plumbCommon = [
+      {name:'PEX Tubing ½" Red/Blue (100\' roll)',  qty:2, unit:'roll'},
+      {name:'PEX Tubing ¾" Red/Blue (100\' roll)',  qty:1, unit:'roll'},
+      {name:'PEX Fittings Crimp (kit)',             qty:1, unit:'kit'},
+      {name:'PEX Manifold 4-port + Valves',         qty:1, unit:'ea'},
+      {name:'PVC Solvent + Primer Kit',             qty:1, unit:'kit'},
+      {name:'Plumbing Strapping / Hangers (box)',   qty:1, unit:'box'},
+      {name:'Vent Stack Through-Roof Kit',          qty:1, unit:'ea'},
+      {name:'Plumbing Inspection Fee',              qty:1, unit:'ea'},
+    ];
+    if(plumbScope === 'halfbath'){
+      addCat('Plumbing',
+        ...plumbCommon,
+        {name:'PVC DWV 3" × 10\'',                  qty:2, unit:'pcs'},
+        {name:'PVC DWV 2" × 10\'',                  qty:1, unit:'pcs'},
+        {name:'PVC DWV 1½" × 10\'',                 qty:1, unit:'pcs'},
+        {name:'PVC DWV Fittings (assorted bag)',    qty:1, unit:'bag'},
+        {name:'Closet Flange 3" PVC',               qty:1, unit:'ea'},
+        {name:'Lavatory Rough — Supply Stops + Trap', qty:1, unit:'ea'},
+        {name:'Toilet — Standard 1.28gpf',          qty:1, unit:'ea'},
+        {name:'Lavatory Sink + Faucet — Mid-grade', qty:1, unit:'ea'},
+      );
+    } else if(plumbScope === 'fullbath'){
+      addCat('Plumbing',
+        ...plumbCommon,
+        {name:'PVC DWV 3" × 10\'',                  qty:3, unit:'pcs'},
+        {name:'PVC DWV 2" × 10\'',                  qty:2, unit:'pcs'},
+        {name:'PVC DWV 1½" × 10\'',                 qty:2, unit:'pcs'},
+        {name:'PVC DWV Fittings (assorted bag)',    qty:2, unit:'bag'},
+        {name:'Closet Flange 3" PVC',               qty:1, unit:'ea'},
+        {name:'Shower Drain Assembly',              qty:1, unit:'ea'},
+        {name:'Tub/Shower Valve Rough — Moen',      qty:1, unit:'ea'},
+        {name:'Lavatory Rough — Supply Stops + Trap', qty:1, unit:'ea'},
+        {name:'Toilet — Standard 1.28gpf',          qty:1, unit:'ea'},
+        {name:'Lavatory Sink + Faucet — Mid-grade', qty:1, unit:'ea'},
+        {name:'Tub/Shower Combo Fiberglass 60"',    qty:1, unit:'ea'},
+      );
+    } else if(plumbScope === 'kitchenette'){
+      addCat('Plumbing',
+        ...plumbCommon,
+        {name:'PVC DWV 2" × 10\'',                  qty:1, unit:'pcs'},
+        {name:'PVC DWV 1½" × 10\'',                 qty:2, unit:'pcs'},
+        {name:'PVC DWV Fittings (assorted bag)',    qty:1, unit:'bag'},
+        {name:'Lavatory Rough — Supply Stops + Trap', qty:1, unit:'ea', note:'sink rough'},
+        {name:'Kitchen Sink Stainless Double + Faucet', qty:1, unit:'ea'},
+      );
+    }
+  }
+
+  // ─── HVAC ─────────────────────────────────────────────────────────────
+  if(hvacScope === 'extend'){
+    addCat('HVAC',
+      {name:'HVAC — Extend Existing Trunk (2 supply runs)', qty:1, unit:'lot'},
+      {name:'HVAC — New Return Run',                qty:1, unit:'ea'},
+      {name:'Flex Duct 8" R-6 (25\' box)',          qty:2, unit:'box'},
+      {name:'Supply Register 4×10',                 qty:Math.max(2, Math.ceil(sqft/150)), unit:'ea'},
+      {name:'Return Grille 14×20',                  qty:1, unit:'ea'},
+      {name:'Boot 4×10×8" sheet metal',             qty:Math.max(2, Math.ceil(sqft/150)), unit:'ea'},
+      {name:'HVAC Inspection / Permit',             qty:1, unit:'ea'},
+    );
+  } else if(hvacScope === 'minisplit'){
+    addCat('HVAC',
+      {name:'Mini-Split 18k BTU Heat Pump (unit)', qty:1, unit:'ea'},
+      {name:'Mini-Split Line Set ¼"×⅜" 25\'',     qty:1, unit:'ea'},
+      {name:'Mini-Split Wall Bracket / Pad',       qty:1, unit:'ea'},
+      {name:'Refrigerant Vacuum + Charge Service', qty:1, unit:'svc'},
+      {name:'Condensate Pump Mini',                 qty:1, unit:'ea'},
+      {name:'Disconnect Switch 60A (outdoor unit)', qty:1, unit:'ea'},
+      {name:'HVAC Inspection / Permit',             qty:1, unit:'ea'},
+    );
+  } else if(hvacScope === 'minisplit_lg'){
+    addCat('HVAC',
+      {name:'Mini-Split 24k BTU Heat Pump (unit)', qty:1, unit:'ea'},
+      {name:'Mini-Split Line Set ¼"×⅜" 25\'',     qty:1, unit:'ea'},
+      {name:'Mini-Split Wall Bracket / Pad',       qty:1, unit:'ea'},
+      {name:'Refrigerant Vacuum + Charge Service', qty:1, unit:'svc'},
+      {name:'Condensate Pump Mini',                 qty:1, unit:'ea'},
+      {name:'Disconnect Switch 60A (outdoor unit)', qty:1, unit:'ea'},
+      {name:'HVAC Inspection / Permit',             qty:1, unit:'ea'},
+    );
+  }
+
+  // ─── PERMITS & GENERAL CONDITIONS ─────────────────────────────────────
+  addCat('Permits & Inspections',
+    {name:'Building Permit (residential addition)', qty:1, unit:'ea'},
+    {name:'Framing Inspection Fee',                qty:1, unit:'ea'},
+    {name:'Final Inspection Fee',                  qty:1, unit:'ea'},
+    {name:'Architect / Drawing Allowance',         qty:1, unit:'lot'},
+  );
+  // Project duration estimate for dumpster/porta-john (rough: 0.6 day per sqft / 80)
+  const projDays = Math.max(14, Math.ceil(sqft/8));
+  addCat('General Conditions',
+    {name:'Dumpster 20-yard (delivered, 2-week)',  qty:Math.max(1, Math.ceil(projDays/14)), unit:'rental'},
+    {name:'Porta-John Rental (monthly)',            qty:Math.max(1, Math.ceil(projDays/30)), unit:'month'},
+    {name:'General Cleanup Labor (day)',           qty:Math.max(2, Math.ceil(projDays/14)), unit:'day'},
+    {name:'Material Delivery Charges (estimate)',  qty:Math.max(2, Math.ceil(sqft/100)), unit:'delivery'},
+    {name:'Tarps / Temporary Weather Protection',  qty:2, unit:'ea'},
+    {name:'Tool Blade / Bit Replacement',          qty:1, unit:'lot'},
+    {name:'Final Walk-Through / Punch List',       qty:1, unit:'visit'},
+  );
+
+  // ─── SUMMARY ──────────────────────────────────────────────────────────
+  addCat('Summary',
+    {name:'FLOOR AREA',                            qty:sqft.toFixed(0), unit:'sq ft'},
+    {name:'EXT. WALL PERIMETER',                   qty:extPerim.toFixed(0), unit:'lin ft'},
+    {name:'NET WALL AREA (less openings)',         qty:netWallArea.toFixed(0), unit:'sq ft'},
+    {name:'ROOF AREA (sloped)',                    qty:roofSqft.toFixed(0), unit:'sq ft'},
+    {name:'TOTAL DRYWALL SURFACE',                 qty:dwallArea.toFixed(0), unit:'sq ft'},
+    {name:'STUDS (incl. waste)',                   qty:totalStuds, unit:'pcs'},
+  );
 
   const summary = {
-    'Floor area': sqft.toFixed(0)+' sq ft',
-    'Wall perimeter': extPerim.toFixed(0)+' lf',
-    'Stud count': studPcs+' pcs ('+studSz+' @ '+oc+'" OC)',
-    'Headers': openings+' openings',
-    'Ceiling joists': ceil?(ceilJoistQty+' pcs'):'Trusses/open',
+    'Floor area':         sqft.toFixed(0)+' sq ft',
+    'Wall perimeter':     extPerim.toFixed(0)+' lf',
+    'Studs':              totalStuds+' pcs ('+studSz+' @ '+oc+'" OC)',
+    'Foundation':         ({crawl:'Crawlspace (CMU)',slab:'Slab-on-grade',pier:'Pier-and-beam',basement:'Full basement',existing:'Match existing'}[foundation]),
+    'Roof':               ({gable:'Gable',shed:'Shed tie-in',hip:'Hip',truss:'Engineered trusses',flat:'Low-slope TPO'}[roofType])+' · '+pitch+':12 · '+
+                          ({arch:'Arch shingles',metal:'Standing seam',['3tab']:'3-tab shingles',metalexp:'Exposed-fastener metal'}[roofMat]),
+    'Siding':             ({vinyl:'Vinyl D5',hardie:'Hardie lap',lp:'LP SmartSide',bb:'Board & batten',brick:'Brick veneer',match:'Match existing'}[siding]),
+    'Flooring':           ({lvp:'LVP',hardwood:'Solid hardwood',engineered:'Engineered',tile:'Porcelain tile',carpet:'Carpet',stained:'Stained concrete',none:'Subfloor only'}[flooring]),
+    'Interior finish':    ({dw_paint:'Drywall + paint',dw_texture:'Drywall + texture + paint',shiplap:'Shiplap accent',dw_only:'Drywall (unfinished)'}[intFinish]),
+    'Electrical':         ({basic:'Basic',standard:'Standard',full:'Full + recessed',subpanel:'Full + subpanel'}[elecScope]),
+    'Plumbing':           ({none:'None',halfbath:'Half-bath rough',fullbath:'Full-bath rough',kitchenette:'Kitchenette'}[plumbScope]),
+    'HVAC':               ({extend:'Extend existing',minisplit:'18k mini-split',minisplit_lg:'24k mini-split',none:'None'}[hvacScope]),
   };
 
-  extendTakeoffWithCompleteList('framing', items, {
-    extPerim, ht, totalStuds, openings, doors, windows, studSz, sheath,
-  });
+  // NOTE: the legacy extendTakeoffWithCompleteList('framing', ...) call was
+  // removed — its line items (Sill Sealer, Termite Shield, PT Sill Plate,
+  // CS16 Strap, R-13 batt, Fireblock Foam, Acoustic Sealant, FlexWrap,
+  // Butyl Tape, Permit, Inspection, etc.) are now covered directly by the
+  // categories above. Leaving the call in would double-count those items.
 
   toRenderResults(items, summary, 'framing');
 }
@@ -3416,6 +4118,32 @@ function toRenderResults(items, summary, type){
     'Screening / Enclosure':R.sk, 'Railing / Half-Walls':R.sk,
     'Electrical (Rough-In)':R.elec,'Summary':            0,
     'Miscellaneous':       R.sk,  'Stairs':              R.sk,
+    // Addition phases
+    'Site & Demolition':       R.gen,
+    'Foundation — Excavation': R.gen,
+    'Foundation — Concrete':   R.sk,
+    'Foundation — CMU / Stem': R.mason,
+    'Sill & Anchorage':        R.sk,
+    'Floor Framing':           R.sk,
+    'Wall Framing':            R.sk,
+    'Headers & Openings':      R.sk,
+    'Roof Framing':            R.sk,
+    'Roofing':                 R.roof,
+    'Roof Flashing & Tie-In':  R.roof,
+    'Exterior Siding & Trim':  R.sk,
+    'Windows':                 R.sk,
+    'Doors (Exterior)':        R.sk,
+    'Doors (Interior)':        R.sk,
+    'Insulation':              R.sk,
+    'Drywall':                 R.sk,
+    'Interior Paint & Finish': R.paint,
+    'Flooring':                R.sk,
+    'Interior Trim':           R.sk,
+    'Electrical':              R.elec,
+    'Plumbing':                R.plumb,
+    'HVAC':                    R.hvac,
+    'Permits & Inspections':   0,
+    'General Conditions':      R.gen,
   };
 
   // Estimate labor by category if not provided explicitly
@@ -3440,6 +4168,32 @@ function toRenderResults(items, summary, type){
     'Side Walls':          {sqft:0.08, default:0.10},
     'Screening / Enclosure':{ea:0.50, roll:0.50, default:0.40},
     'Miscellaneous':       {default:0.05},
+    // Addition phases — used only when an item lacks a PRICE_MAP entry
+    'Site & Demolition':       {day:8, lf:0.05, default:0.20},
+    'Foundation — Excavation': {day:8, lf:0.20, default:0.30},
+    'Foundation — Concrete':   {CY:2.0, lf:0.10, ea:0.20, default:0.15},
+    'Foundation — CMU / Stem': {ea:0.22, lf:0.30, default:0.20},
+    'Sill & Anchorage':        {lf:0.08, ea:0.08, default:0.06},
+    'Floor Framing':           {ea:0.18, lf:0.08, sqft:0.04, default:0.15},
+    'Wall Framing':            {ea:0.15, lf:0.06, default:0.12},
+    'Headers & Openings':      {ea:0.50, default:0.30},
+    'Roof Framing':            {ea:0.30, sheet:0.18, sqft:0.04, default:0.20},
+    'Roofing':                 {bundle:0.65, sq:2.5, sqft:0.03, lf:0.12, ea:0.30, default:0.05},
+    'Roof Flashing & Tie-In':  {lf:0.15, ea:0.30, default:0.20},
+    'Exterior Siding & Trim':  {sq:1.10, sqft:0.10, lf:0.10, ea:0.20, default:0.10},
+    'Windows':                 {ea:1.75, roll:0.05, default:0.20},
+    'Doors (Exterior)':        {ea:2.50, default:1.50},
+    'Doors (Interior)':        {ea:1.50, default:1.00},
+    'Insulation':              {bag:0.05, sqft:0.02, default:0.04},
+    'Drywall':                 {sheet:0.06, box:0.03, lf:0.06, gal:0.04, default:0.05},
+    'Interior Paint & Finish': {gal:0.04, sqft:0.012, default:0.05},
+    'Flooring':                {sqft:0.05, sqyd:0.20, ea:0.20, default:0.05},
+    'Interior Trim':           {lf:0.08, ea:0.30, default:0.10},
+    'Electrical':              {ea:0.55, lf:0.05, roll:0.05, default:0.30},
+    'Plumbing':                {ea:1.00, lf:0.10, default:0.30},
+    'HVAC':                    {ea:0.50, lf:0.10, default:0.40},
+    'Permits & Inspections':   {default:0},
+    'General Conditions':      {day:0, ea:0, default:0},
   };
 
   // Build full cost data per item
@@ -7987,6 +8741,11 @@ const PRICE_MAP = (()=>{
 
   // ── FRAMING (room addition) ─────────────────────────────────────────────
   add('2×4 Wall Studs 8\'',            4.85, 0.15,'sk');
+  add('2×4 Wall Studs 9\'',            5.85, 0.15,'sk');
+  add('2×4 Wall Studs 10\'',           6.85, 0.15,'sk');
+  add('2×6 Wall Studs 8\'',            8.45, 0.16,'sk');
+  add('2×6 Wall Studs 9\'',           10.20, 0.16,'sk');
+  add('2×6 Wall Studs 10\'',          11.85, 0.16,'sk');
   add('Bottom Plate',                   5.20, 0.06,'sk');
   add('Anchor Bolt Sets',               4.20, 0.20,'sk');
   add('1/2" Drywall 4×8',              8.95, 0.06,'sk');
@@ -7996,6 +8755,263 @@ const PRICE_MAP = (()=>{
   add('Window Sill',                    8,  0.20,'sk');
   add('Jack Studs',                    4.85, 0.15,'sk');
   add('OSB Sheathing',                14.50, 0.04,'sk');
+
+  // ── ADDITION: FOUNDATION ───────────────────────────────────────────────
+  // Crawlspace stem wall (8" CMU on poured footing) — East TN typical.
+  add('Excavation (machine, 1 day)',         650, 0,    'sub');   // mini-excavator + operator
+  add('Hand-Dig Footing Trench (lf)',         3.20, 0.25,'gen');
+  add('Footing Concrete (CY, ready-mix)',   148,  0.45,'sk');     // 3000 psi, placed + screeded
+  add('Footing Form 2×8×12\' (rentable)',     8.50, 0.10,'sk');
+  add('Footing Rebar #4 20\' stick',           9.80, 0.18,'sk');
+  add('Rebar Tie Wire (3lb roll)',             6.50, 0.02,'sk');
+  add('CMU Block 8×8×16 (stem wall)',          2.85, 0.22,'mason');
+  add('Type N Mortar Mix 80lb',                8.50, 0.04,'mason');
+  add('Sand for Mortar (TON)',                42,   0.10,'mason');
+  add('Foundation Sill Plate 2×6×16\' PT',    19,   0.06,'sk');
+  add('Foundation Sill Plate 2×4×16\' PT',    11,   0.06,'sk');
+  add('Sill Seal Foam 5½"×50\' roll',          14,   0.02,'sk');
+  add('Anchor Bolt 1/2"×10" J-bolt',           2.10, 0.08,'sk');
+  add('Termite Shield Aluminum 6"×50\'',      46,   0.06,'sk');
+  add('Foundation Vent 16×8 (crawlspace)',    11,   0.20,'sk');
+  add('Crawlspace Access Door 18×24',         48,   1.20,'sk');
+  add('Vapor Barrier 6mil (crawl floor)',      0.06, 0.01,'sk');
+  // Slab variant
+  add('Crushed Gravel #57 (TON)',             42,   0.30,'sk');
+  add('Slab Concrete (CY, ready-mix 3000psi)', 148, 0.45,'sk');
+  add('Slab Wire Mesh 6×6 W2.9 (5×10 sheet)', 11.80, 0.10,'sk');
+  add('Slab Vapor Barrier 10mil',              0.12, 0.01,'sk');
+  add('Slab Thickened-Edge Form',              8.50, 0.10,'sk');
+  // Pier-and-beam variant
+  add('Sonotube 12" × 4\'',                   24,   0.30,'sk');
+  add('Pier Concrete (80lb bag)',              6.45, 0.05,'sk');
+  add('Pier Bracket / Cap Hardware',          12,   0.20,'sk');
+  // Basement variant
+  add('Poured Wall Concrete (CY)',           165,   0.55,'sk');
+  add('Poured Wall Form Rental (lf)',         18,   0.40,'sk');
+  add('Waterproofing Membrane (5gal pail)',   95,   0.30,'sk');
+  add('Drain Tile 4" Perforated (10\' stick)', 11,  0.15,'sk');
+  // Tie-in to existing
+  add('Foundation Tie-In Epoxy + Dowels',    180,   2.00,'sk');
+  add('Foundation Engineering / Layout (allow)',  450, 0, 'sub');
+
+  // ── ADDITION: FLOOR FRAMING (over crawl/pier) ──────────────────────────
+  add('Rim Joist 2×10×16\' PT',              28,   0.20,'sk');
+  add('Floor Joist 2×10×16\' SPF',           24,   0.18,'sk');
+  add('Floor Joist 2×10×12\' SPF',           18.50, 0.18,'sk');
+  add('Floor Joist Hanger LUS210',             1.85, 0.08,'sk');
+  add('Joist Blocking 2×10×8\' SPF',         12.20, 0.20,'sk');
+  add('Beam — Triple 2×10 PT girder (lf)',    28,   0.45,'sk');
+  add('Subfloor 3/4" T&G OSB (4×8)',          38,   0.12,'sk');
+  add('Subfloor Adhesive PL Premium',          8.50, 0.05,'sk');
+  add('Subfloor Screws (5lb)',                24,   0.02,'sk');
+  add('Joist Bridging Steel (per pair)',       1.20, 0.08,'sk');
+
+  // ── ADDITION: ROOF FRAMING & ROOFING ───────────────────────────────────
+  add('Rafter 2×8×16\' SPF',                 22,   0.30,'sk');
+  add('Rafter 2×10×16\' SPF',                28,   0.30,'sk');
+  add('Rafter 2×12×16\' SPF',                36,   0.30,'sk');
+  add('Ridge Board 2×12×16\'',               36,   0.40,'sk');
+  add('Collar Tie 2×6×10\' SPF',             11,   0.20,'sk');
+  add('Ceiling Joist 2×8×16\' SPF',          22,   0.20,'sk');
+  add('Engineered Roof Truss (ea, ~6:12)',   115,   0.55,'sk');
+  add('Truss Setting Crane (half-day)',      450,   0,    'sub');
+  add('Roof Sheathing 7/16" OSB (4×8)',       17,   0.18,'sk');
+  add('Roof Sheathing 5/8" CDX (4×8)',        28,   0.20,'sk');
+  add('Ice & Water Shield (200sf roll)',      74,   0.15,'roof');
+  add('Synthetic Underlayment (10sq roll)',  138,   0.10,'roof');
+  add('Drip Edge 10\' Aluminum',                4.20, 0.08,'sk');
+  add('Step Flashing (3"×4"×8" — 100/box)',   28,   0.10,'roof');
+  add('Counter Flashing (10\')',              14,   0.12,'roof');
+  add('Roof-to-Wall Flashing (tie-in lf)',     6.50, 0.15,'roof');
+  add('Architectural Shingles (bundle, 33sf)', 38,   0.65,'roof');
+  add('3-Tab Shingles (bundle, 33sf)',        28,   0.55,'roof');
+  add('Ridge Cap Shingles (bundle)',          44,   0.18,'roof');
+  add('Starter Strip Shingles (bundle)',      45,   0.08,'roof');
+  add('Standing Seam Panel 24-ga (sqft)',      8.40, 0.045,'roof');
+  add('Standing Seam Clips + Screws (per sq)', 42,   0.10,'roof');
+  add('Standing Seam Ridge Cap (lf)',          9.50, 0.12,'roof');
+  add('Exposed-Fastener Metal 29-ga (sqft)',   3.80, 0.025,'roof');
+  add('Metal Roof Screw w/EPDM (250 box)',    32,   0.005,'roof');
+  add('TPO Membrane (sqft, fully adhered)',    1.85, 0.045,'roof');
+  add('TPO Bonding Adhesive (5gal)',         145,   0.20,'roof');
+  add('Roof Vent — Off-Ridge (ea)',           24,   0.40,'roof');
+  add('Ridge Vent 4\' section',                 9.80, 0.15,'roof');
+  add('Soffit Vent 16×8',                       4.20, 0.20,'sk');
+  add('Plumbing Boot Flashing (1.5-3" pipe)', 14,   0.30,'roof');
+  add('Roofing Nails Coil 1¾" (5lb)',         14,   0.005,'roof');
+
+  // ── ADDITION: EXTERIOR SIDING & TRIM ──────────────────────────────────
+  add('Vinyl Siding D5 (square 100sf)',       95,   1.10,'sk');
+  add('Vinyl Starter / J-Channel (10\')',       4.20, 0.08,'sk');
+  add('Vinyl Corner Post (10\')',              16,   0.20,'sk');
+  add('Hardie Plank Lap 8.25"×12\' primed',   12.80, 0.10,'sk');
+  add('Hardie Trim 5/4×4×12\'',                28,   0.18,'sk');
+  add('Hardie Cement Board Backerlap',          0.42, 0.02,'sk');
+  add('LP SmartSide Lap 8"×16\'',             22,   0.10,'sk');
+  add('LP Board & Batten Panel 4×8',          48,   0.45,'sk');
+  add('LP/Hardie Stainless Nails 2½" (5lb)',  38,   0.005,'sk');
+  add('Brick Veneer (per sqft, modular)',      9.50, 0.65,'mason');
+  add('Brick Ties (corrugated, box 250)',     22,   0.005,'mason');
+  add('Brick Mortar Type N (80lb)',            8.50, 0.04,'mason');
+  add('Brick Sill Pre-Cast (lf)',             12,   0.30,'mason');
+  add('Existing-Siding Match Allowance (sqft)', 4.50, 0.10,'sk');
+  add('Fascia 1×6 Primed (16\')',             28,   0.15,'sk');
+  add('Soffit Vented Aluminum (12" wide, sqft)', 2.40, 0.12,'sk');
+  add('Frieze Board 1×4 (16\')',              14,   0.10,'sk');
+  add('Caulk Exterior Sashco Big Stretch 10oz', 9.50, 0.05,'sk');
+
+  // ── ADDITION: DOORS & WINDOWS (units, not just openings) ───────────────
+  add('Exterior Door — Steel 36" prehung (R-5)', 285, 2.50,'sk');
+  add('Exterior Door — Fiberglass 36" prehung', 545, 2.50,'sk');
+  add('Patio Door — Sliding Vinyl 6\'×6\'8" (Low-E)', 685, 4.00,'sk');
+  add('Interior Door — Hollow-core 30" prehung',  85, 1.50,'sk');
+  add('Interior Door — Solid-core 30" prehung', 165, 2.00,'sk');
+  add('Door Lockset — Keyed Entry',            48,   0.50,'sk');
+  add('Door Hinges Heavy-Duty (3/pkg)',         8.50, 0.10,'sk');
+  add('Window — Vinyl Double-Hung 30×54 (Low-E)', 245, 1.75,'sk');
+  add('Window — Vinyl Slider 60×36 (Low-E)',   325,   2.00,'sk');
+  add('Window — Vinyl Picture 48×48',          285,   1.75,'sk');
+  add('Window Flashing Tape 4"×75\' (DuPont)', 52,   0.05,'sk');
+  add('Window Sill Pan Jamsill (ea)',          18,   0.20,'sk');
+  add('Window Foam Great Stuff Pro 24oz',      11,   0.10,'sk');
+  add('Window Shim Bundle ⅛"',                  4,   0.05,'sk');
+
+  // ── ADDITION: INSULATION ──────────────────────────────────────────────
+  add('Fiberglass Batt R-13 (kraft, 88 sqft bag)', 52, 0.04,'sk');
+  add('Fiberglass Batt R-15 high-density (88sf)',  74, 0.05,'sk');
+  add('Fiberglass Batt R-21 (2×6 cavity, 67sf)',   78, 0.04,'sk');
+  add('Fiberglass Batt R-30 (ceiling, 88sf)',     112, 0.05,'sk');
+  add('Fiberglass Batt R-38 (ceiling, 88sf)',     145, 0.05,'sk');
+  add('Blown-In Cellulose (per bag, ~20sf @ R-30)', 14, 0.08,'sk');
+  add('Vapor Retarder MemBrain (8\'×100\')',     185, 0.02,'sk');
+  add('Rim Joist Foam Board 2" (4×8)',          42,  0.10,'sk');
+  add('Insulation Staples / Hooks (box)',        8.50,0.01,'sk');
+  add('Acoustic Sealant Tremco 29oz',          14,   0.05,'sk');
+
+  // ── ADDITION: DRYWALL & INTERIOR FINISH ────────────────────────────────
+  add('1/2" Drywall 4×12 sheet',              13.50, 0.06,'sk');
+  add('5/8" Type-X Drywall 4×8 (ceiling/fire)', 12.80, 0.06,'sk');
+  add('Joint Compound 4.5gal box',            17,   0.03,'sk');
+  add('Joint Tape 2"×500\'',                    6.50, 0.02,'sk');
+  add('Corner Bead Metal 8\'',                   3.50, 0.06,'sk');
+  add('Drywall Screws 1¼" 5lb',                22,   0.005,'sk');
+  add('Knockdown Texture Spray Hopper (rent/day)', 95, 0,  'sk');
+  add('Spray Texture Mud (boxed, ea)',         24,   0.05,'sk');
+  add('Drywall Sanding Block / Sponge',         4.50, 0,    'sk');
+  add('Shiplap Pine 1×6×8\' (ea)',              8.50, 0.10,'sk');
+  add('Primer Drywall PVA (5gal)',             68,   0.03,'paint');
+  add('Interior Paint (5gal, semi-gloss)',     145,  0.04,'paint');
+  add('Interior Paint Trim Enamel (gal)',      48,   0.05,'paint');
+  add('Roller Covers + Sleeves Kit',           22,   0,    'paint');
+  add('Painter\'s Tape 1.88"×60yd (3/pk)',     14,   0,    'paint');
+  add('Drop Cloth Canvas 9×12',                18,   0,    'paint');
+
+  // ── ADDITION: FLOORING ────────────────────────────────────────────────
+  add('LVP Flooring — Mid-grade (per sqft)',    3.20, 0.05,'sk');
+  add('LVP Flooring — Premium (per sqft)',      5.40, 0.05,'sk');
+  add('LVP Underlayment Foam (per sqft)',       0.32, 0.01,'sk');
+  add('Engineered Hardwood ¾" (per sqft)',      6.50, 0.07,'sk');
+  add('Solid Hardwood ¾" Oak (per sqft)',       7.80, 0.10,'sk');
+  add('Hardwood Underlayment 15# Felt',         0.18, 0.01,'sk');
+  add('Porcelain Tile 12×24 (per sqft)',        3.80, 0.12,'mason');
+  add('Tile Thinset 50lb',                     22,   0.05,'mason');
+  add('Tile Grout 25lb',                       18,   0.04,'mason');
+  add('Tile Backer ¼" cement board (3×5)',     14,   0.10,'mason');
+  add('Tile Spacers + Wedges',                  4.50, 0.00,'mason');
+  add('Carpet — Standard Plush (per sqyd)',    18,   0.20,'sk');
+  add('Carpet Pad 8lb (per sqyd)',              4.50, 0.05,'sk');
+  add('Carpet Tack Strip (per lf)',             0.45, 0.05,'sk');
+  add('Concrete Stain (5gal — slab)',         185,   0.04,'paint');
+  add('Concrete Sealer Solvent (5gal)',       148,   0.03,'paint');
+  add('Floor Transition Strip (ea)',           14,   0.20,'sk');
+
+  // ── ADDITION: INTERIOR TRIM ───────────────────────────────────────────
+  add('Baseboard 3¼" Colonial Primed (16\')', 14,   0.08,'sk');
+  add('Baseboard 5¼" Craftsman Primed (16\')',22,   0.10,'sk');
+  add('Baseboard 7" Premium Primed (16\')',   32,   0.12,'sk');
+  add('Baseboard 2¼" Square Edge (16\')',      9.80, 0.08,'sk');
+  add('Door Casing 2¼" Colonial (per opening)', 22, 0.30,'sk');
+  add('Door Casing Craftsman (per opening)',   38,   0.40,'sk');
+  add('Window Casing Set (per window)',        28,   0.40,'sk');
+  add('Crown Molding 3¼" Primed (16\')',      18,   0.12,'sk');
+  add('Chair Rail 2½" Primed (16\')',         12,   0.08,'sk');
+  add('Finish Nails 2" Galvanized (5lb)',     14,   0.005,'sk');
+  add('Caulk Paintable Latex 10oz',             4.50, 0.05,'sk');
+  add('Wood Putty / Filler (qt)',               8.50, 0,    'sk');
+
+  // ── ADDITION: ELECTRICAL ROUGH-IN ─────────────────────────────────────
+  add('Outlet — Standard 15A Tamper-Resistant',  3.80, 0.40,'elec');
+  add('Outlet — GFCI 15A (kitchen/bath)',       19,   0.55,'elec');
+  add('Outlet Box Single-Gang (NM cable)',       1.20, 0.10,'elec');
+  add('Switch — Single-Pole 15A',                3.20, 0.40,'elec');
+  add('Switch — 3-Way 15A',                      6.50, 0.55,'elec');
+  add('Light Fixture — Standard Ceiling LED',   42,   0.65,'elec');
+  add('Recessed Light — 4" LED Canless',        14,   0.55,'elec');
+  add('Ceiling Fan Box (fan-rated, braced)',    18,   0.50,'elec');
+  add('Smoke / CO Combo Detector (10-yr)',      48,   0.50,'elec');
+  add('12/2 NM-B Romex (250\' roll)',          112,   0.05,'elec');
+  add('14/2 NM-B Romex (250\' roll)',           88,   0.04,'elec');
+  add('12/3 NM-B Romex (250\' roll, 3-way)',   165,   0.05,'elec');
+  add('Wire Nuts Assorted (jar 175ct)',         12,   0,    'elec');
+  add('Cable Staples 1/2" (box 300ct)',          6.50, 0.005,'elec');
+  add('Breaker 15A Single-Pole (matched)',      11,   0.20,'elec');
+  add('Breaker 20A Single-Pole (matched)',      12,   0.20,'elec');
+  add('Sub-Panel 100A 20-space (load center)', 165,   3.50,'elec');
+  add('Sub-Panel Feed SER 4-wire 2/0 (per lf)',  9.50, 0.10,'elec');
+  add('Grounding Rod 8\' + Clamp',              22,   0.40,'elec');
+  add('Electrical Inspection Fee',              85,   0,    'sub');
+
+  // ── ADDITION: PLUMBING ROUGH-IN (optional scope) ───────────────────────
+  add('PEX Tubing ½" Red/Blue (100\' roll)',   42,   0.05,'plumb');
+  add('PEX Tubing ¾" Red/Blue (100\' roll)',   78,   0.05,'plumb');
+  add('PEX Fittings Crimp (kit)',              48,   0.10,'plumb');
+  add('PEX Manifold 4-port + Valves',          85,   1.50,'plumb');
+  add('PVC DWV 3" × 10\'',                     22,   0.15,'plumb');
+  add('PVC DWV 2" × 10\'',                     12,   0.12,'plumb');
+  add('PVC DWV 1½" × 10\'',                     8.50, 0.10,'plumb');
+  add('PVC DWV Fittings (assorted bag)',       38,   0.10,'plumb');
+  add('PVC Solvent + Primer Kit',              22,   0,    'plumb');
+  add('Closet Flange 3" PVC',                  14,   0.30,'plumb');
+  add('Shower Drain Assembly',                 38,   0.50,'plumb');
+  add('Tub/Shower Valve Rough — Moen',        165,   1.50,'plumb');
+  add('Lavatory Rough — Supply Stops + Trap',  48,   0.75,'plumb');
+  add('Vent Stack Through-Roof Kit',           28,   0.50,'plumb');
+  add('Plumbing Strapping / Hangers (box)',     6.50, 0,    'plumb');
+  add('Plumbing Inspection Fee',               85,   0,    'sub');
+  // Fixture allowances (rough-in only when omitted)
+  add('Toilet — Standard 1.28gpf',            165,   1.50,'plumb');
+  add('Lavatory Sink + Faucet — Mid-grade',   145,   1.50,'plumb');
+  add('Tub/Shower Combo Fiberglass 60"',      485,   3.50,'plumb');
+  add('Kitchen Sink Stainless Double + Faucet', 245, 2.00,'plumb');
+
+  // ── ADDITION: HVAC ────────────────────────────────────────────────────
+  add('HVAC — Extend Existing Trunk (2 supply runs)', 685, 6.00,'hvac');
+  add('HVAC — New Return Run',                 285,   3.00,'hvac');
+  add('Flex Duct 8" R-6 (25\' box)',           48,   0.20,'hvac');
+  add('Supply Register 4×10',                   8.50, 0.30,'hvac');
+  add('Return Grille 14×20',                   28,   0.40,'hvac');
+  add('Boot 4×10×8" sheet metal',              14,   0.30,'hvac');
+  add('Mini-Split 18k BTU Heat Pump (unit)', 1485,   4.00,'hvac');
+  add('Mini-Split 24k BTU Heat Pump (unit)', 1845,   4.50,'hvac');
+  add('Mini-Split Line Set ¼"×⅜" 25\'',     145,   1.50,'hvac');
+  add('Mini-Split Wall Bracket / Pad',         42,   0.50,'hvac');
+  add('Refrigerant Vacuum + Charge Service',  185,   0,    'sub');
+  add('Condensate Pump Mini',                  68,   0.50,'hvac');
+  add('Disconnect Switch 60A (outdoor unit)',  28,   0.50,'elec');
+  add('HVAC Inspection / Permit',              95,   0,    'sub');
+
+  // ── ADDITION: SITE / GENERAL CONDITIONS ───────────────────────────────
+  add('Building Permit (residential addition)',  385, 0,   'sub');
+  add('Framing Inspection Fee',                 95,   0,    'sub');
+  add('Final Inspection Fee',                   95,   0,    'sub');
+  add('Architect / Drawing Allowance',         850,   0,    'sub');
+  add('Dumpster 20-yard (delivered, 2-week)',  485,   0,    'sub');
+  add('Porta-John Rental (monthly)',           165,   0,    'sub');
+  add('General Cleanup Labor (day)',           240,   0,    'gen');
+  add('Material Delivery Charges (estimate)',  185,   0,    'sub');
+  add('Tarps / Temporary Weather Protection',   42,   0,    'gen');
+  add('Tool Blade / Bit Replacement',           65,   0,    'sk');
+  add('Final Walk-Through / Punch List',       180,   0,    'fore');
 
   // ── PORCH ──────────────────────────────────────────────────────────────
   add('Outdoor Tile 12×12',            1.85, 0.12,'mason');
