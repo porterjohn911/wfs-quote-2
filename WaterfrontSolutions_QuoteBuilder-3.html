@@ -1341,7 +1341,7 @@ const TASKS = [
   {name:"Debris haul-off / cleanup",cat:"Site Work",icon:"🚛",unit:"load",unitLabel:"loads",hrsPerUnit:2.5,rateKey:"gen",matPerUnit:0,notes:"Per dump truck load"},
   {name:"Form & pour footer (12\"×8\")",cat:"Concrete",icon:"🏗️",unit:"lf",unitLabel:"lin ft",hrsPerUnit:.45,rateKey:"sk",matPerUnit:8,notes:"Incl. forms, rebar, concrete"},
   {name:"Form & pour footer (16\"×8\")",cat:"Concrete",icon:"🏗️",unit:"lf",unitLabel:"lin ft",hrsPerUnit:.55,rateKey:"sk",matPerUnit:12,notes:"Standard residential footer"},
-  {name:"Pier / sonotube footing",cat:"Concrete",icon:"🔩",unit:"ea",unitLabel:"each",hrsPerUnit:2.8,rateKey:"sk",matPerUnit:48,notes:"12\" tube, 3 ft deep, incl. rebar"},
+  {name:"Pier / sonotube footing",cat:"Concrete",icon:"🔩",unit:"ea",unitLabel:"each",hrsPerUnit:1.8,rateKey:"sk",matPerUnit:38,notes:"12\" tube, 3 ft deep, incl. rebar; auger crew rate"},
   {name:"Concrete slab — 4\" reinforced",cat:"Concrete",icon:"🟫",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:.08,rateKey:"sk",matPerUnit:6,notes:"Incl. gravel, vapor barrier, wire mesh"},
   {name:"Concrete slab — 6\" reinforced",cat:"Concrete",icon:"🟫",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:.1,rateKey:"sk",matPerUnit:8.5,notes:"Garage or heavy load slab"},
   {name:"CMU block wall — 8\" standard",cat:"Masonry",icon:"🧱",unit:"sqft",unitLabel:"sq ft of wall",hrsPerUnit:.28,rateKey:"mason",matPerUnit:4.5,notes:"~1.125 blocks/sqft; mortar incl."},
@@ -1352,7 +1352,7 @@ const TASKS = [
   {name:"Deck joist framing (16\" OC)",cat:"Deck",icon:"🪵",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:.062,rateKey:"sk",matPerUnit:2.5,notes:"Incl. joist hangers"},
   {name:"Deck decking — pressure treated",cat:"Deck",icon:"🪵",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.055,rateKey:"sk",matPerUnit:3.8,notes:"5/4×6 PT; incl. fasteners"},
   {name:"Deck decking — composite / Trex",cat:"Deck",icon:"🪵",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.065,rateKey:"sk",matPerUnit:13.5,notes:"Hidden fastener system"},
-  {name:"Deck posts — 4×4 or 6×6 set",cat:"Deck",icon:"🪵",unit:"ea",unitLabel:"each",hrsPerUnit:1.5,rateKey:"sk",matPerUnit:19.5,notes:"Incl. post base, plumb & brace"},
+  {name:"Deck posts — 4×4 or 6×6 set",cat:"Deck",icon:"🪵",unit:"ea",unitLabel:"each",hrsPerUnit:0.9,rateKey:"sk",matPerUnit:19.5,notes:"Incl. post base, plumb & brace (sonotubes pre-augered)"},
   {name:"Deck railings — wood balusters",cat:"Deck",icon:"🪵",unit:"lf",unitLabel:"lin ft",hrsPerUnit:0.75,rateKey:"sk",matPerUnit:15.5,notes:"Top/bottom rail + balusters 4\" OC"},
   {name:"Deck stairs — wood stringers",cat:"Deck",icon:"🪵",unit:"riser",unitLabel:"risers",hrsPerUnit:1.25,rateKey:"sk",matPerUnit:24,notes:"Per riser incl. treads"},
   {name:"Deck ledger & beam install",cat:"Deck",icon:"🪵",unit:"lf",unitLabel:"lin ft",hrsPerUnit:0.5,rateKey:"sk",matPerUnit:7.5,notes:"Lag bolts, hangers, beam pockets"},
@@ -2381,6 +2381,13 @@ function toCalcDeck(){
     'Stairs': stairs>0?(stairs+' run(s), '+rises+' risers'):'None',
   };
 
+  // Augment with full per-phase material list (fasteners, connectors, flashing,
+  // sealants, consumables, permits) sourced from AWC DCA6 / Simpson / IRC 2021.
+  extendTakeoffWithCompleteList('deck', items, {
+    len, wid, ht, joc, rail, postQty, joistCount, rises, stairs,
+    sqft, perim: 2*(len+wid), railType,
+  });
+
   toRenderResults(items, summary, 'deck');
 }
 
@@ -2510,6 +2517,11 @@ function toCalcRoof(){
     'Drip edge': dripEdgeLF+' lf',
   };
 
+  extendTakeoffWithCompleteList('roof', items, {
+    blen, bwid, eaveExt, roofSqFt, eavePerim, rakePerim,
+    ridge, valley, shingle, sheetsNeeded, tearoff, gutterLF, penetr,
+  });
+
   toRenderResults(items, summary, 'roof');
 }
 
@@ -2620,6 +2632,10 @@ function toCalcFraming(){
     'Headers': openings+' openings',
     'Ceiling joists': ceil?(ceilJoistQty+' pcs'):'Trusses/open',
   };
+
+  extendTakeoffWithCompleteList('framing', items, {
+    extPerim, ht, totalStuds, openings, doors, windows, studSz, sheath,
+  });
 
   toRenderResults(items, summary, 'framing');
 }
@@ -2744,7 +2760,590 @@ function toCalcConcrete(){
     'Perimeter': perim.toFixed(0)+' lf',
   };
 
+  extendTakeoffWithCompleteList('concrete', items, {
+    perim, sqft, orderCY, piers, vapor,
+  });
+
   toRenderResults(items, summary, 'concrete');
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// MATERIAL SUBSTITUTION — alternates catalog + per-item overrides
+//
+// Each line item in a takeoff can have its material swapped for an equivalent
+// alternative (e.g. 2×10 joist → 2×8 joist, 5/4 PT decking → composite Trex,
+// Ø12" sonotube → Ø10"). The role is inferred from the item name. User
+// overrides persist for the session in _itemOverrides and survive recalc.
+// ══════════════════════════════════════════════════════════════════════════
+const ALT_CATALOG = {
+  joist: [
+    {label:'2×6 PT × 16\'',  matCostEach:22},
+    {label:'2×8 PT × 16\'',  matCostEach:26},
+    {label:'2×10 PT × 16\'', matCostEach:32},
+    {label:'2×12 PT × 16\'', matCostEach:42},
+    {label:'LVL 1¾"×9¼" × 16\'',   matCostEach:92},
+    {label:'LVL 1¾"×11⅞" × 16\'',  matCostEach:115},
+    {label:'I-Joist 11⅞" × 16\'',  matCostEach:78},
+  ],
+  beam: [
+    {label:'(2) 2×8 PT',            matCostEach:52},
+    {label:'(2) 2×10 PT',           matCostEach:64},
+    {label:'(2) 2×12 PT',           matCostEach:84},
+    {label:'(3) 2×10 PT',           matCostEach:96},
+    {label:'(3) 2×12 PT',           matCostEach:126},
+    {label:'LVL 1¾"×9¼"',           matCostEach:14, _perFt:true},
+    {label:'LVL 1¾"×11⅞"',          matCostEach:16, _perFt:true},
+    {label:'PSL 5¼"×11⅞"',          matCostEach:32, _perFt:true},
+  ],
+  ledger: [
+    {label:'2×8 PT Ledger',  matCostEach:26},
+    {label:'2×10 PT Ledger', matCostEach:32},
+    {label:'2×12 PT Ledger', matCostEach:42},
+  ],
+  post: [
+    {label:'4×4 PT × 8\'',  matCostEach:18},
+    {label:'4×4 PT × 10\'', matCostEach:28},
+    {label:'6×6 PT × 8\'',  matCostEach:42},
+    {label:'6×6 PT × 10\'', matCostEach:58},
+    {label:'6×6 PT × 12\'', matCostEach:78},
+    {label:'Steel Sch40 4"', matCostEach:115},
+  ],
+  stud: [
+    {label:'2×4 SPF × 8\' precut',  matCostEach:4.20},
+    {label:'2×4 SPF × 9\' precut',  matCostEach:5.80},
+    {label:'2×6 SPF × 8\' precut',  matCostEach:7.80},
+    {label:'2×6 SPF × 9\' precut',  matCostEach:9.40},
+    {label:'2×4 KD Doug-Fir × 8\'', matCostEach:5.40},
+  ],
+  decking_board: [
+    {label:'5/4×6 PT × 16\'',          matCostEach:19},
+    {label:'5/4×6 Cedar × 16\'',       matCostEach:38},
+    {label:'1×6 Composite (Trex Sel)', matCostEach:46},
+    {label:'1×6 Composite (Transcend)',matCostEach:62},
+    {label:'1×6 Ipe Hardwood × 16\'',  matCostEach:78},
+    {label:'1×6 PVC (Azek) × 16\'',    matCostEach:58},
+  ],
+  sonotube: [
+    {label:'Sonotube 10"Ø × 48"', matCostEach:18},
+    {label:'Sonotube 12"Ø × 48"', matCostEach:24},
+    {label:'Sonotube 14"Ø × 48"', matCostEach:34},
+    {label:'Sonotube 16"Ø × 48"', matCostEach:42},
+    {label:'Sonotube 18"Ø × 48"', matCostEach:48},
+  ],
+  rebar: [
+    {label:'#3 Rebar 20\' (3/8"Ø)',  matCostEach:9},
+    {label:'#4 Rebar 20\' (1/2"Ø)',  matCostEach:14},
+    {label:'#5 Rebar 20\' (5/8"Ø)',  matCostEach:20},
+    {label:'#6 Rebar 20\' (3/4"Ø)',  matCostEach:28},
+  ],
+  anchor_bolt: [
+    {label:'½"Ø × 8" J-Bolt + nut + washer',  matCostEach:3.20},
+    {label:'½"Ø × 10" J-Bolt + nut + washer', matCostEach:4.20},
+    {label:'⅝"Ø × 10" J-Bolt + nut + washer', matCostEach:5.40},
+    {label:'⅝"Ø × 12" J-Bolt + nut + washer', matCostEach:6.20},
+    {label:'¾"Ø × 12" J-Bolt + nut + washer', matCostEach:8.40},
+  ],
+  sheathing_panel: [
+    {label:'7/16" OSB 4×8',          matCostEach:22},
+    {label:'15/32" OSB 4×8',         matCostEach:28},
+    {label:'5/8" OSB 4×8',           matCostEach:34},
+    {label:'½" CDX Plywood 4×8',     matCostEach:42},
+    {label:'¾" T&G Plywood 4×8',     matCostEach:62},
+    {label:'Zip System 7/16" 4×8',   matCostEach:54},
+  ],
+  underlayment: [
+    {label:'15# Felt Roll (400 sf)',     matCostEach:42},
+    {label:'30# Felt Roll (200 sf)',     matCostEach:48},
+    {label:'Synthetic 48"×250\' (10 sq)',matCostEach:115},
+    {label:'Premium Synthetic (Sharkskin)',matCostEach:165},
+  ],
+  shingle: [
+    {label:'3-Tab Shingles (bundle)',       matCostEach:34},
+    {label:'Architectural 30-yr (bundle)',  matCostEach:42},
+    {label:'Architectural 50-yr (bundle)',  matCostEach:58},
+    {label:'Premium Designer (bundle)',     matCostEach:78},
+    {label:'Standing Seam Metal (sf)',      matCostEach:8.50, _perSf:true},
+  ],
+  drip_edge: [
+    {label:'Aluminum T-style 10\'',  matCostEach:9},
+    {label:'Aluminum F-style 10\'',  matCostEach:9},
+    {label:'Galv steel 10\'',        matCostEach:11},
+    {label:'Copper 10\'',            matCostEach:48},
+    {label:'Painted aluminum 10\'',  matCostEach:14},
+  ],
+  gutter: [
+    {label:'5" K-Style Aluminum 10\'',  matCostEach:14},
+    {label:'6" K-Style Aluminum 10\'',  matCostEach:18},
+    {label:'5" Half-Round Aluminum 10\'',matCostEach:24},
+    {label:'5" Half-Round Copper 10\'', matCostEach:78},
+    {label:'5" K-Style Galv Steel 10\'',matCostEach:16},
+  ],
+  insulation: [
+    {label:'R-13 Fiberglass batt (bag)', matCostEach:52},
+    {label:'R-15 Mineral Wool (bag)',    matCostEach:68},
+    {label:'R-19 Fiberglass batt (bag)', matCostEach:58},
+    {label:'R-20 Fiberglass batt (bag)', matCostEach:78},
+    {label:'R-21 Fiberglass HD (bag)',   matCostEach:88},
+    {label:'R-30 Blown-In (bag)',        matCostEach:42},
+    {label:'ccSPF kit 200 bf',           matCostEach:385},
+  ],
+  column: [
+    {label:'6×6 PT Post',          matCostEach:32},
+    {label:'PVC Wrap 8" Round',    matCostEach:215},
+    {label:'PVC Wrap 10" Round',   matCostEach:265},
+    {label:'PVC Wrap 12" Square Fluted', matCostEach:325},
+    {label:'Fiberglass Round 8"',  matCostEach:195},
+    {label:'Cedar 6×6 Wrapped',    matCostEach:165},
+  ],
+  paint: [
+    {label:'Sherwin Multipurpose Primer 1 gal',  matCostEach:52},
+    {label:'Sherwin SuperPaint Ext 1 gal',       matCostEach:78},
+    {label:'Sherwin Duration Ext 1 gal',         matCostEach:115},
+    {label:'Behr Premium Ext 1 gal',             matCostEach:48},
+    {label:'Benjamin Moore Aura 1 gal',          matCostEach:88},
+  ],
+  caulk: [
+    {label:'Big Stretch Acrylic 10 oz', matCostEach:11},
+    {label:'Geocel 2300 Polyurethane 10 oz', matCostEach:11},
+    {label:'OSI QUAD Max 10 oz', matCostEach:14},
+    {label:'GE Silicone II 10 oz', matCostEach:9},
+  ],
+  deck_screw: [
+    {label:'2½" Coated Deck Screw (5 lb)',     matCostEach:58},
+    {label:'3" Coated Deck Screw (5 lb)',      matCostEach:62},
+    {label:'2½" Stainless 305 (5 lb)',         matCostEach:115},
+    {label:'3" Stainless 305 (5 lb)',          matCostEach:125},
+    {label:'Cortex hidden plug system box',    matCostEach:48},
+  ],
+  vapor_barrier: [
+    {label:'6 mil Poly 20×100 Roll',         matCostEach:58},
+    {label:'10 mil Poly 20×100 Roll',        matCostEach:82},
+    {label:'Stego Wrap 15-mil 14×210',       matCostEach:385},
+    {label:'Perminator 10 mil 14×140',       matCostEach:225},
+  ],
+  shingle_starter: [
+    {label:'Starter Strip Bundle (100 lf)',  matCostEach:58},
+    {label:'Custom-cut from 3-tab (bundle)', matCostEach:38},
+  ],
+  ridge_cap: [
+    {label:'Timbertex Ridge Cap (bundle, 35 lf)', matCostEach:72},
+    {label:'Z-Ridge Ridge Cap (bundle)',          matCostEach:62},
+    {label:'Custom-cut from arch (bundle)',       matCostEach:48},
+    {label:'Metal Ridge Cap 10\'6"',              matCostEach:42},
+  ],
+};
+
+// Infer the role of an item from its name. Returns role key or null.
+function inferItemRole(name){
+  if(!name) return null;
+  const s = name.toLowerCase();
+  // Exclude accessory items first
+  if(/(hanger|tape|preservative|cage|tie wire|cap osha|chair|nail|screw\s|hook|coat|sealer|sealant|primer)/.test(s)) {
+    // accessories shouldn't be classified as the parent role
+    if(/^(deck(ing)? screw|deck screw|stainless deck)/.test(s)) return 'deck_screw';
+  }
+  if(/joist hanger/.test(s)) return null;
+  if(/joist tape/.test(s)) return null;
+  if(/post (base|cap|hardware|level)/.test(s)) return null;
+  if(/rebar (chair|tie|cap)/.test(s)) return null;
+  if(/anchor bolt|j[- ]bolt|wedge anchor/.test(s)) return 'anchor_bolt';
+  if(/joist/.test(s)) return 'joist';
+  if(/beam/.test(s)) return 'beam';
+  if(/ledger/.test(s)) return 'ledger';
+  if(/\b(\d+×\d+\s*pt\s*(post|column)?\s*\()|6×6 post|4×4 post|6×6 pt post|4×4 pt post/.test(s)) return 'post';
+  if(/\bpost\b(?!\s*(base|cap))/.test(s)) return 'post';
+  if(/\bstud\b/.test(s) && !/studs? & plates?/.test(s)) return 'stud';
+  if(/decking (board)?|deck board|5\/4×6|composite deck|cedar deck/.test(s)) return 'decking_board';
+  if(/sonotube/.test(s)) return 'sonotube';
+  if(/rebar(?! (chair|tie|cap|dowel))/.test(s)) return 'rebar';
+  if(/sheathing|osb|cdx|zip system|plywood/.test(s)) return 'sheathing_panel';
+  if(/underlayment|felt|synthetic/.test(s)) return 'underlayment';
+  if(/shingles?(?! (starter|cap|ridge))|metal panels|standing seam/.test(s)) return 'shingle';
+  if(/drip edge/.test(s)) return 'drip_edge';
+  if(/k[- ]style|gutter\s+(\d|al|gal|copper|half)/.test(s)) return 'gutter';
+  if(/fiberglass batt|mineral wool|spray foam|ccspf|insulation/.test(s)) return 'insulation';
+  if(/column(?! (cap|base))|pvc wrap/.test(s)) return 'column';
+  if(/(exterior|primer|sherwin|behr|benjamin) (paint|primer|wall|exterior)/.test(s) || /\bpaint 1 gal/.test(s)) return 'paint';
+  if(/caulk|sealant\s+(10 oz|tube)/.test(s)) return 'caulk';
+  if(/deck(ing)? screw/.test(s)) return 'deck_screw';
+  if(/vapor barrier|6 mil|10 mil poly|stego wrap|perminator/.test(s)) return 'vapor_barrier';
+  if(/starter strip/.test(s)) return 'shingle_starter';
+  if(/ridge cap|timbertex|z-ridge/.test(s)) return 'ridge_cap';
+  return null;
+}
+
+function getAltsFor(name){
+  const role = inferItemRole(name);
+  if(!role) return null;
+  return {role, alts: ALT_CATALOG[role] || []};
+}
+
+// User-saved overrides keyed by `${type}::${originalName}`. Holds the chosen
+// alternate or a custom-edited record. Survives recalc within a session.
+window._itemOverrides = window._itemOverrides || {};
+
+function _overrideKey(type, name){ return type+'::'+name; }
+
+// Apply override to a freshly-built item (mutates the item object).
+function applyItemOverride(type, item){
+  const key = _overrideKey(type, item._origName || item.name);
+  const ov  = window._itemOverrides[key];
+  if(!ov) return item;
+  item._origName = item._origName || item.name;
+  if(ov.name) item.name = ov.name;
+  if(ov.matCostEach != null) item.matCostEach = ov.matCostEach;
+  if(ov.qty != null) item.qty = ov.qty;
+  return item;
+}
+
+// Set an override and trigger a recalc of the active trade.
+function setItemOverride(type, origName, patch){
+  const key = _overrideKey(type, origName);
+  if(patch == null || patch === 'reset'){ delete window._itemOverrides[key]; }
+  else { window._itemOverrides[key] = Object.assign({}, window._itemOverrides[key]||{}, patch); }
+  if(typeof toCalc==='function') toCalc();
+}
+
+// Convenience handlers exposed for inline event wiring.
+window.swapItemMaterial = function(selectEl){
+  const type = selectEl.dataset.type;
+  const orig = selectEl.dataset.orig;
+  const val  = selectEl.value;
+  if(val === '__reset__'){ setItemOverride(type, orig, 'reset'); return; }
+  if(val === '__custom__'){
+    const cur = window._itemOverrides[_overrideKey(type, orig)] || {};
+    const newName = prompt('Custom material name:', cur.name || orig);
+    if(newName == null) return;
+    const newPriceStr = prompt('Unit price ($ per ' + (selectEl.dataset.unit||'item') + '):',
+                               cur.matCostEach != null ? cur.matCostEach : (selectEl.dataset.unitPrice||0));
+    if(newPriceStr == null) return;
+    setItemOverride(type, orig, {name:newName, matCostEach: parseFloat(newPriceStr) || 0});
+    return;
+  }
+  // Parse "label||price"
+  const [label, priceStr] = val.split('||');
+  setItemOverride(type, orig, {name:label, matCostEach: parseFloat(priceStr) || 0});
+};
+
+window.removeTakeoffItem = function(btn){
+  const type = btn.dataset.type;
+  const orig = btn.dataset.orig;
+  setItemOverride(type, orig, {qty:0});
+};
+
+window.editTakeoffQty = function(inp){
+  const type = inp.dataset.type;
+  const orig = inp.dataset.orig;
+  const q = parseFloat(inp.value);
+  if(isNaN(q) || q < 0) return;
+  setItemOverride(type, orig, {qty:q});
+};
+
+// ══════════════════════════════════════════════════════════════════════════
+// EXTENDED TAKEOFF — ensure each trade's material list includes every SKU a
+// builder actually needs on site: fasteners, structural connectors, flashing,
+// sealants, consumables, tools-as-materials, permits & inspection fees.
+//
+// Quantities derived from AWC DCA6, Simpson Strong-Tie C-C-2024, ACI 318,
+// IRC 2021, GAF Pro Field Guide, DuPont Tyvek installation guides, and
+// Stego Industries vapor-barrier instructions.
+// Prices are 2025-Q2 SE-TN contractor baseline; override per job via the
+// Pricing tab (saved values supersede these defaults).
+// ══════════════════════════════════════════════════════════════════════════
+function _i(name, qty, unit, orderUnit, matCostEach){
+  return {name, qty: Math.max(0, Math.ceil(qty*10)/10), unit, orderUnit: orderUnit||unit, matCostEach};
+}
+function _pushIfPositive(items, cat, ...newItems){
+  if(!items[cat]) items[cat] = [];
+  items[cat].push(...newItems.filter(it=>it.qty>0));
+}
+
+function extendTakeoffWithCompleteList(type, items, c){
+  if(!c) c={};
+  const P = _pushIfPositive;
+  if(type==='deck'){
+    const {len=0,wid=0,ht=0,joc=16,rail=0,postQty=0,joistCount=0,rises=0,stairs=0,sqft=0,perim=0,railType='wood'}=c;
+    // Site Prep & Layout — completely missing from current calc
+    P(items, 'Foundation & Posts',
+      _i('Mason\'s Twine 500\' Roll', 1, 'roll', 'roll', 6),
+      _i('Marking Paint (utility orange)', 2, 'can', 'can', 7),
+      _i('Layout Stakes 1×2×24"', 4 + Math.ceil(perim/10), 'ea', 'bundle(50)', 1.20),
+      _i('Silt Fence 100\' Roll', Math.ceil(perim/100), 'roll', 'roll', 42),
+      _i('6-mil Ground-Cover Poly 20×100', Math.ceil(sqft/2000), 'roll', 'roll', 95),
+      // Rebar cage inside sonotubes (was missing entirely)
+      _i('#4 Rebar 20\' Stick (3 per pier)', Math.ceil(postQty*3*3.5/20), 'ea', 'ea', 14),
+      _i('16-ga Tie Wire 3.5 lb Roll', 1, 'roll', 'roll', 11),
+      _i('⅝"×8" Anchor Bolt + Nut + Washer (post base)', postQty, 'set', 'box(25)', 5.20),
+    );
+    // Ledger flashing + connector hardware (IRC R507.9)
+    P(items, 'Framing & Structure',
+      _i('Z-Flashing 5"×3"×10\' (deck ledger)', Math.ceil(len/10), 'ea', 'ea', 14),
+      _i('Vycor Deck Protector 4"×75\' (ledger tape)', Math.ceil(len/75), 'roll', 'roll', 46),
+      _i('FastenMaster LedgerLOK 5" (alt to lag)', Math.ceil(len*12/16*2), 'ea', 'box(50)', 1.56),
+      _i('Simpson SDN 10d×1½" Hanger Nail, 1 lb', Math.ceil(joistCount*2*10/155), 'lb', 'lb', 11),
+      _i('H2.5A Hurricane Tie (joist-to-beam)', joistCount, 'ea', 'box(100)', 0.95),
+      _i('DTT2Z Lateral Load Tie (IRC R507.9.2)', 4, 'ea', 'ea', 14),
+      _i('SDWH27600DB ¼"×6" Screw (DTT2Z, 8 each)', 32, 'ea', 'box(50)', 1.40),
+      _i('PL Premium Construction Adhesive 28 oz', Math.ceil(joistCount/4), 'tube', 'tube', 9),
+      _i('Stainless 8d Ring-Shank Trim Nail, 1 lb', 1, 'lb', 'lb', 14),
+    );
+    if(stairs>0){
+      P(items, 'Stairs',
+        _i('LSCZ Stair Stringer Connector', stairs*6, 'ea', 'box(50)', 7),
+        _i('1×8 PT Riser Board', Math.ceil((rises-1)*stairs*1.10), 'ea', 'ea', 16),
+        _i('Stair Tread Non-slip Strip', (rises-1)*stairs, 'ea', 'ea', 7),
+        _i('Simpson SDWS22250 2½" Structural Screw', stairs*16, 'ea', 'box(50)', 0.80),
+        _i('Handrail Stock 2×6 PT × 12\'', Math.ceil(stairs*(rises*10/12)/12), 'ea', 'ea', 14),
+      );
+    }
+    if(rail>0){
+      const railLabel = (railType||'wood')+' Railing';
+      P(items, railLabel,
+        _i('DTT1Z Deck Tension Tie (guard post)', Math.ceil(rail/6)*2, 'ea', 'box(50)', 11),
+        _i('SDS25300 ¼"×3" Screw (DTT1Z, 7 each)', Math.ceil(rail/6)*14, 'ea', 'box(100)', 1.10),
+        _i('SDWS22600 6" Structural Screw (post-to-rim, 4 each)', Math.ceil(rail/6)*8, 'ea', 'box(50)', 1.80),
+      );
+    }
+    P(items, 'Miscellaneous',
+      _i('Polyurethane Sealant 10 oz (Geocel 2300)', 6, 'tube', 'tube', 11),
+      _i('PT End-Cut Preservative qt (Copper Coat)', 1, 'qt', 'qt', 18),
+      _i('Carbide Circular Blade 7¼" (PT-rated)', 1, 'ea', 'ea', 18),
+      _i('Recip Saw Blade Pack', 1, 'pack', 'pack', 18),
+      _i('Building Permit Fee (allowance)', 1, 'ea', 'ea', 150),
+      _i('Inspection Fee', 1, 'ea', 'ea', 75),
+    );
+  }
+  else if(type==='roof'){
+    const {blen=0,bwid=0,eaveExt=0,roofSqFt=0,eavePerim=0,rakePerim=0,ridge=0,valley=0,shingle='arch',sheetsNeeded=0,tearoff=0,gutterLF=0,penetr=0}=c;
+    if(tearoff>0){
+      P(items, 'Tear-Off',
+        _i('30-yd Dumpster (tear-off haul)', Math.ceil(roofSqFt/1500), 'ea', 'ea', 425),
+        _i('Magnetic Nail Sweeper Rental (day)', 1, 'day', 'day', 18),
+        _i('Roof Safety Harness Kit', 1, 'ea', 'ea', 185),
+      );
+    }
+    P(items, 'Sheathing',
+      _i('H2.5A Hurricane Tie (truss-to-plate)', Math.ceil((blen+bwid)*2/2), 'ea', 'box(100)', 0.95),
+      _i('Plastic Cap Nail 1" 3000 ct Pail (underlayment)', Math.ceil(roofSqFt/1500), 'pail', 'pail', 58),
+    );
+    P(items, 'Flashing & Trim',
+      _i('Kick-out Flashing (Quick-Flash QSC-1)', 2, 'ea', 'ea', 14),
+      _i('Apron Flashing 10\' (chimney/dormer)', penetr>0?2:0, 'ea', 'ea', 22),
+      _i('Counter Flashing 10\' (saw-kerf reglet)', penetr>0?2:0, 'ea', 'ea', 26),
+      _i('Cobra Ridge Vent 20\' Roll', ridge>0?Math.ceil(ridge/20):0, 'roll', 'roll', 48),
+      _i('Soffit Vent Strip 8\'×3"', Math.ceil((blen+eaveExt*2)*2/8), 'ea', 'ea', 14),
+    );
+    if(shingle!=='metal'){
+      P(items, 'Roofing Material',
+        _i('Roof Cement 10.1 oz Tube', Math.ceil(roofSqFt/400), 'tube', 'tube', 7),
+        _i('Roof Cement 1 gal (flashing bed)', 1, 'gal', 'gal', 28),
+        _i('Starter Strip Bundle', Math.ceil((eavePerim+rakePerim)/100), 'bundle', 'bundle', 58),
+      );
+    }
+    if(gutterLF>0){
+      P(items, 'Gutters & Drainage',
+        _i('Gutter Sealant 10 oz Tube', Math.ceil(gutterLF/50), 'tube', 'tube', 9),
+        _i('Splash Block (per downspout)', Math.max(2, Math.ceil(gutterLF/50)*2), 'ea', 'ea', 7),
+        _i('1¼" Zip Screw 100 ct Box', 1, 'box', 'box', 14),
+        _i('1×6 PVC Fascia 18\' (new const)', Math.ceil(gutterLF/18*1.10), 'ea', 'ea', 52),
+        _i('Vented Aluminum Soffit 12\'×12"', Math.ceil(gutterLF*1.5/12), 'ea', 'ea', 18),
+        _i('F-Channel + J-Channel 12\'', Math.ceil(gutterLF/12)*2, 'ea', 'ea', 9),
+      );
+    }
+    P(items, 'Summary',
+      _i('Building Permit Fee (allowance)', 1, 'ea', 'ea', 150),
+      _i('Roofing Inspection Fee', 1, 'ea', 'ea', 75),
+    );
+  }
+  else if(type==='framing'){
+    const {extPerim=0,ht=0,totalStuds=0,openings=0,doors=0,windows=0,studSz='2x4',sheath=false}=c;
+    P(items, 'Studs & Plates',
+      _i('Sill Sealer Foam ¼"×6"×50\'', Math.ceil(extPerim/50), 'roll', 'roll', 14),
+      _i('Termite Shield Aluminum 6"×50\' (TN R318)', Math.ceil(extPerim/50), 'roll', 'roll', 46),
+      _i('PT Sill Plate '+(studSz==='2x6'?'2×6':'2×4')+'×16\'', Math.ceil(extPerim/16*1.10), 'ea', 'ea', studSz==='2x6'?19:11),
+      _i('CS16 Coiled Strap (top-plate splice)', Math.ceil(extPerim/20), 'ea', 'ea', 4.80),
+    );
+    P(items, 'Hardware & Fasteners',
+      _i('3"×3"×0.229" Plate Washer (BPS½, per anchor bolt)', Math.ceil(extPerim/6), 'ea', 'box(100)', 1.60),
+      _i('A35 Framing Angle (corner/intersection)', 12, 'ea', 'box(50)', 1.10),
+      _i('L70 Heavy Angle', 4, 'ea', 'ea', 4),
+      _i('Pneumatic 3¼" Framing Nail Clip 4000 ct', Math.ceil(totalStuds*4/4000), 'box', 'box', 88),
+      _i('Fiberglass Batt R-'+(studSz==='2x6'?20:13)+' (bag)', Math.ceil(totalStuds/(studSz==='2x6'?16:24)), 'bag', 'bag', studSz==='2x6'?78:52),
+      _i('Great Stuff Fireblock Foam 24 oz', Math.ceil(extPerim/40), 'can', 'can', 11),
+      _i('Acoustic Sealant (Tremco) 29 oz', 4, 'tube', 'tube', 14),
+    );
+    if(openings>0){
+      P(items, 'Headers',
+        _i('Window Sill Pan (Jamsill/SureSill)', windows, 'ea', 'ea', 18),
+        _i('DuPont FlexWrap NF 4"×75\' (sill flashing)', Math.ceil(windows*8/75), 'roll', 'roll', 52),
+        _i('Butyl Flashing Tape 4"×75\' (jambs/head)', Math.ceil(openings*12/75), 'roll', 'roll', 34),
+        _i('Great Stuff Pro Window Foam 24 oz', Math.ceil(openings*0.5), 'can', 'can', 11),
+        _i('Shim Bundle ⅛" (per opening)', openings, 'bundle', 'bundle', 4),
+        _i('½" Plywood Header Spacer (2×6 wall)', studSz==='2x6'?Math.ceil(openings/3):0, 'sheet', 'sheet', 42),
+      );
+    }
+    if(sheath){
+      P(items, 'Wall Sheathing',
+        _i('Tyvek Tape 1.88"×165\' (wrap seams)', Math.ceil(extPerim*ht/30/165), 'roll', 'roll', 24),
+        _i('1" Plastic-Cap Staple 1000 ct (wrap fastener)', Math.ceil(extPerim*ht*4/1000), 'box', 'box', 32),
+      );
+    }
+    P(items, 'Summary',
+      _i('Building Permit Fee (allowance)', 1, 'ea', 'ea', 150),
+      _i('Framing Inspection Fee', 1, 'ea', 'ea', 75),
+    );
+  }
+  else if(type==='concrete'){
+    const {perim=0,sqft=0,orderCY=0,piers=0,vapor=false}=c;
+    P(items, 'Foundation Forms',
+      _i('Layout Stakes 1×2×24"', Math.ceil(perim/8), 'ea', 'bundle(50)', 1.20),
+      _i('Mason\'s Twine 500\' Roll', 1, 'roll', 'roll', 6),
+      _i('Marking Paint (utility orange)', 3, 'can', 'can', 7),
+      _i('Silt Fence 100\' Roll', Math.ceil(perim/100)+1, 'roll', 'roll', 42),
+      _i('Plate Compactor Rental (day)', 1, 'day', 'day', 85),
+      _i('Double-head Form Nail 8d, 5 lb', 1, 'box', 'box', 24),
+      _i('Screed Rail 1×4 Aluminum 10\'', Math.ceil((perim/4)/10)+1, 'ea', 'ea', 34),
+    );
+    if(vapor){
+      P(items, 'Base & Moisture',
+        _i('Stego Tape 4"×180\' (seam sealing)', Math.ceil(perim/180), 'roll', 'roll', 48),
+        _i('Stego Mastic 29 oz (penetration seal)', 2, 'tube', 'tube', 18),
+      );
+    }
+    P(items, 'Rebar & Reinforcement',
+      _i('#4 Dowel 18" L (footing-to-stem)', Math.ceil(perim/2), 'ea', 'ea', 1.80),
+      _i('Rebar Cap OSHA 25/bag', Math.ceil(Math.ceil(sqft/40)*2/25), 'bag', 'bag', 14),
+      _i('Continuous High Chair 5\' (rebar support)', Math.ceil(perim/5), 'ea', 'ea', 7),
+    );
+    P(items, 'Finishing',
+      _i('Bull Float Magnesium 48"', 1, 'ea', 'ea', 48),
+      _i('Fresno Float 48"', 1, 'ea', 'ea', 58),
+      _i('Edger ¼" R', 1, 'ea', 'ea', 24),
+      _i('Groover ¾" D (control joint)', 1, 'ea', 'ea', 26),
+      _i('Diamond Saw Blade 10" (control joint cut)', 1, 'ea', 'ea', 48),
+      _i('Concrete Washout Bag (Outpak)', 1, 'ea', 'ea', 48),
+      _i('Plastic Sheeting 20\'×100\' (rain cover)', 1, 'roll', 'roll', 58),
+      _i('Sika SL Self-leveling Joint Sealant 29 oz', Math.max(4, Math.ceil(perim/25)), 'tube', 'tube', 14),
+      _i('Backer Rod ⅜"×100\'', Math.ceil(perim/100), 'roll', 'roll', 11),
+      _i('Trowel Machine Rental (slabs >800 sf)', sqft>800?1:0, 'day', 'day', 145),
+    );
+    P(items, 'Concrete',
+      _i('½"Ø × 10" Anchor J-Bolt + Nut + Cut Washer', Math.ceil(perim/6)+4, 'set', 'box(25)', 4.20),
+      _i('3"×3"×0.229" Plate Washer (BPS½)', Math.ceil(perim/6)+4, 'ea', 'box(100)', 1.60),
+      _i('Concrete Pump Truck (if access poor)', orderCY>15?1:0, 'day', 'day', 985),
+    );
+    if(piers>0){
+      P(items, 'Sonotube Piers',
+        _i('#4 Rebar 20\' Stick (3 vert/pier)', Math.ceil(piers*3*3.5/20), 'ea', 'ea', 14),
+        _i('16-ga Tie Wire Roll (additional)', 1, 'roll', 'roll', 11),
+      );
+    }
+    P(items, 'Summary',
+      _i('Building Permit Fee (allowance)', 1, 'ea', 'ea', 150),
+      _i('Concrete Inspection Fee', 1, 'ea', 'ea', 75),
+    );
+  }
+  else if(type==='porch'){
+    const {len=0,dep=0,sqft=0,perim=0,attached=false,ridgeLF=0,screening='none',fans=0,lights=0,totalCols=0}=c;
+    P(items, 'Foundation',
+      _i('Layout Stakes 1×2×24"', Math.ceil(perim/8), 'ea', 'bundle(50)', 1.20),
+      _i('Mason\'s Twine 500\' Roll', 1, 'roll', 'roll', 6),
+      _i('Marking Paint (utility orange)', 2, 'can', 'can', 7),
+    );
+    P(items, 'Drip Edge & Flashing',
+      _i('Apron Flashing 10\' (porch-to-wall)', attached?Math.ceil(len/10*1.10):0, 'ea', 'ea', 22),
+      _i('Counter Flashing 10\' (kerf into siding)', attached?Math.ceil(len/10*1.10):0, 'ea', 'ea', 26),
+      _i('Step Flashing 4×4×8" 50/box', attached?1:0, 'box', 'box', 42),
+      _i('Kick-out Flashing', attached?2:0, 'ea', 'ea', 14),
+      _i('Pipe Boot Flashing EPDM', 1, 'ea', 'ea', 14),
+      _i('Cobra Ridge Vent 20\' Roll', ridgeLF>0?Math.ceil(ridgeLF/20):0, 'roll', 'roll', 48),
+      _i('1×6 PVC Fascia 18\'', Math.ceil((len+dep*2)/18*1.10), 'ea', 'ea', 52),
+      _i('Vented Aluminum Soffit 12\'×12"', Math.ceil((len+dep*2)*1.5/12), 'ea', 'ea', 18),
+      _i('F + J Channel 12\'', Math.ceil((len+dep*2)/12)*2, 'ea', 'ea', 9),
+    );
+    if(fans>0 || lights>0){
+      P(items, 'Electrical (Rough-In)',
+        _i('LED 4" Wet-rated Recessed Can', lights, 'ea', 'ea', 42),
+        _i('Damp-rated 52" Ceiling Fan', fans, 'ea', 'ea', 185),
+        _i('Junction Box 4" Round', fans+lights, 'ea', 'ea', 4),
+        _i('12-2 NM-B Romex 250\' Roll', 1, 'roll', 'roll', 98),
+        _i('Wire Nut Assortment Bag', 1, 'bag', 'bag', 14),
+        _i('Cable Staple 1000 ct', 1, 'box', 'box', 24),
+        _i('Decora Switch + Plate', 2, 'ea', 'ea', 7),
+        _i('GFCI Outlet + Weatherproof Cover', 1, 'ea', 'ea', 32),
+      );
+    }
+    if(screening==='screen'){
+      P(items, 'Screening / Enclosure',
+        _i('Screen Tight Base Channel 8\'', Math.ceil((len+dep*2)/8*1.10), 'ea', 'ea', 11),
+        _i('Screen Tight Cap 8\'', Math.ceil((len+dep*2)/8*1.10), 'ea', 'ea', 7),
+        _i('Spline ¼" × 500\' Roll', 1, 'roll', 'roll', 24),
+        _i('Spline Roller Tool', 1, 'ea', 'ea', 14),
+      );
+    }
+    if(totalCols>0){
+      P(items, 'Columns & Posts',
+        _i('Simpson CCQ66 Column Cap', totalCols, 'ea', 'ea', 48),
+        _i('SDS25300 ¼"×3" Screw (CCQ, 8 each)', totalCols*8, 'ea', 'box(100)', 1.10),
+        _i('MSTA24 Strap (post-to-beam)', totalCols*2, 'ea', 'ea', 14),
+      );
+    }
+    P(items, 'Miscellaneous',
+      _i('Exterior Primer 1 gal (Sherwin Multipurpose)', Math.ceil(perim*8/300), 'gal', 'gal', 52),
+      _i('Exterior Paint 1 gal (SuperPaint)', Math.ceil(perim*8/300), 'gal', 'gal', 78),
+      _i('Big Stretch Caulk 10 oz', 12, 'tube', 'tube', 11),
+      _i('Building Permit Fee (allowance)', 1, 'ea', 'ea', 175),
+      _i('Inspection Fee', 1, 'ea', 'ea', 75),
+    );
+  }
+  else if(type==='carport'){
+    const {len=0,wid=0,ht=0,perim=0,sqft=0,postCount=4,ridgeLF=0,roofMat='metal',sides='none'}=c;
+    P(items, 'Foundation',
+      _i('Layout Stakes 1×2×24"', Math.ceil(perim/8), 'ea', 'bundle(50)', 1.20),
+      _i('Mason\'s Twine 500\' Roll', 1, 'roll', 'roll', 6),
+      _i('Marking Paint', 2, 'can', 'can', 7),
+      _i('Sonotube 12"Ø × 48"', postCount, 'ea', 'ea', 24),
+      _i('#4 Rebar 20\' Stick (cage per pier)', Math.ceil(postCount*5*3/20), 'ea', 'ea', 14),
+      _i('16-ga Tie Wire Roll', 1, 'roll', 'roll', 11),
+      _i('Simpson ABU66Z Post Base', postCount, 'ea', 'ea', 28),
+      _i('⅝"×8" Wedge Anchor (for ABU)', postCount, 'ea', 'box(25)', 4),
+    );
+    P(items, 'Roof Framing',
+      _i('Simpson CCQ66 Post Cap', postCount, 'ea', 'ea', 48),
+      _i('SDS25300 ¼"×3" Screw (CCQ, 8 each)', postCount*8, 'ea', 'box(100)', 1.10),
+      _i('MSTA36 Strap (post-to-beam tension)', postCount*2, 'ea', 'ea', 18),
+      _i('Simpson H10A Heavy Hurricane Tie', Math.ceil(len*12/24+1)*2, 'ea', 'ea', 3.40),
+      _i('SDWS22600 6" Structural Screw (beam-to-post)', postCount*4, 'ea', 'box(50)', 1.80),
+    );
+    if(roofMat==='metal'||roofMat==='tin'){
+      P(items, 'Roofing Material',
+        _i('Z-closure Foam 3\' (eave/ridge)', Math.ceil(((len*2)+(ridgeLF||0))/3), 'ea', 'ea', 4.80),
+        _i('Eave/Rake Trim 10\'6"', Math.ceil((len+wid)*2/10.5), 'ea', 'ea', 36),
+        _i('Butyl Seam Sealant Tape ⅛"×½"×30\'', Math.ceil(len/30), 'roll', 'roll', 14),
+      );
+    }
+    if(sides && sides!=='none'){
+      P(items, 'Side Walls',
+        _i('Tyvek HomeWrap 9\'×100\'', 1, 'roll', 'roll', 185),
+        _i('Tyvek Tape 1.88"×165\'', 1, 'roll', 'roll', 24),
+        _i('1" Plastic-cap Staple 1000 ct', 1, 'box', 'box', 32),
+      );
+    }
+    P(items, 'Electrical (Rough-In)',
+      _i('LED Barn Light (wet-rated)', 1, 'ea', 'ea', 115),
+      _i('12-2 UF-B Underground Feeder 100\'', 1, 'roll', 'roll', 78),
+      _i('Junction Box 4" + Cover', 1, 'ea', 'ea', 5),
+      _i('GFCI Outlet + Weatherproof Cover', 1, 'ea', 'ea', 32),
+    );
+    P(items, 'Miscellaneous',
+      _i('Solid-color Stain 1 gal (Behr Premium PT)', Math.ceil((perim*ht)/300), 'gal', 'gal', 48),
+      _i('Big Stretch Caulk 10 oz', 6, 'tube', 'tube', 11),
+      _i('Concrete Pad Sealer 5 gal', sqft>0?1:0, 'pail', 'pail', 185),
+      _i('Building Permit Fee (allowance)', 1, 'ea', 'ea', 175),
+      _i('Zoning / Setback Verification Fee', 1, 'ea', 'ea', 85),
+      _i('Inspection Fee', 1, 'ea', 'ea', 75),
+    );
+  }
 }
 
 // ══════════════════════════════════════════════════════════
@@ -2796,9 +3395,9 @@ function toRenderResults(items, summary, type){
     'Deck Accessories':    {lf:0.10, ea:0.40, sqft:0.10, panel:1.5,  default:0.15},
     'Railing':             {lf:0.55, ea:0.15, default:0.30},
     'Railing / Half-Walls':{lf:0.55, ea:0.25, default:0.35},
-    'Concrete':            {CY:3.0, bag:0.05, ea:0.5, default:0.10},
-    'Foundation':          {CY:3.5, bag:0.08, ea:0.5, default:0.12},
-    'Columns & Posts':     {ea:1.2, lf:0.5, default:0.30},
+    'Concrete':            {CY:3.0, bag:0.05, ea:0.25, default:0.08},
+    'Foundation':          {CY:3.5, bag:0.05, ea:0.20, default:0.10},
+    'Columns & Posts':     {ea:0.80, lf:0.35, default:0.20},
     'Floor Framing':       {default:0.12},
     'Ceiling':             {lf:0.08, sqft:0.08, default:0.10},
     'Electrical (Rough-In)':{ea:0.75, lf:0.05, default:0.25},
@@ -2816,11 +3415,12 @@ function toRenderResults(items, summary, type){
     if(!catItems||!catItems.length) return;
     const labRate = LABOR_RATES_BY_CAT[cat] || R.sk;
     const labHrsMap = LAB_HRS_PER_UNIT[cat] || {};
-    costData[cat] = catItems.map(item=>{
+    costData[cat] = catItems.map(rawItem=>{
+      // Preserve original name for override lookup, then apply user swap/edit.
+      const item = applyItemOverride(type, {...rawItem});
       if(!item.name||item.qty===0&&!item.matCostEach) return {...item,matCost:0,laborCost:0,laborHrs:0,total:0};
       const qty = parseFloat(item.qty)||0;
-      // Material cost
-      // Use PRICE_MAP (unified source) → item override → DEFAULT_PRICES → category estimate
+      // Material cost — user override → item.matCostEach → PRICE_MAP → 0
       const matEach = item.matCostEach != null ? item.matCostEach
         : pmMat(item.name, item.matPerUnit||0);
       const matCost = Math.round(qty * matEach * 100)/100;
@@ -2896,12 +3496,69 @@ function toRenderResults(items, summary, type){
       dItem.className = 'to-item';
       dItem.style.cssText = 'display:grid;grid-template-columns:1fr 70px 60px 70px;gap:4px;align-items:start;padding:6px 10px';
 
+      // Material substitution dropdown + qty edit + remove button.
+      const origName = item._origName || item.name;
+      const overrideKey = _overrideKey(type, origName);
+      const isOverridden = !!window._itemOverrides[overrideKey];
+      const altsInfo = getAltsFor(origName);
+      const safeOrig = (origName||'').replace(/"/g,'&quot;');
+      const unitForAlt = (item.unit||'').replace(/"/g,'&quot;');
+      const unitMatPrice = item.qty>0 && item.matCost>0 ? (item.matCost/item.qty).toFixed(2) : '';
+      let swapHtml = '';
+      if(altsInfo && altsInfo.alts && altsInfo.alts.length){
+        const currentLabel = item.name;
+        const optsArr = altsInfo.alts.map(a=>{
+          const lab=(a.label||'').replace(/"/g,'&quot;');
+          return `<option value="${lab}||${a.matCostEach}" ${currentLabel===a.label?'selected':''}>${a.label} — $${a.matCostEach.toFixed(2)}</option>`;
+        });
+        // Insert a "current/keep" option if the current label isn't in the alts list
+        const inAlts = altsInfo.alts.some(a=>a.label===currentLabel);
+        if(!inAlts){
+          optsArr.unshift(`<option selected disabled>${currentLabel} (current)</option>`);
+        }
+        swapHtml =
+          '<select onchange="swapItemMaterial(this)" '
+          + 'data-type="'+type+'" data-orig="'+safeOrig+'" data-unit="'+unitForAlt+'" data-unit-price="'+unitMatPrice+'" '
+          + 'style="background:rgba(20,28,40,0.9);color:var(--text2);border:1px solid rgba(208,208,208,0.18);'
+          + 'border-radius:5px;padding:2px 6px;font-size:10px;font-family:inherit;cursor:pointer;max-width:100%">'
+          + optsArr.join('')
+          + '<option value="__custom__">Custom…</option>'
+          + (isOverridden?'<option value="__reset__">↺ Reset to default</option>':'')
+          + '</select>';
+      } else {
+        // Free-form edit pencil for items without role match
+        swapHtml =
+          '<button onclick="(function(b){var orig=b.dataset.orig;var nm=prompt(\'Material name:\', b.dataset.curName);'
+          + 'if(nm==null)return;var pr=prompt(\'Unit price:\', b.dataset.curPrice||0);if(pr==null)return;'
+          + 'setItemOverride(b.dataset.type,orig,{name:nm,matCostEach:parseFloat(pr)||0});})(this)" '
+          + 'data-type="'+type+'" data-orig="'+safeOrig+'" data-cur-name="'+(item.name||'').replace(/"/g,'&quot;')+'" '
+          + 'data-cur-price="'+(item.matCostEach!=null?item.matCostEach:unitMatPrice)+'" '
+          + 'title="Edit material" '
+          + 'style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:10px;padding:0;margin-left:4px">✎ edit</button>';
+      }
+      // Qty editor (inline number input)
+      const qtyEditor = '<input type="number" min="0" step="0.5" value="'+item.qty+'" '
+        +'onchange="editTakeoffQty(this)" data-type="'+type+'" data-orig="'+safeOrig+'" '
+        +'style="width:55px;background:rgba(20,28,40,0.9);color:var(--text2);border:1px solid rgba(208,208,208,0.18);'
+        +'border-radius:4px;padding:1px 4px;font-size:10px;font-family:inherit;text-align:right">';
+      // Remove (×) button — sets qty=0
+      const removeBtn = '<button onclick="removeTakeoffItem(this)" data-type="'+type+'" data-orig="'+safeOrig+'" '
+        +'title="Remove item" style="background:none;border:none;color:#aa6060;cursor:pointer;font-size:11px;padding:0 4px;margin-left:2px">×</button>';
+
+      const overrideBadge = isOverridden
+        ? '<span style="background:rgba(255,204,0,0.15);color:#ffcc00;padding:1px 5px;border-radius:3px;font-size:9px;margin-left:6px">modified</span>'
+        : '';
+
       const unitMatCost = item.qty>0&&item.matCost>0 ? (item.matCost/item.qty).toFixed(2) : null;
       const nameHtml = '<div>'
-        +'<div style="font-size:12px;font-weight:500;color:var(--text)">'+item.name+'</div>'
+        +'<div style="font-size:12px;font-weight:500;color:var(--text);display:flex;align-items:center;flex-wrap:wrap;gap:4px">'
+        +'<span>'+item.name+'</span>'+overrideBadge+removeBtn+'</div>'
+        +'<div style="margin-top:3px;display:flex;flex-wrap:wrap;gap:6px;align-items:center">'
+        +qtyEditor+'<span style="font-size:10px;color:var(--text3)">'+item.unit+'</span>'
+        +swapHtml
+        +'</div>'
         +'<div style="font-size:10px;color:var(--text3);margin-top:2px;line-height:1.6">'
-        +'<span style="color:var(--text2)">'+item.qty+' '+item.unit+'</span>'
-        +(unitMatCost?'<span style="color:var(--text3)"> · $'+unitMatCost+'/'+item.unit+' mat</span>':'')
+        +(unitMatCost?'<span style="color:var(--text3)">$'+unitMatCost+'/'+item.unit+' mat</span>':'')
         +(item.note?'<br><span style="font-style:italic">'+item.note+'</span>':'')
         +(item.laborHrs>0?'<br><span style="color:var(--accent)">'+item.laborHrs.toFixed(1)+' hrs @ $'+Math.round(labRate)+'/hr</span>':'')
         +'</div></div>';
@@ -4529,14 +5186,15 @@ function pvBuild(type, params){
   const H=parseInt(c.style.height)||Math.round(W*0.7);
 
   pvBuildPhaseBar(type);
+  pvAnnReset();
 
   if(type==='deck')          pvBuildDeck(params,W,H);
   else if(type==='porch')    pvBuildPorch(params,W,H);
   else if(type==='roof')     pvBuildRoof(params,W,H);
   else if(type==='framing')  pvBuildFraming(params,W,H);
   else if(type==='concrete') pvBuildConcrete(params,W,H);
-  else if(type==='carport') pvBuildCarport(params,W,H);
   else if(type==='carport')  pvBuildCarport(params,W,H);
+  if(type!=='deck') pvDefaultPlanAnnotations(type);
 
   // Restore user-moved positions
   oldElems.forEach(old=>{
@@ -4551,6 +5209,12 @@ function pvBuild(type, params){
 }
 
 // ── DECK BUILD ────────────────────────────────────────────────────────────
+// Drawing conventions per AWC DCA6 & IRC 2021 R507. Members drawn to true-scale
+// lumber dims (1.5" actual for 2× nominal). Plan view shows ledger (dashed),
+// joists at true OC, doubled beam, posts on Ø12" sonotube footings, decking
+// boards with gaps. Annotations: multi-tier dim strings, joist-spacing string,
+// section cut A-A, detail bubbles 1/A3.1 (ledger) & 2/A3.1 (footing), grid
+// bubbles, code reference panel.
 function pvBuildDeck(p, W, H){
   const {len,wid,ht,joc,rail,postSz,rises,stairs} = p;
   const o = _pvOrient;
@@ -4560,164 +5224,346 @@ function pvBuildDeck(p, W, H){
   pvSetFrame(SCALE, OX, OY, DW, DH, p);
   const paN=Math.max(2,Math.ceil(len/8)+1), paN2=Math.max(2,Math.ceil(wid/8)+1);
   const jocPx=joc/12*SCALE;
+  // True-scale lumber dims
+  const lumberW = Math.max(1.5/12*SCALE, 1.4);          // 2× actual 1.5"
+  const beamW   = Math.max(3/12*SCALE, 2.4);             // (2) 2× = 3"
+  const ledgerW = lumberW;
+  const rimW    = lumberW;
+  const postSzPx = postSz==='6x6' ? Math.max(5.5/12*SCALE,5) : Math.max(3.5/12*SCALE,4);
+  const decking_h = Math.max(5.25/12*SCALE, 2);          // 5/4×6 actual 5.5"
+  const decking_gap = Math.max(0.125/12*SCALE, 0.4);     // 1/8" board gap
+  const footDia = Math.max(12/12*SCALE, 12);             // Ø12" sonotube
+  const footR = footDia/2;
 
   if(o==='plan'||o==='section'){
-    // Phase 0: Site prep
-    pvAdd({id:'layout_line_h',label:'Layout Line (EW)',x:OX-20,y:OY+DH/2,w:DW+40,h:0.5,rot:0,layer:'center',phase:0});
-    pvAdd({id:'layout_line_v',label:'Layout Line (NS)',x:OX+DW/2,y:OY-20,w:0.5,h:DH+40,rot:0,layer:'center',phase:0});
-    pvAdd({id:'batter_tl',label:'Batter Board TL',x:OX-30,y:OY-30,w:20,h:4,rot:0,layer:'wood',phase:0});
-    pvAdd({id:'batter_tr',label:'Batter Board TR',x:OX+DW+10,y:OY-30,w:20,h:4,rot:0,layer:'wood',phase:0});
-    pvAdd({id:'batter_bl',label:'Batter Board BL',x:OX-30,y:OY+DH+26,w:20,h:4,rot:0,layer:'wood',phase:0});
-    pvAdd({id:'batter_br',label:'Batter Board BR',x:OX+DW+10,y:OY+DH+26,w:20,h:4,rot:0,layer:'wood',phase:0});
-    pvAdd({id:'string_h1',label:'Mason String',x:OX-30,y:OY,w:DW+60,h:0,rot:0,layer:'center',phase:0});
-    pvAdd({id:'string_h2',label:'Mason String',x:OX-30,y:OY+DH,w:DW+60,h:0,rot:0,layer:'center',phase:0});
+    // Phase 0 — Site Prep: batter boards & mason strings extended past corners
+    pvAdd({id:'cl_h',label:'C/L (Layout EW)',x:OX-32,y:OY+DH/2,w:DW+64,h:0.5,rot:0,layer:'center',phase:0});
+    pvAdd({id:'cl_v',label:'C/L (Layout NS)',x:OX+DW/2,y:OY-32,w:0.5,h:DH+64,rot:0,layer:'center',phase:0});
+    pvAdd({id:'batter_tl',label:'BATTER BOARD',x:OX-32,y:OY-32,w:22,h:4,rot:0,layer:'wood',phase:0});
+    pvAdd({id:'batter_tr',label:'BATTER BOARD',x:OX+DW+10,y:OY-32,w:22,h:4,rot:0,layer:'wood',phase:0});
+    pvAdd({id:'batter_bl',label:'BATTER BOARD',x:OX-32,y:OY+DH+28,w:22,h:4,rot:0,layer:'wood',phase:0});
+    pvAdd({id:'batter_br',label:'BATTER BOARD',x:OX+DW+10,y:OY+DH+28,w:22,h:4,rot:0,layer:'wood',phase:0});
+    pvAdd({id:'string_t',label:'Mason String',x:OX-32,y:OY,w:DW+64,h:0.5,rot:0,layer:'hidden',phase:0});
+    pvAdd({id:'string_b',label:'Mason String',x:OX-32,y:OY+DH,w:DW+64,h:0.5,rot:0,layer:'hidden',phase:0});
 
-    // Phase 1: Footings (concrete cylinders shown as circles in plan)
+    // Phase 1 — Footings: Ø12" sonotube + (3) #4 vertical rebar cage
     for(let pi=0;pi<paN;pi++) for(let pj=0;pj<paN2;pj++){
       const fx=OX+pi*(DW/(paN-1)), fy=OY+pj*(DH/(paN2-1));
-      pvAdd({id:`footing_${pi}_${pj}`,label:'12" Sonotube Footing',x:fx-8,y:fy-8,w:16,h:16,rot:0,layer:'concrete',phase:1,shape:'circle'});
-      pvAdd({id:`foot_rebar_${pi}_${pj}`,label:'Rebar Cage in Footing',x:fx-5,y:fy-5,w:10,h:10,rot:0,layer:'rebar',phase:1,shape:'circle'});
+      pvAdd({id:`footing_${pi}_${pj}`,label:'Ø12" SONOTUBE FTG · 48" DEEP',
+        x:fx-footR,y:fy-footR,w:footDia,h:footDia,rot:0,layer:'concrete',phase:1,shape:'circle'});
+      const rebarR = footR*0.55;
+      pvAdd({id:`rebar_${pi}_${pj}`,label:'(3) #4 VERT REBAR CAGE',
+        x:fx-rebarR,y:fy-rebarR,w:rebarR*2,h:rebarR*2,rot:0,layer:'rebar',phase:1,shape:'circle'});
     }
 
-    // Phase 2: Posts & beam
-    const postSz2=postSz==='6x6'?9:6;
+    // Phase 2 — Posts (true-scale, centered on footing), beam, ledger
     for(let pi=0;pi<paN;pi++) for(let pj=0;pj<paN2;pj++){
-      const px=OX+pi*(DW/(paN-1))-postSz2/2, py=OY+pj*(DH/(paN2-1))-postSz2/2;
-      pvAdd({id:`post_${pi}_${pj}`,label:postSz+' PT Post',x:px,y:py,w:postSz2,h:postSz2,rot:0,layer:'wood',phase:2});
-      pvAdd({id:`postbase_${pi}_${pj}`,label:'Post Base Hardware',x:px-1,y:py-1,w:postSz2+2,h:postSz2+2,rot:0,layer:'steel',phase:2,shape:'outline'});
+      const fx=OX+pi*(DW/(paN-1)), fy=OY+pj*(DH/(paN2-1));
+      pvAdd({id:`post_${pi}_${pj}`,label:postSz+' PT POST',
+        x:fx-postSzPx/2,y:fy-postSzPx/2,w:postSzPx,h:postSzPx,rot:0,layer:'wood',phase:2});
+      pvAdd({id:`postbase_${pi}_${pj}`,label:'SIMPSON ABU66Z POST BASE',
+        x:fx-postSzPx/2-1.5,y:fy-postSzPx/2-1.5,w:postSzPx+3,h:postSzPx+3,rot:0,
+        layer:'steel',phase:2,shape:'outline'});
     }
-    // Beams (doubled) along each row
+    // Doubled beam along each post row (centered on row Y)
     for(let pj=0;pj<paN2;pj++){
       const by=OY+pj*(DH/(paN2-1));
-      pvAdd({id:`beam_a_${pj}`,label:'Dbl 2×10 Beam',x:OX,y:by-3,w:DW,h:3,rot:0,layer:'wood',phase:2});
-      pvAdd({id:`beam_b_${pj}`,label:'Dbl 2×10 Beam',x:OX,y:by,  w:DW,h:3,rot:0,layer:'wood',phase:2});
+      pvAdd({id:`beam_${pj}`,label:'(2) 2×10 PT BEAM',
+        x:OX,y:by-beamW/2,w:DW,h:beamW,rot:0,layer:'wood',phase:2});
     }
-    // Ledger
-    pvAdd({id:'ledger',label:'Ledger (Lag Bolted)',x:OX,y:OY-4,w:DW,h:4,rot:0,layer:'woodDk',phase:2});
+    // Ledger (dashed — hidden behind house sheathing)
+    pvAdd({id:'house_wall',label:'HOUSE WALL (BEYOND)',
+      x:OX-8,y:OY-ledgerW-6,w:DW+16,h:1,rot:0,layer:'hidden',phase:2});
+    pvAdd({id:'ledger',label:'2×10 PT LEDGER w/ ½"Ø LAG @ 16" O.C.',
+      x:OX,y:OY-ledgerW,w:DW,h:ledgerW,rot:0,layer:'woodDk',phase:2});
 
-    // Phase 3: Joists
-    const jCount=Math.floor(DW/jocPx)+1;
+    // Phase 3 — Joists & blocking (joists constrained between ledger and rim)
+    const jCount=Math.max(1,Math.floor(DW/jocPx));
     for(let ji=0;ji<=jCount;ji++){
-      pvAdd({id:`joist_${ji}`,label:'2×10 Joist',x:OX+ji*jocPx-1,y:OY,w:2,h:DH,rot:0,layer:'wood',phase:3});
+      const jx = ji===jCount ? OX+DW-lumberW : OX+ji*jocPx;
+      pvAdd({id:`joist_${ji}`,label:'2×10 PT JOIST',
+        x:jx,y:OY+ledgerW,w:lumberW,h:DH-ledgerW-rimW,rot:0,layer:'wood',phase:3});
     }
-    // Blocking mid-span
-    for(let ji=0;ji<jCount;ji++){
-      pvAdd({id:`block_${ji}`,label:'Blocking',x:OX+ji*jocPx,y:OY+DH/2-1.5,w:jocPx,h:3,rot:0,layer:'wood',phase:3});
+    // Rim joist (perimeter opposite ledger) + end joists
+    pvAdd({id:'rim_joist',label:'2×10 PT RIM JOIST',
+      x:OX,y:OY+DH-rimW,w:DW,h:rimW,rot:0,layer:'wood',phase:3});
+    pvAdd({id:'end_joist_l',label:'2×10 PT END JOIST',
+      x:OX,y:OY+ledgerW,w:lumberW,h:DH-ledgerW-rimW,rot:0,layer:'wood',phase:3});
+    pvAdd({id:'end_joist_r',label:'2×10 PT END JOIST',
+      x:OX+DW-lumberW,y:OY+ledgerW,w:lumberW,h:DH-ledgerW-rimW,rot:0,layer:'wood',phase:3});
+    // Mid-span blocking (dashed — hidden beneath decking)
+    if(wid>8){
+      for(let ji=0;ji<jCount;ji++){
+        pvAdd({id:`block_${ji}`,label:'SOLID BLOCKING @ MID-SPAN',
+          x:OX+ji*jocPx+lumberW,y:OY+DH/2-1,w:jocPx-lumberW,h:2,rot:0,layer:'hidden',phase:3});
+      }
     }
-    // Joist hangers
+    // Joist hangers at ledger
     for(let ji=0;ji<=jCount;ji++){
-      pvAdd({id:`hanger_t_${ji}`,label:'Joist Hanger',x:OX+ji*jocPx-2,y:OY,w:4,h:4,rot:0,layer:'steel',phase:3,shape:'outline'});
-      pvAdd({id:`hanger_b_${ji}`,label:'Joist Hanger',x:OX+ji*jocPx-2,y:OY+DH-4,w:4,h:4,rot:0,layer:'steel',phase:3,shape:'outline'});
+      const jx = ji===jCount ? OX+DW-lumberW : OX+ji*jocPx;
+      pvAdd({id:`hgr_${ji}`,label:'SIMPSON LUS210 JOIST HANGER',
+        x:jx-1,y:OY,w:lumberW+2,h:ledgerW+1,rot:0,layer:'steel',phase:3,shape:'outline'});
     }
 
-    // Phase 4: Decking boards
-    const boardH=5.5/12*SCALE;
-    for(let bi=0;bi*boardH<=DH;bi++){
-      pvAdd({id:`board_${bi}`,label:'5/4×6 Decking',x:OX,y:OY+bi*boardH,w:DW,h:Math.max(boardH-0.5,1),rot:0,layer:'wood',phase:4});
+    // Phase 4 — Decking: boards running perpendicular to joists w/ gaps
+    for(let bi=0; ;bi++){
+      const by = OY + bi*decking_h;
+      if(by >= OY+DH) break;
+      pvAdd({id:`board_${bi}`,label:'5/4×6 PT DECKING',
+        x:OX,y:by,w:DW,h:Math.max(decking_h-decking_gap,0.6),rot:0,layer:'wood',phase:4});
     }
-    // Fascia
-    pvAdd({id:'fascia_l',label:'Fascia Board',x:OX-5,y:OY,w:5,h:DH,rot:0,layer:'woodDk',phase:4});
-    pvAdd({id:'fascia_r',label:'Fascia Board',x:OX+DW,y:OY,w:5,h:DH,rot:0,layer:'woodDk',phase:4});
-    pvAdd({id:'fascia_t',label:'Fascia Board',x:OX,y:OY-5,w:DW,h:5,rot:0,layer:'woodDk',phase:4});
-    pvAdd({id:'fascia_b',label:'Fascia Board',x:OX,y:OY+DH,w:DW,h:5,rot:0,layer:'woodDk',phase:4});
+    // Picture-frame fascia
+    pvAdd({id:'fascia_t',label:'1×8 FASCIA',x:OX-4,y:OY-4,w:DW+8,h:4,rot:0,layer:'woodDk',phase:4});
+    pvAdd({id:'fascia_b',label:'1×8 FASCIA',x:OX-4,y:OY+DH,w:DW+8,h:4,rot:0,layer:'woodDk',phase:4});
+    pvAdd({id:'fascia_l',label:'1×8 FASCIA',x:OX-4,y:OY,w:4,h:DH,rot:0,layer:'woodDk',phase:4});
+    pvAdd({id:'fascia_r',label:'1×8 FASCIA',x:OX+DW,y:OY,w:4,h:DH,rot:0,layer:'woodDk',phase:4});
 
-    // Phase 5: Railing
+    // Phase 5 — Guard posts at corners + ≤6'-0" O.C. intermediate; stairs
     if(rail>0){
-      const rPostSpPlan=6*SCALE;
-      for(let rx=0;rx<=DW;rx+=rPostSpPlan){
-        pvAdd({id:`rail_post_t_${Math.floor(rx)}`,label:'Rail Post 4×4',x:OX+rx-2,y:OY-5,w:4,h:6,rot:0,layer:'woodDk',phase:5});
-        pvAdd({id:`rail_post_b_${Math.floor(rx)}`,label:'Rail Post 4×4',x:OX+rx-2,y:OY+DH-1,w:4,h:6,rot:0,layer:'woodDk',phase:5});
+      const rPostSp = Math.max(4,Math.min(6,len/Math.max(1,Math.ceil(len/6))))*SCALE;
+      const rPostW = Math.max(3.5/12*SCALE,4);
+      for(let rx=0;rx<=DW+0.5;rx+=rPostSp){
+        const gx = OX+Math.min(rx,DW)-rPostW/2;
+        pvAdd({id:`gpost_b_${Math.floor(rx)}`,label:'4×4 PT GUARD POST',
+          x:gx,y:OY+DH-rPostW/2,w:rPostW,h:rPostW+4,rot:0,layer:'woodDk',phase:5});
       }
-      for(let ry=rPostSpPlan;ry<DH;ry+=rPostSpPlan){
-        pvAdd({id:`rail_post_r_${Math.floor(ry)}`,label:'Rail Post 4×4',x:OX+DW-1,y:OY+ry-2,w:6,h:4,rot:0,layer:'woodDk',phase:5});
+      for(let ry=rPostSp;ry<DH-rPostSp/2;ry+=rPostSp){
+        pvAdd({id:`gpost_l_${Math.floor(ry)}`,label:'4×4 PT GUARD POST',
+          x:OX-2,y:OY+ry-rPostW/2,w:rPostW+4,h:rPostW,rot:0,layer:'woodDk',phase:5});
+        pvAdd({id:`gpost_r_${Math.floor(ry)}`,label:'4×4 PT GUARD POST',
+          x:OX+DW-rPostW,y:OY+ry-rPostW/2,w:rPostW+4,h:rPostW,rot:0,layer:'woodDk',phase:5});
       }
-      pvAdd({id:'top_rail_t',label:'Top Rail',x:OX-2,y:OY-8,w:DW+4,h:3,rot:0,layer:'wood',phase:5});
-      pvAdd({id:'top_rail_b',label:'Top Rail',x:OX-2,y:OY+DH+2,w:DW+4,h:3,rot:0,layer:'wood',phase:5});
-      pvAdd({id:'rail_cap_t',label:'Rail Cap',x:OX-3,y:OY-11,w:DW+6,h:4,rot:0,layer:'woodDk',phase:5});
-      pvAdd({id:'rail_cap_b',label:'Rail Cap',x:OX-3,y:OY+DH+5,w:DW+6,h:4,rot:0,layer:'woodDk',phase:5});
     }
-    // Stairs
     if(rises>0){
-      const treadD=10/12*SCALE;
+      const treadD = 10/12*SCALE;
+      const stairW = 36/12*SCALE;     // R311.7.1 — 36" min width
+      const stairX = OX+DW*0.3;
       for(let ri=0;ri<rises;ri++){
-        pvAdd({id:`stair_${ri}`,label:'Stair Tread',x:OX+DW*0.3,y:OY+DH+ri*treadD,w:3*SCALE,h:treadD,rot:0,layer:'wood',phase:5});
+        pvAdd({id:`tread_${ri}`,label:'STAIR TREAD',
+          x:stairX,y:OY+DH+ri*treadD,w:stairW,h:Math.max(treadD-1,2),rot:0,layer:'wood',phase:5});
       }
-      pvAdd({id:'stringer_l',label:'Stringer',x:OX+DW*0.3-3,y:OY+DH,w:3,h:rises*treadD,rot:0,layer:'woodDk',phase:5});
-      pvAdd({id:'stringer_r',label:'Stringer',x:OX+DW*0.3+3*SCALE,y:OY+DH,w:3,h:rises*treadD,rot:0,layer:'woodDk',phase:5});
+      pvAdd({id:'stringer_l',label:'(3) 2×12 PT STRINGER',
+        x:stairX-3,y:OY+DH,w:3,h:rises*treadD,rot:0,layer:'woodDk',phase:5});
+      pvAdd({id:'stringer_r',label:'(3) 2×12 PT STRINGER',
+        x:stairX+stairW,y:OY+DH,w:3,h:rises*treadD,rot:0,layer:'woodDk',phase:5});
     }
-    // Phase 6: inspection marks
-    pvAdd({id:'insp_stamp',label:'✓ Inspection Passed',x:OX+DW-40,y:OY-22,w:40,h:14,rot:0,layer:'annotate',phase:6,shape:'label'});
+
+    // ── ANNOTATIONS (plan view) ──────────────────────────────────────────
+    // Multi-tier dim strings — outer overall, mid bays, inner joist count
+    pvAnn({kind:'dim_h', x1:OX, x2:OX+DW, y:OY-32, label:_ftIn(len), tier:3, dir:'up'});
+    if(paN>1){
+      const bayFt = len/(paN-1);
+      for(let pi=0;pi<paN-1;pi++){
+        pvAnn({kind:'dim_h', x1:OX+pi*(DW/(paN-1)), x2:OX+(pi+1)*(DW/(paN-1)),
+          y:OY-32, label:_ftIn(bayFt), tier:2, dir:'up'});
+      }
+    }
+    pvAnn({kind:'dim_h', x1:OX, x2:OX+DW, y:OY-32,
+      label:`${jCount} SPA @ ${joc}" O.C. = ${_ftIn(jCount*joc/12)}`, tier:1, dir:'up'});
+    pvAnn({kind:'dim_v', y1:OY, y2:OY+DH, x:OX-32, label:_ftIn(wid), tier:1, dir:'left'});
+
+    // Joist direction arrow (parallel to joists, inside field)
+    pvAnn({kind:'dirv', y1:OY+ledgerW+10, y2:OY+DH-rimW-10, x:OX+DW*0.5,
+      text:`2×10 PT JOISTS @ ${joc}" O.C.`, color:'#00ff88'});
+
+    // Section cut A-A (crosses long axis)
+    pvAnn({kind:'section', x1:OX-22, y1:OY+DH*0.55, x2:OX+DW+22, y2:OY+DH*0.55,
+      tag:'A', sheet:'A-3', dir:'down'});
+
+    // Detail callouts: 1/A3.1 = ledger, 2/A3.1 = footing
+    pvAnn({kind:'detail', x:OX-34, y:OY-22, num:'1', sheet:'A3.1',
+      leadFromX:OX+10, leadFromY:OY-ledgerW/2});
+    pvAnn({kind:'detail', x:OX+DW+30, y:OY+DH+30, num:'2', sheet:'A3.1',
+      leadFromX:OX+DW-footR, leadFromY:OY+DH-footR});
+
+    // Grid bubbles
+    for(let pi=0;pi<paN;pi++){
+      pvAnn({kind:'grid', x:OX+pi*(DW/(paN-1)), y:OY-60,
+        label:String.fromCharCode(65+pi)});
+    }
+    for(let pj=0;pj<paN2;pj++){
+      pvAnn({kind:'grid', x:OX-60, y:OY+pj*(DH/(paN2-1)), label:String(pj+1)});
+    }
+
+    // Stair direction
+    if(rises>0){
+      const treadD=10/12*SCALE, stairW=36/12*SCALE, stairX=OX+DW*0.3;
+      pvAnn({kind:'dir', x1:stairX+4, x2:stairX+stairW-4,
+        y:OY+DH+rises*treadD+18, text:`DN ${rises}R`, color:'#ffcc00'});
+    }
+
+    // Code reference panel (printed on the drawing, left margin)
+    pvAnn({kind:'code', x:6, y:H-204, w:218,
+      title:'GENERAL NOTES — IRC 2021',
+      lines:[
+        '• LL=40psf, DL=10psf (R301.5)',
+        '• PT lumber AC2 ground-contact',
+        '• Ledger ½"Ø lag @ 16" O.C.',
+        '  staggered + Z-flash (R507.9)',
+        '• Footings ≥ frost line (R403.1.4)',
+        '• Hangers Simpson LUS210 G185',
+        '• Lateral tension DTT2Z (R507.9.2)',
+        '• Guard '+(ht>2.5?'42':'36')+'" min, 4" sphere',
+        '  (R312.1)',
+        rises>0 ? `• ${rises}R @ ${(ht*12/Math.max(rises,1)).toFixed(2)}" ≤ 7¾"`:'',
+        rises>0 ? '  Tread 10" min (R311.7.5)':'',
+        '• Handrail 34–38" abv nosing',
+        '  (R311.7.8)',
+      ].filter(Boolean)});
 
   } else {
-    // ELEVATION / SECTION view
+    // ── ELEVATION VIEW ───────────────────────────────────────────────────
     const SCLE=Math.min((W*0.72)/len,(H*0.6)/Math.max(ht+4,6),22);
     const EW=len*SCLE; const EHpost=ht*SCLE;
     const OXe=(W-EW)/2; const GY=H*0.68;
-    // Grade line, earth
-    pvAdd({id:'earth',label:'Earth',x:0,y:GY,w:W,h:H-GY,rot:0,layer:'earth',phase:0});
-    pvAdd({id:'grade_line',label:'Grade Line',x:0,y:GY,w:W,h:0,rot:0,layer:'section',phase:0});
-    // Batter boards (elevation)
-    pvAdd({id:'bat_l',label:'Batter Board',x:OXe-30,y:GY-30,w:4,h:30,rot:0,layer:'wood',phase:0});
-    pvAdd({id:'bat_r',label:'Batter Board',x:OXe+EW+26,y:GY-30,w:4,h:30,rot:0,layer:'wood',phase:0});
-    pvAdd({id:'string_elv',label:'Layout String',x:OXe-30,y:GY-28,w:EW+60,h:0,rot:0,layer:'center',phase:0});
+    const footDepth = Math.max(36, ht*12+12)*SCLE/12;
+    const deckT = Math.max(decking_h, 4);
+    const joistDepth = 9.25/12*SCLE; // 2×10 actual 9.25" depth in elevation
+
+    // Earth hatch + grade line via annotation
+    pvAnn({kind:'earth', x:0, y:GY, w:W, h:H-GY});
+
+    // Batter boards & string
+    pvAdd({id:'bat_l',label:'BATTER BOARD',x:OXe-32,y:GY-32,w:4,h:32,rot:0,layer:'wood',phase:0});
+    pvAdd({id:'bat_r',label:'BATTER BOARD',x:OXe+EW+28,y:GY-32,w:4,h:32,rot:0,layer:'wood',phase:0});
+    pvAdd({id:'str_elv',label:'Mason String',x:OXe-32,y:GY-30,w:EW+64,h:0.5,rot:0,layer:'hidden',phase:0});
+
     // Footings below grade
-    const jocElv=joc/12*SCLE;
     for(let pi=0;pi<paN;pi++){
       const fpx=OXe+pi*(EW/(paN-1));
-      pvAdd({id:`foot_elv_${pi}`,label:'Concrete Footing',x:fpx-10,y:GY+4,w:20,h:16,rot:0,layer:'concrete',phase:1});
-      pvAdd({id:`rebar_elv_${pi}`,label:'Rebar in Footing',x:fpx-4,y:GY+5,w:1.5,h:14,rot:0,layer:'rebar',phase:1});
-      pvAdd({id:`rebar2_elv_${pi}`,label:'Rebar in Footing',x:fpx+2.5,y:GY+5,w:1.5,h:14,rot:0,layer:'rebar',phase:1});
-      // Post base anchor bolt
-      pvAdd({id:`jbolt_${pi}`,label:'J-Bolt Anchor',x:fpx-1,y:GY,w:2,h:4,rot:0,layer:'steel',phase:1});
+      const footW=12/12*SCLE;
+      pvAdd({id:`foot_elv_${pi}`,label:'Ø12" SONOTUBE',
+        x:fpx-footW/2,y:GY,w:footW,h:footDepth,rot:0,layer:'concrete',phase:1});
+      pvAdd({id:`reb1_${pi}`,label:'#4 VERT',
+        x:fpx-footW/3,y:GY+4,w:1.2,h:footDepth-8,rot:0,layer:'rebar',phase:1});
+      pvAdd({id:`reb2_${pi}`,label:'#4 VERT',
+        x:fpx+footW/3-1.2,y:GY+4,w:1.2,h:footDepth-8,rot:0,layer:'rebar',phase:1});
+      pvAdd({id:`jbolt_${pi}`,label:'½"Ø ANCHOR BOLT',
+        x:fpx-1,y:GY-8,w:2,h:12,rot:0,layer:'steel',phase:1});
       // Post
-      const postW=postSz==='6x6'?9:6;
-      pvAdd({id:`post_elv_${pi}`,label:postSz+' PT Post',x:fpx-postW/2,y:GY-EHpost,w:postW,h:EHpost,rot:0,layer:'wood',phase:2});
-      pvAdd({id:`postbase_elv_${pi}`,label:'Post Base',x:fpx-postW/2-2,y:GY-postW-2,w:postW+4,h:postW+2,rot:0,layer:'steel',phase:2,shape:'outline'});
+      const pw = postSz==='6x6'?Math.max(5.5/12*SCLE,7):Math.max(3.5/12*SCLE,5);
+      pvAdd({id:`post_elv_${pi}`,label:postSz+' PT POST',
+        x:fpx-pw/2,y:GY-EHpost,w:pw,h:EHpost,rot:0,layer:'wood',phase:2});
+      pvAdd({id:`pb_${pi}`,label:'SIMPSON ABU66Z',
+        x:fpx-pw/2-2,y:GY-3,w:pw+4,h:6,rot:0,layer:'steel',phase:2,shape:'outline'});
     }
-    // Beam
-    pvAdd({id:'beam_elv',label:'Dbl 2×10 Beam',x:OXe,y:GY-EHpost-8,w:EW,h:8,rot:0,layer:'wood',phase:2});
-    pvAdd({id:'ledger_elv',label:'Ledger',x:OXe-4,y:GY-EHpost-8,w:4,h:8,rot:0,layer:'woodDk',phase:2});
-    // Joists section view (visible ends)
-    pvAdd({id:'joist_band',label:'Joist Band Board',x:OXe,y:GY-EHpost-16,w:EW,h:8,rot:0,layer:'wood',phase:3});
-    const jCount2=Math.min(Math.floor(EW/jocElv)+1,20);
-    for(let ji=0;ji<=jCount2;ji++){
-      pvAdd({id:`joist_sec_${ji}`,label:'Joist (Section)',x:OXe+ji*jocElv-2,y:GY-EHpost-16,w:4,h:8,rot:0,layer:'woodDk',phase:3,shape:'section'});
+
+    // Beam & joist band & decking
+    pvAdd({id:'beam_elv',label:'(2) 2×10 PT BEAM',
+      x:OXe,y:GY-EHpost-joistDepth,w:EW,h:joistDepth,rot:0,layer:'wood',phase:2});
+    pvAdd({id:'ledger_elv',label:'2×10 PT LEDGER',
+      x:OXe-4,y:GY-EHpost-joistDepth,w:4,h:joistDepth,rot:0,layer:'woodDk',phase:2});
+    pvAdd({id:'rim_elv',label:'2×10 PT RIM JOIST',
+      x:OXe,y:GY-EHpost-joistDepth,w:EW,h:joistDepth,rot:0,layer:'wood',phase:3});
+
+    const deckTopY = GY-EHpost-joistDepth-deckT;
+    pvAdd({id:'deck_top',label:'5/4×6 PT DECKING',
+      x:OXe-5,y:deckTopY,w:EW+10,h:deckT,rot:0,layer:'wood',phase:4});
+    // Board joints (every 16")
+    const bj=16/12*SCLE;
+    for(let bi=1;bi*bj<EW;bi++){
+      pvAdd({id:`bj_${bi}`,label:'Board Joint',
+        x:OXe+bi*bj,y:deckTopY,w:0.5,h:deckT,rot:0,layer:'hidden',phase:4});
     }
-    // Blocking
-    pvAdd({id:'blocking_elv',label:'Mid-Span Blocking',x:OXe,y:GY-EHpost-16,w:EW,h:2,rot:0,layer:'woodDk',phase:3});
-    // Decking
-    const deckT=5;
-    pvAdd({id:'deck_surface',label:'Decking Surface',x:OXe-5,y:GY-EHpost-16-deckT,w:EW+10,h:deckT,rot:0,layer:'wood',phase:4});
-    // Board lines
-    const bPx=5.5/12*SCLE;
-    for(let bi=0;bi*bPx<EW;bi+=3) pvAdd({id:`bline_${bi}`,label:'Board Joint',x:OXe+bi*bPx,y:GY-EHpost-16-deckT,w:0.5,h:deckT,rot:0,layer:'hidden',phase:4});
-    // Fascia
-    pvAdd({id:'fascia_elv_l',label:'Fascia Board',x:OXe-8,y:GY-EHpost-8,w:6,h:EHpost+8+deckT,rot:0,layer:'woodDk',phase:4});
-    pvAdd({id:'fascia_elv_r',label:'Fascia Board',x:OXe+EW+2,y:GY-EHpost-8,w:6,h:EHpost+8+deckT,rot:0,layer:'woodDk',phase:4});
-    const deckTopY=GY-EHpost-16-deckT;
+    // Fascia each end
+    pvAdd({id:'fasc_l_elv',label:'1×8 FASCIA',
+      x:OXe-5,y:GY-EHpost-joistDepth-1,w:5,h:joistDepth+deckT+2,rot:0,layer:'woodDk',phase:4});
+    pvAdd({id:'fasc_r_elv',label:'1×8 FASCIA',
+      x:OXe+EW,y:GY-EHpost-joistDepth-1,w:5,h:joistDepth+deckT+2,rot:0,layer:'woodDk',phase:4});
+
+    // Guard rail per code
     if(rail>0){
-      const railH=3.5*SCLE;
-      pvAdd({id:'rail_top',label:'Top Rail',x:OXe-4,y:deckTopY-railH-5,w:EW+8,h:5,rot:0,layer:'wood',phase:5});
-      pvAdd({id:'rail_cap',label:'Rail Cap',x:OXe-5,y:deckTopY-railH-9,w:EW+10,h:5,rot:0,layer:'woodDk',phase:5});
-      pvAdd({id:'rail_bot',label:'Bottom Rail',x:OXe-4,y:deckTopY-8,w:EW+8,h:4,rot:0,layer:'wood',phase:5});
-      const balSp=4.5/12*SCLE;
-      for(let bx=balSp;bx<EW-balSp;bx+=balSp){
-        pvAdd({id:`bal_${Math.floor(bx)}`,label:'Baluster',x:OXe+bx-1,y:deckTopY-railH,w:2,h:railH,rot:0,layer:'wood',phase:5});
+      const guardHt = (ht>2.5?42:36)/12*SCLE;
+      const balSp = 4/12*SCLE;
+      for(let bx=balSp/2;bx<EW;bx+=balSp){
+        pvAdd({id:`bal_${Math.floor(bx)}`,label:'2×2 BALUSTER · 4" CLR MAX',
+          x:OXe+bx-0.75,y:deckTopY-guardHt+3,w:1.5,h:guardHt-6,rot:0,layer:'wood',phase:5});
       }
-      const rPostSp=6*SCLE;
-      for(let rpx=0;rpx<=EW;rpx+=rPostSp){
-        pvAdd({id:`rpost_${Math.floor(rpx)}`,label:'Rail Post',x:OXe+rpx-2,y:deckTopY-railH-2,w:4,h:railH+10,rot:0,layer:'woodDk',phase:5});
+      pvAdd({id:'g_cap',label:'2×6 GUARD CAP',
+        x:OXe-6,y:deckTopY-guardHt,w:EW+12,h:4,rot:0,layer:'woodDk',phase:5});
+      pvAdd({id:'g_top',label:'2×4 TOP RAIL',
+        x:OXe-3,y:deckTopY-guardHt+4,w:EW+6,h:2.5,rot:0,layer:'wood',phase:5});
+      pvAdd({id:'g_bot',label:'2×4 BOTTOM RAIL',
+        x:OXe-3,y:deckTopY-6,w:EW+6,h:2.5,rot:0,layer:'wood',phase:5});
+      const gpostSp = 6*SCLE;
+      for(let rpx=0;rpx<=EW;rpx+=gpostSp){
+        pvAdd({id:`gpe_${Math.floor(rpx)}`,label:'4×4 GUARD POST',
+          x:OXe+rpx-2,y:deckTopY-guardHt-2,w:4,h:guardHt+4,rot:0,layer:'woodDk',phase:5});
       }
     }
+
+    // Stairs with true rise/run
     if(rises>0){
-      const rH=7.5/12*SCLE, tD=10/12*SCLE;
+      const totalRiseIn = ht*12;
+      const rH = (totalRiseIn/rises)/12*SCLE;
+      const tD = 10/12*SCLE;
+      const sxStart = OXe+EW*0.25;
+      const syStart = deckTopY+deckT;
+      // Stringers
+      pvAdd({id:'str_l_elv',label:'(3) 2×12 PT STRINGER',
+        x:sxStart-3,y:syStart,w:3,h:rises*rH,rot:0,layer:'woodDk',phase:5});
+      pvAdd({id:'str_r_elv',label:'(3) 2×12 PT STRINGER',
+        x:sxStart+rises*tD,y:syStart,w:3,h:rises*rH,rot:0,layer:'woodDk',phase:5});
       for(let ri=0;ri<rises;ri++){
-        pvAdd({id:`stair_elv_${ri}`,label:'Stair Tread',x:OXe+EW*0.25+ri*tD,y:deckTopY+(ri+1)*rH,w:tD,h:rH,rot:0,layer:'wood',phase:5});
+        pvAdd({id:`tread_elv_${ri}`,label:'2×10 PT TREAD',
+          x:sxStart+ri*tD,y:syStart+(ri+1)*rH-3,w:tD+1,h:3,rot:0,layer:'wood',phase:5});
+        pvAdd({id:`riser_${ri}`,label:'1× RISER',
+          x:sxStart+ri*tD,y:syStart+ri*rH,w:1,h:rH,rot:0,layer:'wood',phase:5});
       }
-      pvAdd({id:'str_l',label:'Stair Stringer',x:OXe+EW*0.25-3,y:deckTopY,w:3,h:rises*(rH),rot:0,layer:'woodDk',phase:5});
-      pvAdd({id:'str_r',label:'Stair Stringer',x:OXe+EW*0.25+rises*tD,y:deckTopY,w:3,h:rises*rH,rot:0,layer:'woodDk',phase:5});
     }
-    pvAdd({id:'insp_elv',label:'✓ Final Inspection',x:OXe+EW*0.4,y:deckTopY-28,w:60,h:14,rot:0,layer:'annotate',phase:6,shape:'label'});
+
+    // ── ANNOTATIONS (elevation) ──────────────────────────────────────────
+    // Elevation tags on left margin
+    pvAnn({kind:'elev', x:6, y:deckTopY, label:`□ +0'-0" T.O. DECK`, anchor:'left'});
+    pvAnn({kind:'elev', x:6, y:GY, label:`□ -${_ftIn(ht)} GRADE`, anchor:'left'});
+    pvAnn({kind:'elev', x:6, y:GY+footDepth, label:`□ B.O. FTG (BELOW FROST)`, anchor:'left'});
+    // Deck height dim
+    pvAnn({kind:'dim_v', y1:deckTopY, y2:GY, x:OXe-32, label:_ftIn(ht), tier:1, dir:'left'});
+    // Footing depth dim
+    pvAnn({kind:'dim_v', y1:GY, y2:GY+footDepth, x:OXe-32, label:_ftIn(footDepth/SCLE), tier:1, dir:'left'});
+    // Overall deck length below
+    pvAnn({kind:'dim_h', x1:OXe, x2:OXe+EW, y:GY+footDepth+24, label:_ftIn(len), tier:1, dir:'down'});
+
+    // Guard rail height
+    if(rail>0){
+      const guardHt = (ht>2.5?42:36)/12*SCLE;
+      pvAnn({kind:'dim_v', y1:deckTopY-guardHt, y2:deckTopY, x:OXe+EW+30,
+        label:`${ht>2.5?42:36}" GUARD`, tier:1, dir:'right'});
+    }
+
+    // Stair dim — total rise & run
+    if(rises>0){
+      const tD=10/12*SCLE, rH=(ht*12/rises)/12*SCLE;
+      const sxStart=OXe+EW*0.25, syStart=deckTopY+deckT;
+      pvAnn({kind:'dim_h', x1:sxStart, x2:sxStart+rises*tD,
+        y:syStart+rises*rH+30, label:`${rises}T @ 10" = ${_ftIn(rises*10/12)} RUN`,
+        tier:1, dir:'down'});
+      pvAnn({kind:'dim_v', y1:syStart, y2:syStart+rises*rH, x:sxStart+rises*tD+38,
+        label:`${rises}R @ ${(ht*12/rises).toFixed(2)}" = ${_ftIn(ht)} RISE`,
+        tier:1, dir:'right'});
+    }
+
+    // Section identifier overlay
+    pvAnn({kind:'code', x:8, y:8, w:88, title:'SECTION A-A', lines:['SEE 1/A-3'], color:'#00e5ff'});
+
+    // Detail callouts on elevation
+    pvAnn({kind:'detail', x:OXe-34, y:GY-EHpost-joistDepth/2, num:'1', sheet:'A3.1',
+      leadFromX:OXe, leadFromY:GY-EHpost-joistDepth/2});
+    pvAnn({kind:'detail', x:OXe+30, y:GY+footDepth+12, num:'2', sheet:'A3.1',
+      leadFromX:OXe, leadFromY:GY+footDepth/2});
+
+    // Code notes for elevation
+    pvAnn({kind:'code', x:W-208, y:H-176, w:200,
+      title:'STRUCTURAL — DECK',
+      lines:[
+        `• Total Rise: ${_ftIn(ht)}`,
+        `• Joist Span ≤ ${_ftIn(wid)} (R507.6)`,
+        `• Beam Span ≤ ${_ftIn(len/(paN-1))} (R507.5)`,
+        `• Footing depth: ${_ftIn(footDepth/SCLE)}`,
+        '• Anchor: ½"Ø G185 galv. bolt',
+        '• Frost depth per local AHJ',
+        rises>0 ? `• Stair ${rises}R total = ${_ftIn(ht)}`:'',
+      ].filter(Boolean)});
   }
 }
 
@@ -5468,6 +6314,495 @@ function pvRenderProcessDims(type, p){
   el.innerHTML = html;
 }
 
+// ══════════════════════════════════════════════════════════════════════════
+// ANNOTATION PASS — real CAD primitives drawn after elements, before titleblock
+// Multi-tier dim strings, section cut bubbles, detail callouts, elevation
+// tags, slope arrows, joist/stud direction arrows, code-note text boxes,
+// material hatches. pvBuild* clears _pvAnn and pushes pvAnn({kind:...});
+// pvDraw renders them via pvDrawAnnotations.
+// ══════════════════════════════════════════════════════════════════════════
+let _pvAnn = [];
+function pvAnn(a){ _pvAnn.push(a); }
+function pvAnnReset(){ _pvAnn = []; }
+
+function _ftIn(feet){
+  if(!isFinite(feet)) return '—';
+  const sign = feet<0?'-':''; feet=Math.abs(feet);
+  const totalEighths = Math.round(feet*12*8);
+  const ft = Math.floor(totalEighths/(12*8));
+  const remIn8 = totalEighths - ft*12*8;
+  const inches = Math.floor(remIn8/8);
+  const eighths = remIn8 - inches*8;
+  if(eighths===0) return sign + (inches===0 ? `${ft}'-0"` : `${ft}'-${inches}"`);
+  const frac = ({1:'⅛',2:'¼',3:'⅜',4:'½',5:'⅝',6:'¾',7:'⅞'})[eighths] || '';
+  return sign + `${ft}'-${inches} ${frac}"`;
+}
+
+function pvAnnDimH(ctx, a){
+  const {x1,x2,y,label,tier,dir} = a;
+  const offset = (tier||1)===1 ? 0 : (tier===2 ? 18 : 34);
+  const upDir = dir==='down' ? 1 : -1;
+  const dy = y + offset*upDir;
+  ctx.save();
+  ctx.strokeStyle=CAD.dim; ctx.lineWidth=0.7; ctx.setLineDash([]);
+  const extStart = y + (upDir>0 ? 4 : -4);
+  const extEnd = dy + (upDir>0 ? -3 : 3);
+  ctx.beginPath(); ctx.moveTo(x1, extStart); ctx.lineTo(x1, extEnd); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x2, extStart); ctx.lineTo(x2, extEnd); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x1, dy); ctx.lineTo(x2, dy); ctx.stroke();
+  const t=4;
+  [x1,x2].forEach(xt=>{ ctx.beginPath(); ctx.moveTo(xt-t, dy+t); ctx.lineTo(xt+t, dy-t); ctx.stroke(); });
+  ctx.font='bold 9px monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  const txt = label || _ftIn(Math.abs(x2-x1)/(_pvFrame?_pvFrame.scale:1));
+  const tw = ctx.measureText(txt).width;
+  ctx.fillStyle='rgba(13,17,23,0.94)';
+  ctx.fillRect((x1+x2)/2 - tw/2 - 5, dy + (upDir>0 ? 4 : -10), tw+10, 12);
+  ctx.fillStyle=CAD.dimText;
+  ctx.fillText(txt, (x1+x2)/2, dy + (upDir>0 ? 10 : -4));
+  ctx.restore();
+}
+
+function pvAnnDimV(ctx, a){
+  const {y1,y2,x,label,tier,dir} = a;
+  const offset = (tier||1)===1 ? 0 : (tier===2 ? 18 : 34);
+  const lrDir = dir==='right' ? 1 : -1;
+  const dx = x + offset*lrDir;
+  ctx.save();
+  ctx.strokeStyle=CAD.dim; ctx.lineWidth=0.7; ctx.setLineDash([]);
+  const extStart = x + (lrDir>0 ? 4 : -4);
+  const extEnd = dx + (lrDir>0 ? -3 : 3);
+  ctx.beginPath(); ctx.moveTo(extStart, y1); ctx.lineTo(extEnd, y1); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(extStart, y2); ctx.lineTo(extEnd, y2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(dx, y1); ctx.lineTo(dx, y2); ctx.stroke();
+  const t=4;
+  [y1,y2].forEach(yt=>{ ctx.beginPath(); ctx.moveTo(dx-t, yt-t); ctx.lineTo(dx+t, yt+t); ctx.stroke(); });
+  const txt = label || _ftIn(Math.abs(y2-y1)/(_pvFrame?_pvFrame.scale:1));
+  ctx.save();
+  ctx.translate(dx + (lrDir>0 ? 8 : -8), (y1+y2)/2);
+  ctx.rotate(-Math.PI/2);
+  ctx.font='bold 9px monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  const tw = ctx.measureText(txt).width;
+  ctx.fillStyle='rgba(13,17,23,0.94)';
+  ctx.fillRect(-tw/2 - 5, -7, tw+10, 12);
+  ctx.fillStyle=CAD.dimText; ctx.fillText(txt, 0, 0);
+  ctx.restore();
+  ctx.restore();
+}
+
+function pvAnnSectionCut(ctx, a){
+  const {x1,y1,x2,y2,tag,sheet,dir} = a;
+  ctx.save();
+  ctx.strokeStyle=CAD.section; ctx.lineWidth=1.4; ctx.setLineDash([10,3,3,3]);
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  ctx.setLineDash([]);
+  [[x1,y1],[x2,y2]].forEach(([bx,by])=>{
+    ctx.fillStyle='rgba(13,17,23,0.96)';
+    ctx.strokeStyle=CAD.section; ctx.lineWidth=1.2;
+    ctx.beginPath(); ctx.arc(bx,by,11,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(bx-11,by); ctx.lineTo(bx+11,by); ctx.stroke();
+    ctx.fillStyle=CAD.section; ctx.font='bold 9px monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(tag, bx, by-4);
+    ctx.font='bold 7px monospace';
+    ctx.fillText(sheet, bx, by+5);
+  });
+  const dx = x2-x1, dy = y2-y1; const len = Math.hypot(dx,dy)||1;
+  const px = -dy/len, py = dx/len;
+  const dirSign = dir==='left' ? -1 : 1;
+  [[x1,y1],[x2,y2]].forEach(([bx,by])=>{
+    const ax = bx + px*16*dirSign, ay = by + py*16*dirSign;
+    ctx.strokeStyle=CAD.section; ctx.lineWidth=1.2;
+    ctx.beginPath();
+    ctx.moveTo(bx+px*11*dirSign, by+py*11*dirSign);
+    ctx.lineTo(ax, ay);
+    ctx.stroke();
+    ctx.fillStyle=CAD.section;
+    const tipX = ax, tipY = ay;
+    const baseX = bx+px*12*dirSign, baseY = by+py*12*dirSign;
+    const perpX = (dy/len)*3, perpY = -(dx/len)*3;
+    ctx.beginPath();
+    ctx.moveTo(tipX, tipY);
+    ctx.lineTo(baseX+perpX, baseY+perpY);
+    ctx.lineTo(baseX-perpX, baseY-perpY);
+    ctx.closePath(); ctx.fill();
+  });
+  ctx.restore();
+}
+
+function pvAnnDetailBubble(ctx, a){
+  const {x, y, num, sheet, leadFromX, leadFromY} = a;
+  ctx.save();
+  if(leadFromX!==undefined && leadFromY!==undefined){
+    ctx.strokeStyle=CAD.annotate; ctx.lineWidth=0.7; ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(leadFromX, leadFromY); ctx.lineTo(x, y); ctx.stroke();
+    ctx.fillStyle=CAD.annotate;
+    ctx.beginPath(); ctx.arc(leadFromX, leadFromY, 1.5, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.fillStyle='rgba(13,17,23,0.96)';
+  ctx.strokeStyle=CAD.annotate; ctx.lineWidth=1.2;
+  ctx.beginPath(); ctx.arc(x, y, 11, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x-11, y); ctx.lineTo(x+11, y); ctx.stroke();
+  ctx.fillStyle=CAD.annotate;
+  ctx.font='bold 9px monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(num, x, y-4);
+  ctx.font='bold 7px monospace';
+  ctx.fillText(sheet, x, y+5);
+  ctx.restore();
+}
+
+function pvAnnElevTag(ctx, a){
+  const {x, y, label, anchor} = a;
+  ctx.save();
+  ctx.font='bold 9px monospace';
+  const tw = ctx.measureText(label).width + 10;
+  const ax = anchor==='right' ? x-tw-6 : x+6;
+  ctx.fillStyle='rgba(13,17,23,0.96)';
+  ctx.fillRect(ax, y-7, tw, 14);
+  ctx.strokeStyle=CAD.annotate; ctx.lineWidth=1; ctx.setLineDash([]);
+  ctx.strokeRect(ax, y-7, tw, 14);
+  ctx.fillStyle=CAD.annotate;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(label, ax+tw/2, y);
+  // Flag tick
+  ctx.beginPath();
+  if(anchor==='right'){
+    ctx.moveTo(ax+tw+6, y); ctx.lineTo(ax+tw, y-4); ctx.lineTo(ax+tw, y+4);
+  } else {
+    ctx.moveTo(ax-6, y); ctx.lineTo(ax, y-4); ctx.lineTo(ax, y+4);
+  }
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+function pvAnnSlopeArrow(ctx, a){
+  const {x, y, pitch, dir} = a;
+  const W = 36, sign = dir==='left' ? -1 : 1;
+  const dx = W*sign, dy = (pitch/12)*W*-1;
+  ctx.save();
+  ctx.strokeStyle=CAD.annotate; ctx.fillStyle=CAD.annotate;
+  ctx.lineWidth=0.8; ctx.setLineDash([]);
+  // Run + rise triangle
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x+dx, y);
+  ctx.lineTo(x+dx, y+dy);
+  ctx.closePath();
+  ctx.stroke();
+  // Slope label "n:12"
+  ctx.font='bold 9px monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillStyle='rgba(13,17,23,0.92)';
+  ctx.fillRect(x+dx*0.3, y+8, 30, 12);
+  ctx.fillStyle=CAD.annotate;
+  ctx.fillText(pitch+':12', x+dx*0.3+15, y+14);
+  ctx.restore();
+}
+
+function pvAnnDirectionArrow(ctx, a){
+  const {x1, x2, y, text, color} = a;
+  const col = color||CAD.annotate;
+  ctx.save();
+  ctx.strokeStyle=col; ctx.fillStyle=col; ctx.lineWidth=0.9; ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(x2, y); ctx.stroke();
+  const ah=6;
+  ctx.beginPath();
+  ctx.moveTo(x1, y); ctx.lineTo(x1+ah, y-ah/2); ctx.lineTo(x1+ah, y+ah/2); ctx.closePath(); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(x2, y); ctx.lineTo(x2-ah, y-ah/2); ctx.lineTo(x2-ah, y+ah/2); ctx.closePath(); ctx.fill();
+  ctx.font='bold 9px monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  const tw = ctx.measureText(text).width + 10;
+  ctx.fillStyle='rgba(13,17,23,0.96)';
+  ctx.fillRect((x1+x2)/2 - tw/2, y-7, tw, 14);
+  ctx.strokeStyle=col; ctx.lineWidth=0.6; ctx.strokeRect((x1+x2)/2 - tw/2, y-7, tw, 14);
+  ctx.fillStyle=col; ctx.fillText(text, (x1+x2)/2, y);
+  ctx.restore();
+}
+
+function pvAnnDirectionArrowV(ctx, a){
+  const {y1, y2, x, text, color} = a;
+  const col = color||CAD.annotate;
+  ctx.save();
+  ctx.strokeStyle=col; ctx.fillStyle=col; ctx.lineWidth=0.9; ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(x, y1); ctx.lineTo(x, y2); ctx.stroke();
+  const ah=6;
+  ctx.beginPath();
+  ctx.moveTo(x, y1); ctx.lineTo(x-ah/2, y1+ah); ctx.lineTo(x+ah/2, y1+ah); ctx.closePath(); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(x, y2); ctx.lineTo(x-ah/2, y2-ah); ctx.lineTo(x+ah/2, y2-ah); ctx.closePath(); ctx.fill();
+  ctx.save();
+  ctx.translate(x, (y1+y2)/2);
+  ctx.rotate(-Math.PI/2);
+  ctx.font='bold 9px monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  const tw = ctx.measureText(text).width + 10;
+  ctx.fillStyle='rgba(13,17,23,0.96)';
+  ctx.fillRect(-tw/2, -7, tw, 14);
+  ctx.strokeStyle=col; ctx.lineWidth=0.6; ctx.strokeRect(-tw/2, -7, tw, 14);
+  ctx.fillStyle=col; ctx.fillText(text, 0, 0);
+  ctx.restore();
+  ctx.restore();
+}
+
+function pvAnnGridBubble(ctx, a){
+  const {x, y, label} = a;
+  ctx.save();
+  ctx.fillStyle='rgba(13,17,23,0.96)';
+  ctx.strokeStyle=CAD.annotate; ctx.lineWidth=1; ctx.setLineDash([]);
+  ctx.beginPath(); ctx.arc(x, y, 9, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+  ctx.fillStyle=CAD.annotate; ctx.font='bold 9px monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(label, x, y);
+  ctx.restore();
+}
+
+function pvAnnCodeNote(ctx, a){
+  const {x, y, w, lines, title, color} = a;
+  const col = color || CAD.annotate;
+  ctx.save();
+  const pad=5, lineH=10;
+  const titleH = title ? 12 : 0;
+  const boxH = lines.length*lineH + pad*2 + titleH;
+  ctx.fillStyle='rgba(0,40,20,0.88)';
+  ctx.fillRect(x, y, w, boxH);
+  ctx.strokeStyle=col; ctx.lineWidth=0.7; ctx.setLineDash([]);
+  ctx.strokeRect(x, y, w, boxH);
+  ctx.textAlign='left'; ctx.textBaseline='top';
+  if(title){
+    ctx.fillStyle=CAD.dimText; ctx.font='bold 9px monospace';
+    ctx.fillText(title, x+pad, y+pad);
+  }
+  ctx.font='8px monospace'; ctx.fillStyle=col;
+  lines.forEach((line,i)=>{
+    ctx.fillText(line, x+pad, y+pad+titleH+i*lineH);
+  });
+  ctx.restore();
+}
+
+function pvAnnEarthHatch(ctx, a){
+  const {x, y, w, h} = a;
+  ctx.save();
+  ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+  ctx.fillStyle='rgba(60,42,26,0.4)';
+  ctx.fillRect(x,y,w,h);
+  ctx.strokeStyle='rgba(140,100,60,0.7)'; ctx.lineWidth=0.45; ctx.setLineDash([]);
+  for(let i=-h; i<w; i+=6){
+    ctx.beginPath(); ctx.moveTo(x+i, y); ctx.lineTo(x+i+h, y+h); ctx.stroke();
+  }
+  ctx.strokeStyle='rgba(170,130,80,0.95)'; ctx.lineWidth=0.7;
+  for(let i=2; i<w; i+=8){
+    const tuftLen = 3+((i*37)%5)*0.4;
+    ctx.beginPath();
+    ctx.moveTo(x+i, y); ctx.lineTo(x+i-1, y+tuftLen);
+    ctx.moveTo(x+i, y); ctx.lineTo(x+i+1, y+tuftLen);
+    ctx.stroke();
+  }
+  ctx.restore();
+  ctx.save();
+  ctx.strokeStyle='rgba(200,160,110,0.95)'; ctx.lineWidth=1.4; ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x+w, y); ctx.stroke();
+  ctx.restore();
+}
+
+function pvAnnConcreteHatch(ctx, a){
+  const {x, y, w, h} = a;
+  ctx.save();
+  ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+  ctx.fillStyle='rgba(110,120,130,0.4)';
+  ctx.fillRect(x,y,w,h);
+  for(let i=0; i<Math.min(w*h/14, 90); i++){
+    const r = 0.4 + ((i*7919)%5)*0.3;
+    const sx = x + ((i*9973)%1000)/1000*w;
+    const sy = y + ((i*7321)%1000)/1000*h;
+    ctx.fillStyle = `rgba(${100+((i*23)%40)},${110+((i*17)%30)},${120+((i*13)%25)},0.6)`;
+    ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.strokeStyle='rgba(80,90,100,0.4)'; ctx.lineWidth=0.4;
+  for(let i=0; i<Math.min(w*h/280, 14); i++){
+    const sx = x + ((i*1721)%1000)/1000*w;
+    const sy = y + ((i*4099)%1000)/1000*h;
+    ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx+3, sy-3); ctx.stroke();
+  }
+  ctx.strokeStyle='rgba(170,180,190,0.7)'; ctx.lineWidth=0.8;
+  ctx.strokeRect(x,y,w,h);
+  ctx.restore();
+}
+
+function pvDrawAnnotations(ctx, W, H){
+  if(!_pvAnn || _pvAnn.length===0) return;
+  ctx.save();
+  ctx.setLineDash([]);
+  _pvAnn.forEach(a=>{
+    if(a.kind==='dim_h')           pvAnnDimH(ctx, a);
+    else if(a.kind==='dim_v')      pvAnnDimV(ctx, a);
+    else if(a.kind==='section')    pvAnnSectionCut(ctx, a);
+    else if(a.kind==='detail')     pvAnnDetailBubble(ctx, a);
+    else if(a.kind==='elev')       pvAnnElevTag(ctx, a);
+    else if(a.kind==='slope')      pvAnnSlopeArrow(ctx, a);
+    else if(a.kind==='dir')        pvAnnDirectionArrow(ctx, a);
+    else if(a.kind==='dirv')       pvAnnDirectionArrowV(ctx, a);
+    else if(a.kind==='grid')       pvAnnGridBubble(ctx, a);
+    else if(a.kind==='code')       pvAnnCodeNote(ctx, a);
+    else if(a.kind==='earth')      pvAnnEarthHatch(ctx, a);
+    else if(a.kind==='conc_hatch') pvAnnConcreteHatch(ctx, a);
+  });
+  ctx.restore();
+}
+
+// Default plan-view annotation pack — applied at the end of each pvBuild* for
+// types that don't already have custom annotations (deck has its own).
+function pvDefaultPlanAnnotations(type){
+  if(_pvOrient!=='plan' || !_pvFrame) return;
+  const {scale, ox, oy, dw, dh, p} = _pvFrame;
+  const W = _pvCanvas ? (parseInt(_pvCanvas.style.width)||340) : 340;
+  const H = _pvCanvas ? (parseInt(_pvCanvas.style.height)||240) : 240;
+
+  const config = {
+    roof: {
+      lenLbl: p.blen, widLbl: p.bwid,
+      dirText: `2×8 RAFTERS @ 16" O.C. · ${p.pitch}:12 SLOPE`,
+      sectionTag: 'B', sectionSheet: 'A-3',
+      details: [
+        {x:ox-34, y:oy-22, num:'1', sheet:'A3.2', leadX:ox+8, leadY:oy-4},
+        {x:ox+dw+30, y:oy+dh*0.5, num:'2', sheet:'A3.2', leadX:ox+dw-8, leadY:oy+dh*0.5},
+      ],
+      codeTitle: 'ROOFING NOTES — IRC 2021',
+      codeLines: [
+        `• ${p.pitch}:12 (${(Math.atan(p.pitch/12)*180/Math.PI).toFixed(1)}°)`,
+        '• Rafters per Tbl R802.4.1',
+        '• 7/16" OSB sheathing',
+        '  8d @ 6" edge / 12" field',
+        '• ASTM D226 underlayment',
+        '• Ice barrier 24" past wall',
+        '  (R905.1.2)',
+        '• Hurricane H2.5A every rafter',
+        '  (R802.11 / R301.2.1)',
+        '• Asphalt min pitch 2:12',
+        '• Vent 1/300 attic (R806.2)',
+      ],
+      slopeArrow: true,
+    },
+    framing: {
+      lenLbl: p.len, widLbl: p.wid,
+      dirText: `${(p.stud||'2×4').toUpperCase()} STUDS @ ${p.oc}" O.C.`,
+      sectionTag: 'C', sectionSheet: 'A-3',
+      details: [
+        {x:ox-34, y:oy-22, num:'1', sheet:'A3.3', leadX:ox+8, leadY:oy-4},
+        {x:ox+dw+30, y:oy+dh*0.5, num:'2', sheet:'A3.3', leadX:ox+dw-8, leadY:oy+dh*0.5},
+      ],
+      codeTitle: 'FRAMING NOTES — IRC 2021',
+      codeLines: [
+        `• ${(p.stud||'2×4').toUpperCase()} SPF#2 @ ${p.oc}" O.C.`,
+        '• Headers Tbl R602.7(1)',
+        '• Bracing R602.10 (CS-WSP)',
+        '• Bottom plate 2× PT',
+        '• (2) 2× top plates · 24" lap',
+        '• ½"Ø anchor @ 6\'-0" O.C.',
+        '  12" from corners (R403.1.6)',
+        '• 7/16" OSB sheathing',
+        '  8d @ 6" edge / 12" field',
+        '• House wrap (R703.1)',
+        `• R-${p.stud==='2x6'?'20':'13'} cavity (N1102)`,
+      ],
+    },
+    concrete: {
+      lenLbl: p.len, widLbl: p.wid,
+      dirText: `#${p.rebar||4} REBAR @ 18" O.C. EACH WAY`,
+      sectionTag: 'D', sectionSheet: 'S-1',
+      details: [
+        {x:ox-34, y:oy-22, num:'1', sheet:'S1.1', leadX:ox+8, leadY:oy-4},
+        {x:ox+dw+30, y:oy+dh+22, num:'2', sheet:'S1.1', leadX:ox+dw-8, leadY:oy+dh-4},
+      ],
+      codeTitle: 'CONCRETE NOTES — IRC 2021',
+      codeLines: [
+        `• Slab ${p.thick||4}" · 3000 psi min`,
+        `• Footer ${p.fwid||16}"W × ${p.fdep||8}"D`,
+        `• #${p.rebar||4} @ 18" O.C. EW (R506)`,
+        `• Lap splice = 40× = ${(p.rebar||4)*5}"`,
+        '• Cover 3" earth / 1½" form',
+        '• 4" compacted gravel base',
+        '• 6 mil vapor barrier · taped',
+        '• ½"Ø anchor @ 6\'-0" O.C.',
+        '  7" embed (R403.1.6)',
+        '• Control joints sawcut',
+        '  ¼ depth @ 10\'-12\' O.C.',
+      ],
+    },
+    porch: {
+      lenLbl: p.len, widLbl: p.dep,
+      dirText: p.colSp ? `${p.colStyle?(p.colStyle.toUpperCase()):'6×6 PT'} COLUMNS @ ${p.colSp}'-0" O.C.` : 'COLUMNS PER PLAN',
+      sectionTag: 'E', sectionSheet: 'A-3',
+      details: [
+        {x:ox-34, y:oy-22, num:'1', sheet:'A3.4', leadX:ox+8, leadY:oy-4},
+        {x:ox+dw+30, y:oy+dh+22, num:'2', sheet:'A3.4', leadX:ox+dw-8, leadY:oy+dh-8},
+      ],
+      codeTitle: 'PORCH NOTES — IRC 2021',
+      codeLines: [
+        '• LL=40psf floor · Roof DL+SL',
+        `• ${p.pitch||4}:12 ${(p.roofStyle||'shed').toUpperCase()} ROOF`,
+        '• PT lumber AC2 ground-contact',
+        '• Posts on post base R317.1.4',
+        '  6" min above grade',
+        '• Ledger flashed per R703.4',
+        '  ½"Ø lag @ 16" O.C.',
+        '• Step flashing roof-to-wall',
+        `• Guard ${p.flHt>2.5?42:36}" min · 4" sphere`,
+        '  (R312.1) where >30" drop',
+        '• (2)2×10 PT header beam',
+      ],
+      slopeArrow: !!p.pitch,
+    },
+    carport: {
+      lenLbl: p.len, widLbl: p.wid,
+      dirText: p.postSp ? `${(p.postMat||p.colType||'6×6 PT').toUpperCase()} POSTS @ ${p.postSp}'-0" O.C.` : 'POSTS PER PLAN',
+      sectionTag: 'F', sectionSheet: 'A-3',
+      details: [
+        {x:ox-34, y:oy-22, num:'1', sheet:'A3.5', leadX:ox+8, leadY:oy-4},
+        {x:ox+dw+30, y:oy+dh+22, num:'2', sheet:'A3.5', leadX:ox+dw-8, leadY:oy+dh-8},
+      ],
+      codeTitle: 'CARPORT NOTES — IRC 2021',
+      codeLines: [
+        `• ${p.len}\'L × ${p.wid}\'W open carport`,
+        '• Open ≥2 sides per R309.4',
+        `• ${p.pitch||3}:12 ${(p.roofStyle||'shed').toUpperCase()} ROOF`,
+        '• Roof LL=20psf · snow per AHJ',
+        '• Hurricane H2.5A every rafter',
+        '  (R802.11 / R301.2.1)',
+        '• Post base anchored to ftg',
+        '  (R407.3 / R403.1.4)',
+        '• Posts 6" min above grade',
+        '  (R317.1.4)',
+        '• Clear ht 8\'-0" typical',
+        '• Class A roof covering R902',
+      ],
+      slopeArrow: !!p.pitch,
+    },
+  };
+
+  const c = config[type];
+  if(!c) return;
+
+  // Multi-tier dim strings (outer overall, vertical width)
+  pvAnn({kind:'dim_h', x1:ox, x2:ox+dw, y:oy-30, label:_ftIn(c.lenLbl || dw/scale), tier:2, dir:'up'});
+  pvAnn({kind:'dim_v', y1:oy, y2:oy+dh, x:ox-30, label:_ftIn(c.widLbl || dh/scale), tier:1, dir:'left'});
+
+  // Direction arrow with inline member text
+  pvAnn({kind:'dirv', y1:oy+12, y2:oy+dh-12, x:ox+dw*0.5, text:c.dirText, color:'#00ff88'});
+
+  // Section cut across long axis
+  pvAnn({kind:'section', x1:ox-22, y1:oy+dh*0.55, x2:ox+dw+22, y2:oy+dh*0.55,
+    tag:c.sectionTag, sheet:c.sectionSheet, dir:'down'});
+
+  // Detail bubbles
+  c.details.forEach(d=>{
+    pvAnn({kind:'detail', x:d.x, y:d.y, num:d.num, sheet:d.sheet,
+      leadFromX:d.leadX, leadFromY:d.leadY});
+  });
+
+  // Slope arrow for pitched-roof types
+  if(c.slopeArrow){
+    pvAnn({kind:'slope', x:ox+dw*0.5, y:oy+dh+22, pitch:p.pitch||4, dir:'right'});
+  }
+
+  // Code reference panel
+  pvAnn({kind:'code', x:6, y:H-200, w:222, title:c.codeTitle, lines:c.codeLines.filter(Boolean)});
+}
+
 function pvDraw(){
   const c=_pvCanvas||document.getElementById('process-canvas');
   if(!c) return;
@@ -5535,7 +6870,10 @@ function pvDraw(){
     }
   }
 
-  // ── Blueprint overlay: dimension strings, title block, scale bar, north arrow
+  // ── Annotation pass (real CAD primitives: dim strings, section cuts, etc.)
+  pvDrawAnnotations(ctx, W, H);
+
+  // ── Blueprint overlay: title block, scale bar, north arrow
   pvDrawBlueprintOverlay(ctx, W, H);
 
   ctx.restore();
@@ -6380,20 +7718,29 @@ const PRICE_MAP = (()=>{
   const add = (name, mat, hrs, rate='sk') => { map[name]={mat,hrs,rate,unit:'ea'}; };
 
   // ── FOUNDATION & POSTS ─────────────────────────────────────────────────
-  add('6×6 PT Post',              22,  1.50, 'sk');
-  add('4×4 PT Post',              13,  1.25, 'sk');
-  add('4×4 Post Base (ABA44)',     7.20, 0.20, 'sk');
-  add('6×6 Post Base (ABA66)',     9.80, 0.20, 'sk');
-  add('80lb Concrete (Quikrete)',  6.45, 0.08, 'sk');
-  add('Sonotube Forms 12"',       12,  0.30, 'sk');
-  add('Anchor Bolt J-bolt 1/2"×10"', 2.10, 0.15, 'sk');
-  add('J-Bolt Anchor Sets',       4.20, 0.20, 'sk');
-  add('1/2"×6" Lag Bolts (ledger)', 0.75, 0.10, 'sk');
-  add('Concrete Footings (80lb bags)', 6.45, 0.08, 'sk');
-  add('Post Base Hardware ABA44',  7.20, 0.20, 'sk');
-  add('Post Base Hardware ABA66',  9.80, 0.20, 'sk');
-  add('Base Plate Weld Flanges',  18,  0.50, 'sk');
-  add('Helical Pier Installation (contractor)', 175, 1.0, 'sub');
+  // Labor reflects per-unit install time when crew is on site, sonotubes
+  // pre-augered. Setting a post (plumb, brace, fasten) ≈ 0.6–0.8 hr.
+  // Hardware items intentionally light — they're installed alongside posts.
+  add('6×6 PT Post',              22,  0.80, 'sk');
+  add('4×4 PT Post',              13,  0.60, 'sk');
+  add('4×4 Post Base (ABA44)',     7.20, 0.08, 'sk');
+  add('6×6 Post Base (ABA66)',     9.80, 0.08, 'sk');
+  add('80lb Concrete (Quikrete)',  6.45, 0.05, 'sk');
+  add('Sonotube Forms 12"',       12,  0.20, 'sk');
+  add('Anchor Bolt J-bolt 1/2"×10"', 2.10, 0.08, 'sk');
+  add('J-Bolt Anchor Sets',       4.20, 0.10, 'sk');
+  add('J-Bolt Anchor Sets 1/2"',  4.20, 0.10, 'sk');
+  add('Anchor Bolts 1/2"×10" (set in concrete)', 2.10, 0.10, 'sk');
+  add('1/2"×6" Lag Bolts (ledger)', 0.75, 0.05, 'sk');
+  add('Concrete Footings (80lb bags)', 6.45, 0.05, 'sk');
+  add('Post Base Hardware ABA44',  7.20, 0.08, 'sk');
+  add('Post Base Hardware ABA66',  9.80, 0.08, 'sk');
+  add('Post Base Hardware 6x6pt',  9.80, 0.08, 'sk');
+  add('Post Base Hardware 4x4pt',  7.20, 0.08, 'sk');
+  add('Post Cap Hardware',         8.50, 0.10, 'sk');
+  add('Base Plate Weld Flanges',  18,  0.35, 'sk');
+  // Helical pier contractor price is turnkey — includes their labor.
+  add('Helical Pier Installation (contractor)', 195, 0, 'sub');
 
   // ── FRAMING & STRUCTURE ────────────────────────────────────────────────
   // Lumber priced per board (common sizes)
@@ -6559,8 +7906,20 @@ const PRICE_MAP = (()=>{
   add('Outdoor Rated Junction Box',   12,  0.50,'elec');
 
   // ── CARPORT ─────────────────────────────────────────────────────────────
-  add('Steel tube (3.5" sq)',         22,  0.40,'sk');
+  // Carport/porch column-name variants (per-foot of post, set/plumb/brace).
+  // Material here is per-piece including a typical 10–12' length.
+  add('6×6 PT Timber',                32,  0.80,'sk');  // ~10' post
+  add('4×4 PT Timber',                17,  0.55,'sk');
+  add('6×6 PT Column',                32,  0.80,'sk');  // porch wood column variant
+  add('4×4 PT Column',                17,  0.55,'sk');
+  add('6×6 Wrapped Column',           95,  1.10,'sk');  // PT post + PVC wrap kit
+  add('4×4 Wrapped Column',           75,  0.90,'sk');
+  add('6×6 Fiberglass Column',       210,  1.00,'sk');  // round fiberglass column
+  add('3.5" Sq Steel Tube',           48,  0.70,'sk');  // ~10' length steel column
+  add('3" Round Steel Pipe',          38,  0.65,'sk');
+  add('Steel tube (3.5" sq)',         22,  0.40,'sk');  // per-lf legacy
   add('Steel pipe (3" round)',         18,  0.35,'sk');
+  add('Exterior Wood Sealer (gal)',   28,  0.20,'paint');
   add('Steel Primer Spray Paint',     12,  0.10,'paint');
   add('Welding Rod / Wire',            8.50, 0.10,'sk');
   add('Steel Header Beam (4"×2" tube, 20\' sticks)', 85, 0.30,'sk');
@@ -7229,6 +8588,12 @@ function toCalcPorch(){
     'Floor': floorMat.toUpperCase(),
     'Ceiling': ceilMat==='open'?'Open/exposed':ceilMat.toUpperCase(),
   };
+
+  extendTakeoffWithCompleteList('porch', items, {
+    len, dep, sqft, perim: 2*(len+dep), attached,
+    ridgeLF: typeof ridgeLF!=='undefined'?ridgeLF:0,
+    screening, fans, lights, totalCols,
+  });
 
   toRenderResults(items, summary, 'porch');
 }
@@ -9218,6 +10583,12 @@ function toCalcCarport(){
     'Foundation': foundType.replace('_',' '),
     'Walls': sides==='open'?'Open (no walls)':wallMat+' ('+sides+')',
   };
+
+  extendTakeoffWithCompleteList('carport', items, {
+    len, wid, ht, perim: 2*(len+wid), sqft,
+    postCount: totalCols, ridgeLF: typeof ridgeLF!=='undefined'?ridgeLF:0,
+    roofMat, sides,
+  });
 
   toRenderResults(items, summary, 'carport');
 }
