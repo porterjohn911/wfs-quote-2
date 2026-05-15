@@ -3395,8 +3395,8 @@ function toRenderResults(items, summary, type){
     'Deck Accessories':    {lf:0.10, ea:0.40, sqft:0.10, panel:1.5,  default:0.15},
     'Railing':             {lf:0.55, ea:0.15, default:0.30},
     'Railing / Half-Walls':{lf:0.55, ea:0.25, default:0.35},
-    'Concrete':            {CY:3.0, bag:0.05, ea:0.25, default:0.08},
-    'Foundation':          {CY:3.5, bag:0.05, ea:0.20, default:0.10},
+    'Concrete':            {CY:2.0, bag:0.05, ea:0.25, default:0.08},
+    'Foundation':          {CY:2.0, bag:0.05, ea:0.20, default:0.10},
     'Columns & Posts':     {ea:0.80, lf:0.35, default:0.20},
     'Floor Framing':       {default:0.12},
     'Ceiling':             {lf:0.08, sqft:0.08, default:0.10},
@@ -7739,8 +7739,10 @@ const PRICE_MAP = (()=>{
   add('Post Base Hardware 4x4pt',  7.20, 0.08, 'sk');
   add('Post Cap Hardware',         8.50, 0.10, 'sk');
   add('Base Plate Weld Flanges',  18,  0.35, 'sk');
-  // Helical pier contractor price is turnkey — includes their labor.
-  add('Helical Pier Installation (contractor)', 195, 0, 'sub');
+  // Helical pier — East TN specialist turnkey ($300-450/pier installed)
+  // No additional labor — contractor price includes their crew.
+  add('Helical Pier Installation (contractor)', 345, 0, 'sub');
+  add('Helical Pier (rental install)',           175, 0.50, 'sk');
 
   // ── FRAMING & STRUCTURE ────────────────────────────────────────────────
   // Lumber priced per board (common sizes)
@@ -7833,11 +7835,14 @@ const PRICE_MAP = (()=>{
   add('Drip Edge Aluminum 10\' sticks', 4.20, 0.08,'sk');
   add('Roofing Nails 1-3/4" (5lb)',    14,  0.01,'roof');
   add('Sheathing Nails (1-3/4")',       8,  0.01,'sk');
-  add('7/16" OSB Sheathing (4×8)',     14.50, 0.04,'sk');
-  add('Metal Roofing Panel (sqft)',     4.20, 0.10,'roof');
-  add('Standing Seam Metal Panels',    7.80, 0.14,'roof');
-  add('Metal Roofing Screws w/EPDM',   0.08, 0.01,'sk');
-  add('Metal Ridge Cap',               8.50, 0.15,'sk');
+  add('7/16" OSB Sheathing (4×8)',     14.50, 0.18,'sk');
+  // Exposed-fastener metal panels: 2-man crew runs ~50 sqft/hr per person.
+  // Standing seam is slower due to clip layout + snap engagement.
+  add('Metal Roofing Panel (sqft)',     4.20, 0.025,'roof');
+  add('Standing Seam Metal Panels',    7.80, 0.045,'roof');
+  add('Metal Roofing Screws w/EPDM',   0.08, 0.005,'sk');
+  add('Metal Roofing Screws w/EPDM washer', 0.08, 0.005,'sk');
+  add('Metal Ridge Cap',               8.50, 0.12,'sk');
   add('Butyl Tape Closure Strip',      12,  0.08,'sk');
   add('Metal Touch-Up Paint',          12,  0.05,'paint');
 
@@ -7851,8 +7856,10 @@ const PRICE_MAP = (()=>{
   add('Downspout Elbows',              3.50, 0.05,'sk');
 
   // ── CONCRETE SLAB / FOUNDATION ─────────────────────────────────────────
-  add('Ready-Mix Concrete 3000psi',  128,  3.5,'sk');
-  add('Ready-Mix Concrete',          128,  3.5,'sk');
+  // Labor is placement + screed + finish; assumes ready-mix delivered by
+  // truck (chute or short pump). Wheelbarrow placement would be ~3.5 hr/CY.
+  add('Ready-Mix Concrete 3000psi',  128,  2.0,'sk');
+  add('Ready-Mix Concrete',          128,  2.0,'sk');
   add('#4 Rebar 20\' stick',           9.80, 0.15,'sk');
   add('#5 Rebar 20\' stick',          14.20, 0.18,'sk');
   add('#3 Rebar 20\' stick',           6.40, 0.12,'sk');
@@ -7906,8 +7913,12 @@ const PRICE_MAP = (()=>{
   add('Outdoor Rated Junction Box',   12,  0.50,'elec');
 
   // ── CARPORT ─────────────────────────────────────────────────────────────
-  // Carport/porch column-name variants (per-foot of post, set/plumb/brace).
-  // Material here is per-piece including a typical 10–12' length.
+  // East TN market reference (May 2026): wood-framed 24×20 carport with
+  // metal roof + 6 wood cols + gravel pad runs $6–9k turnkey ($12–19/sqft);
+  // factory-installed steel turnkey (Eagle/Coast2Coast) is $3.5–5.5k for
+  // the same footprint. Pricing below targets the wood-framed range.
+  //
+  // Carport/porch column-name variants — per-piece, typical 10' length.
   add('6×6 PT Timber',                32,  0.80,'sk');  // ~10' post
   add('4×4 PT Timber',                17,  0.55,'sk');
   add('6×6 PT Column',                32,  0.80,'sk');  // porch wood column variant
@@ -7915,25 +7926,38 @@ const PRICE_MAP = (()=>{
   add('6×6 Wrapped Column',           95,  1.10,'sk');  // PT post + PVC wrap kit
   add('4×4 Wrapped Column',           75,  0.90,'sk');
   add('6×6 Fiberglass Column',       210,  1.00,'sk');  // round fiberglass column
-  add('3.5" Sq Steel Tube',           48,  0.70,'sk');  // ~10' length steel column
-  add('3" Round Steel Pipe',          38,  0.65,'sk');
-  add('Steel tube (3.5" sq)',         22,  0.40,'sk');  // per-lf legacy
-  add('Steel pipe (3" round)',         18,  0.35,'sk');
+  add('3.5" Sq Steel Tube',           58,  0.70,'sk');  // ~10' length 11ga steel column ($5-6/lf yard)
+  add('3" Round Steel Pipe',          42,  0.65,'sk');  // ~10' sch40 3" pipe
+  add('Steel tube (3.5" sq)',          9,  0.10,'sk');  // per-lf yard price
+  add('Steel pipe (3" round)',         5.50, 0.10,'sk');// per-lf yard price
   add('Exterior Wood Sealer (gal)',   28,  0.20,'paint');
   add('Steel Primer Spray Paint',     12,  0.10,'paint');
   add('Welding Rod / Wire',            8.50, 0.10,'sk');
-  add('Steel Header Beam (4"×2" tube, 20\' sticks)', 85, 0.30,'sk');
-  add('Steel Purlins (2"×2" tube or C-channel)', 45, 0.20,'sk');
-  add('Steel Ridge Beam',             95,  0.30,'sk');
-  add('Self-Drilling Tek Screws (#12)', 0.12, 0.01,'sk');
-  add('29ga Steel Metal Panels',       4.20, 0.10,'roof');
-  add('Corrugated Tin Panels',         3.80, 0.10,'roof');
-  add('Polycarbonate Panels 26"×12\'', 45,  0.20,'sk');
-  add('Polycarbonate Closure Strips', 12,  0.08,'sk');
-  add('Stainless Self-Drill Screws',   0.12, 0.01,'sk');
-  add('Foam Closure Strips',           8.50, 0.06,'sk');
+  // Steel framing — local yard prices (Knoxville/Tri-Cities, May 2026)
+  add('Steel Header Beam (4"×2" tube, 20\' sticks)', 98, 0.45,'sk');
+  add('Steel Purlins (2"×2" tube or C-channel)',     42, 0.25,'sk');
+  add('Steel Ridge Beam',             92,  0.45,'sk');
+  add('Self-Drilling Tek Screws (#12)', 0.12, 0.005,'sk');
+  // Wood roof framing — carport name variants (were unpriced before)
+  add('2×8 Rafters',                  14.20, 0.18,'sk');
+  add('2×10 Rafters',                 18.50, 0.20,'sk');
+  add('Double Header Beam 2×10',      37.00, 0.35,'sk');// 2 sticks doubled
+  add('Ridge Board 2×10',             19.20, 0.22,'sk');
+  add('Hurricane Ties H2.5A',          0.85, 0.04,'sk');
+  add('Framing Nails 16d (25lb)',     72,   0.05,'sk');
+  // Metal roof panels — carport name variants, same labor as roofing block
+  add('29ga Steel Metal Panels',       4.20, 0.025,'roof');
+  add('Corrugated Tin Panels',         3.80, 0.025,'roof');
+  add('29ga Steel Wall Panels',        3.80, 0.022,'sk');
+  add('Wall Panel Screws',             0.10, 0.005,'sk');
+  add('Polycarbonate Panels 26"×12\'', 45,  0.18,'sk');
+  add('Polycarbonate Closure Strips', 12,  0.05,'sk');
+  add('Stainless Self-Drill Screws',   0.12, 0.005,'sk');
+  add('Foam Closure Strips',           8.50, 0.05,'sk');
   add('8" CMU Block',                  2.85, 0.22,'mason');
-  add('Gravel Pad',                    42,  0.20,'sk');
+  add('Gravel Pad',                    42,  0.15,'sk');
+  // Helical pier — East TN specialist turnkey ($300-450/pier installed)
+  // (overrides Foundation & Posts block above so carport uses real ET rate)
 
   return map;
 })();
