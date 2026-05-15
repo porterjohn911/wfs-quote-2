@@ -455,12 +455,14 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
             </div>
             <div class="field-row">
               <div class="field"><label>Stair height (rises)</label><input type="number" id="dk-rises" value="4" min="1" max="20" step="1" oninput="toCalc()"/></div>
-              <div class="field"><label>Beam span</label>
+              <div class="field"><label>Beam configuration</label>
                 <select id="dk-beam" onchange="toCalc()">
-                  <option value="dbl2x10">Dbl 2×10 Beam</option>
-                  <option value="dbl2x8">Dbl 2×8 Beam</option>
-                  <option value="dbl2x12">Dbl 2×12 Beam</option>
-                  <option value="lvl">LVL Beam</option>
+                  <option value="dbl2x10">Double 2×10 beam (typical)</option>
+                  <option value="dbl2x8">Double 2×8 beam (short spans)</option>
+                  <option value="dbl2x12">Double 2×12 beam (long spans)</option>
+                  <option value="trpl2x10">Tripled 2×10 beam (heavy load)</option>
+                  <option value="lvl">LVL beam (engineered)</option>
+                  <option value="none">No beam — joists span post-to-post (≤8' per IRC R507)</option>
                 </select>
               </div>
             </div>
@@ -2261,20 +2263,40 @@ function toCalcDeck(){
   const rises = parseInt(document.getElementById('dk-rises').value)||4;
   const deckMat = document.getElementById('dk-deck').value;
   const postSz  = document.getElementById('dk-post').value;
+  const beamCfg = document.getElementById('dk-beam')?.value || 'dbl2x10';
 
   const sqft = len * wid;
   const waste = 1.10; // 10% waste
 
-  // POSTS — 1 post per 8ft span each direction + corners
-  const postsAlong = Math.ceil(len/8)+1;
-  const postsAcross = Math.ceil(wid/8)+1;
+  // ── BEAM CONFIG ──────────────────────────────────────────────────────
+  // Per IRC R507 / AWC DCA6: 2×10 SYP doubled spans ~8' between posts at
+  // 16" OC joists. Smaller decks with short joist spans (≤8') may omit a
+  // beam entirely and rest joists directly on posts (R507.5).
+  const BEAM = {
+    'dbl2x10':  {label:'Dbl 2×10',     boardName:"2×10",      plies:2, lumberMatPerLF:1.85},
+    'dbl2x8':   {label:'Dbl 2×8',      boardName:"2×8",       plies:2, lumberMatPerLF:1.45},
+    'dbl2x12':  {label:'Dbl 2×12',     boardName:"2×12",      plies:2, lumberMatPerLF:2.15},
+    'trpl2x10': {label:'Tripled 2×10', boardName:"2×10",      plies:3, lumberMatPerLF:1.85},
+    'lvl':      {label:'LVL 1¾×9½',    boardName:"LVL 1.75×9.5", plies:1, lumberMatPerLF:5.10},
+    'none':     {label:'No beam',      boardName:null,        plies:0, lumberMatPerLF:0},
+  }[beamCfg] || {label:'Dbl 2×10', boardName:"2×10", plies:2, lumberMatPerLF:1.85};
+  const hasBeam = BEAM.plies > 0;
+
+  // POSTS — post layout depends on beam configuration
+  // With a beam: posts under beam line(s), one row of posts per beam run.
+  // No beam (IRC R507.5): posts must support each joist directly, so we
+  // run posts in line with joists every ~8' along the joist direction.
+  const postsAlong  = Math.ceil(len/8)+1;
+  const postsAcross = hasBeam ? Math.ceil(wid/8)+1 : Math.ceil(wid/8)+1;
   const postQty = postsAlong * postsAcross;
   const postLen = Math.ceil(ht + 1.5); // embed 1.5ft below grade min
 
-  // BEAMS — doubled lumber along length
-  const beamRuns = Math.ceil(wid/8)+1;
-  const beamBoardsEach = Math.ceil(len/16)*2; // doubled, max 16ft boards
+  // BEAMS — multi-ply lumber across the deck width (only if hasBeam)
+  // Number of beam runs = posts across the width (one beam per row of posts).
+  const beamRuns = hasBeam ? postsAcross : 0;
+  const beamBoardsEach = hasBeam ? Math.ceil(len/16) * BEAM.plies : 0;
   const beamQty = beamRuns * beamBoardsEach;
+  const beamLF  = hasBeam ? beamRuns * len : 0;
 
   // LEDGER — if attached to house (1 side)
   const ledgerQty = Math.ceil(len/16) * 2; // dbl 2x10
@@ -2325,7 +2347,7 @@ function toCalcDeck(){
   const fasciaBoards = Math.ceil(fasciaLinFt / 16);
 
   // RENDER
-  render2D('deck',{len,wid,ht,joc,rail,railType,postSz,rises,stairs,deckMat});
+  render2D('deck',{len,wid,ht,joc,rail,railType,postSz,rises,stairs,deckMat,beamCfg,hasBeam,beamLabel:BEAM.label});
 
   // BUILD MATERIALS LIST
   const items = {
@@ -2335,7 +2357,19 @@ function toCalcDeck(){
       {name: postSz==='6x6'?'6×6 Post Base (ABA66)':'4×4 Post Base (ABA44)', qty: postBases, unit:'ea', orderUnit:'ea'},
     ],
     'Framing & Structure': [
-      {name:'2×10×'+Math.ceil(len/2)*2+"' PT Ledger/Beam Boards", qty: ledgerQty+beamQty, unit:'pcs', orderUnit:'pcs'},
+      {name:'2×10×'+Math.ceil(len/2)*2+"' PT Ledger Boards", qty: ledgerQty, unit:'pcs', orderUnit:'pcs'},
+      ...(hasBeam ? [
+        BEAM.boardName==='LVL 1.75×9.5'
+          ? {name:'LVL Beam 1.75"×9.5" ('+Math.ceil(len/2)*2+"' lengths)", qty: beamQty, unit:'pcs', orderUnit:'pcs'}
+          : {name:BEAM.boardName+'×'+Math.ceil(len/2)*2+"' PT Beam Boards ("+BEAM.plies+'-ply)', qty: beamQty, unit:'pcs', orderUnit:'pcs'},
+        {name:'Post Cap Connectors (BC / BCS)', qty: postQty, unit:'ea', orderUnit:'ea'},
+      ] : [
+        // No-beam config: joists land on posts. Need post-to-joist
+        // connectors (Simpson EPC) and code requires double rim joist at
+        // ends + blocking between joists at supports (IRC R507.5.2).
+        {name:'Post-to-Joist Connectors (EPC / LPCZ)', qty: postQty, unit:'ea', orderUnit:'ea'},
+        {name:'2×10 Blocking Between Joists', qty: Math.max(1, postsAlong-2), unit:'pcs', orderUnit:'pcs', note:'IRC R507.5 — blocking required at intermediate post supports'},
+      ]),
       {name:'2×10×'+joistLen+"' PT Joists", qty: joistCount, unit:'pcs', orderUnit:'pcs'},
       {name:'LUS210 Joist Hangers', qty: hangerQty, unit:'ea', orderUnit:'box(50)'},
       {name:'1/2" × 6" Lag Bolts (ledger)', qty: lagBolts, unit:'ea', orderUnit:'box(25)'},
@@ -2377,6 +2411,7 @@ function toCalcDeck(){
     'Deck area': sqft.toFixed(0)+' sq ft',
     'Joists': joistCount+' pcs @ '+joc+'" OC',
     'Posts': postQty+' pcs ('+postLen+"' long)",
+    'Beam': hasBeam ? BEAM.label+' × '+beamRuns+' run(s)' : 'None — joist-on-post (IRC R507.5)',
     'Railing': rail>0?(rail+' lin ft — '+(TREX_PRICING.mat[railType]?.label||'Wood')):'None',
     'Stairs': stairs>0?(stairs+' run(s), '+rises+' risers'):'None',
   };
@@ -4040,6 +4075,8 @@ function titleBlock(ctx, w, h, title, subtitle){
 // ══════════════════════════════════════════════════════════════════════════
 function drawDeck2D(ctx, w, h, params){
   const {len,wid,ht,joc,rail,postSz,rises,stairs,deckMat} = params;
+  const hasBeam   = params.hasBeam !== false; // default true for back-compat
+  const beamLabel = params.beamLabel || 'Dbl 2×10';
   setPaper(ctx,w,h);
 
   const PAD=52, TB=44;
@@ -4083,16 +4120,22 @@ function drawDeck2D(ctx, w, h, params){
   ctx.strokeStyle=C.woodDark; ctx.lineWidth=2.5;
   ctx.strokeRect(0,0,DW,DH);
 
-  // Posts
+  // Posts — each post is an individually draggable element so users can
+  // nudge their layout. Drag offset comes from pOffset(id).
   const postsAlongN = Math.ceil(len/8)+1;
   const postsAcrossN = Math.ceil(wid/8)+1;
   const postPx = postSz==='6x6' ? 7 : 5;
   ctx.fillStyle=C.woodDark; ctx.strokeStyle=C.line; ctx.lineWidth=1;
+  const postPositions = []; // remember for elevation re-use + pReg later
   for(let pi=0; pi<postsAlongN; pi++){
     for(let pj=0; pj<postsAcrossN; pj++){
-      const px=(pi/(postsAlongN-1))*DW, py=(pj/(postsAcrossN-1))*DH;
+      const id='deck_post_'+pi+'_'+pj;
+      const off=pOffset(id);
+      const baseX=(pi/(postsAlongN-1))*DW, baseY=(pj/(postsAcrossN-1))*DH;
+      const px=baseX+off.dx, py=baseY+off.dy;
       ctx.fillRect(px-postPx/2,py-postPx/2,postPx,postPx);
       ctx.strokeRect(px-postPx/2,py-postPx/2,postPx,postPx);
+      postPositions.push({id, baseX, baseY, px, py});
     }
   }
 
@@ -4116,22 +4159,28 @@ function drawDeck2D(ctx, w, h, params){
     }
   }
 
-  // Stairs
+  // Stairs — draggable. Per IRC R311.7: tread depth ≥ 10", riser height
+  // ≤ 7-3/4". Default position is 35% along the front edge.
+  let _stairRect=null;
   if(rises>0){
     const stairW=3*scX, treadD=(10/12)*scX;
-    const stairX=DW*0.35-stairW/2, stairTop=DH;
+    const baseStairX=DW*0.35-stairW/2, baseStairY=DH;
+    const stOff=pOffset('deck_stairs');
+    const stairX=baseStairX+stOff.dx, stairTop=baseStairY+stOff.dy;
     ctx.fillStyle='rgba(200,170,100,0.7)';
     ctx.strokeStyle=C.woodDark; ctx.lineWidth=1;
     for(let ri=0; ri<rises; ri++){
       ctx.fillRect(stairX, stairTop+ri*treadD, stairW, treadD);
       ctx.strokeRect(stairX, stairTop+ri*treadD, stairW, treadD);
     }
-    callout(ctx, stairX+stairW+4, stairTop+treadD, rises+' risers');
+    callout(ctx, stairX+stairW+4, stairTop+treadD, rises+' risers (10"T / 7¾"R max)');
+    _stairRect={baseX:baseStairX, baseY:baseStairY, x:stairX, y:stairTop, w:stairW, h:rises*treadD};
   }
 
   callout(ctx, DW*0.12, DH*0.18, `Ledger: 2×10 PT, 1/2" lag bolts @ 16" OC`);
   callout(ctx, DW*0.76, DH*0.24, `Posts ≈ 8' OC`);
-  callout(ctx, DW*0.5, DH*0.72, `Beam: dbl 2×10 under joists`);
+  if(hasBeam) callout(ctx, DW*0.5, DH*0.72, `Beam: ${beamLabel} under joists`);
+  else        callout(ctx, DW*0.5, DH*0.72, `No beam — joists on posts (IRC R507.5)`);
 
   // Dimensions — plan
   dimLine(ctx,-16,0,-16,DH, wid+"'", -24, C.dim);
@@ -4207,16 +4256,19 @@ function drawDeck2D(ctx, w, h, params){
     ctx.fillStyle=C.woodDark;
   }
 
-  // Beam (doubled 2×10 along bottom of joists)
-  const beamH=8, beamY=-EH-beamH;
-  ctx.fillStyle=C.wood;
-  ctx.fillRect(0,beamY,EW,beamH);
-  drawWoodGrain(ctx,0,beamY,EW,beamH,false);
-  ctx.strokeStyle=C.woodDark;ctx.lineWidth=1;
-  ctx.strokeRect(0,beamY,EW,beamH);
-  // Doubled beam line
-  ctx.strokeStyle='rgba(100,55,10,0.4)';ctx.lineWidth=0.5;ctx.setLineDash([]);
-  ctx.beginPath();ctx.moveTo(0,beamY+4);ctx.lineTo(EW,beamY+4);ctx.stroke();
+  // Beam (when configured) along bottom of joists
+  const beamH = hasBeam ? 8 : 0;
+  const beamY = -EH-beamH;
+  if(hasBeam){
+    ctx.fillStyle=C.wood;
+    ctx.fillRect(0,beamY,EW,beamH);
+    drawWoodGrain(ctx,0,beamY,EW,beamH,false);
+    ctx.strokeStyle=C.woodDark;ctx.lineWidth=1;
+    ctx.strokeRect(0,beamY,EW,beamH);
+    // Multi-ply seam line
+    ctx.strokeStyle='rgba(100,55,10,0.4)';ctx.lineWidth=0.5;ctx.setLineDash([]);
+    ctx.beginPath();ctx.moveTo(0,beamY+4);ctx.lineTo(EW,beamY+4);ctx.stroke();
+  }
 
   // Joists (visible ends in elevation)
   const joistH=7, joistY=beamY-joistH;
@@ -4291,8 +4343,8 @@ function drawDeck2D(ctx, w, h, params){
   dimLine(ctx,0,EH+24,EW,EH+24,""+len+"'",0,C.dim);
 
   // Callouts
-  callout(ctx,0,beamY-4,'Dbl '+( joc===12?'2×10':joc===16?'2×10':'2×8')+' Beam');
-  callout(ctx,EW*0.4,joistY,'2×10 Joist');
+  if(hasBeam) callout(ctx,0,beamY-4,beamLabel+' Beam');
+  callout(ctx,EW*0.4,joistY,'2×10 Joist'+(hasBeam?'':' on post (no beam)'));
   callout(ctx,2,deckTopY-12,(deckMat==='comp'?'Composite':'5/4×6 PT')+' Decking');
 
   // Label
@@ -4305,16 +4357,25 @@ function drawDeck2D(ctx, w, h, params){
   titleBlock(ctx, w, h,
     'DECK — '+len+"' × "+wid+"'  |  "+ht+"' Height  |  Joists @ "+joc+'" OC',
     'Decking: '+(deckMat==='comp'?'Composite/Trex':deckMat==='cedar'?'Cedar 5/4×6':'PT 5/4×6')+
-    '  |  Posts: '+postsAlongN+'×'+postsAcrossN+'  |  '+(rail>0?'Railing: '+rail+' lf':'No railing'));
+    '  |  Posts: '+postsAlongN+'×'+postsAcrossN+
+    '  |  Beam: '+(hasBeam?beamLabel:'None (joist-on-post)')+
+    '  |  '+(rail>0?'Railing: '+rail+' lf':'No railing'));
 
-  // Register draggable elements for presentation view
-  pReg('deck_plan','Deck Surface',planL,planT,DW,DH,0);
-  const elvL2=w*0.55, elvT2=PAD+4;
-  const elvScX2=Math.min((w-elvL2-PAD/2)/len,(h-PAD-TB-24)/Math.max(ht*1.6,4));
-  const EW2=len*elvScX2, EH2=ht*elvScX2;
-  pReg('deck_elv','Deck Elevation',elvL2,elvT2+(h-PAD-TB-EH2*1.6-24)/2+EH2*0.6-EH2,EW2,EH2*1.6,0);
+  // Register draggable elements for presentation view.
+  // Individual posts and stairs become directly grab-able. The plan/elv
+  // bounding boxes are NOT re-registered so they don't swallow clicks on
+  // sub-elements; users can still drag posts/stairs/railing inside.
+  postPositions.forEach((pp,idx)=>{
+    pReg(pp.id,'Post '+(idx+1),
+      planL+pp.baseX-postPx/2, planT+pp.baseY-postPx/2,
+      postPx, postPx, 0);
+  });
+  if(_stairRect){
+    pReg('deck_stairs','Stair run',
+      planL+_stairRect.baseX, planT+_stairRect.baseY,
+      _stairRect.w, _stairRect.h, 0);
+  }
   if(rail>0) pReg('deck_rail','Railing',planL,planT-12,DW,12,0);
-  pReg('deck_posts','Posts',planL,planT,DW,DH,0);
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -7200,6 +7261,16 @@ function pReset(){
 
 function pClear(){ _pElems=[]; _pSel=null; }
 
+// Return the user-applied {dx,dy} offset for a registered element id,
+// or {0,0} if the element hasn't been moved (or doesn't exist yet).
+// Draw functions call this BEFORE drawing each movable sub-element so the
+// rendered position follows the user's drag.
+function pOffset(id){
+  const el=_pElems.find(e=>e.id===id);
+  if(!el || !el._userMoved) return {dx:0,dy:0};
+  return {dx: el.x - el.origX, dy: el.y - el.origY};
+}
+
 // ── BIND EVENTS TO PRESENTATION CANVAS ───────────────────────────────────
 function bindPresentEvents(){
   const c = document.getElementById('to-canvas');
@@ -7397,14 +7468,14 @@ function render2DFull(type, params){
   const dimsEl=document.getElementById('three-dims');
   if(dimsEl){
     const labels={
-      deck:`${params.len}' × ${params.wid}'  ·  ${params.ht}' height  ·  Joists @ ${params.joc}" OC  ·  ${params.postSz} posts`,
+      deck:`${params.len}' × ${params.wid}'  ·  ${params.ht}' height  ·  Joists @ ${params.joc}" OC  ·  ${params.postSz} posts  ·  Beam: ${params.beamLabel || 'Dbl 2×10'}`,
       roof:`${params.blen}' × ${params.bwid}'  ·  Pitch ${params.pitch}:12  ·  Eave ${params.eave}"  ·  ${params.gutter || 0}' gutters`,
       framing:`${params.len}' × ${params.wid}'  ·  ${params.ht}' walls  ·  ${params.oc}" OC studs`,
       concrete:`${params.len}' × ${params.wid}'  ·  ${params.thick}" slab  ·  #${params.rebar} rebar`,
       porch:`${params.len}' × ${params.dep}'  ·  ${params.flHt}' floor height  ·  ${params.roofStyle} roof`,
       carport:`${params.len}' × ${params.wid}'  ·  ${params.ht}' eave  ·  ${params.pitch}:12 pitch  ·  ${params.postSp || 8}' OC posts`,
     };
-    dimsEl.textContent=labels[type] ? labels[type] + '  |  Verify final plan with local code for footings, ledger attachment, railing height, and structural connections.' : '';
+    dimsEl.textContent=labels[type] ? labels[type] + '  |  Drag posts / columns / stairs / lights to reposition.  |  Per IRC 2021: verify footing depth R403, ledger attachment R507.9, railing height ≥36" R312.1, stair geometry R311.7.' : '';
   }
 
   // Prime process view
@@ -8678,27 +8749,37 @@ function drawPorch2D(ctx, w, h, params){
     if(_show2DDims) callout(ctx,PW*0.35,-eaveOff-12,'High Side ('+pitch+':12 slope)');
   }
 
-  // Columns
+  // Columns — each column is its own draggable element
   const colSzPx = colStyle==='6x6pt'||colStyle==='wrapped'||colStyle==='round'?9:6;
   const paN = frontCols;
+  const porchColPositions=[];
   ctx.fillStyle=C.woodDark; ctx.strokeStyle=C.line; ctx.lineWidth=1;
   // Front row
   for(let ci=0;ci<paN;ci++){
-    const cx=ci*(PW/(paN-1))-colSzPx/2;
-    ctx.fillRect(cx,PH-colSzPx,colSzPx,colSzPx);
-    ctx.strokeRect(cx,PH-colSzPx,colSzPx,colSzPx);
-    // Post base symbol
+    const baseCx=ci*(PW/(paN-1))-colSzPx/2;
+    const baseCy=PH-colSzPx;
+    const id='porch_col_front_'+ci;
+    const off=pOffset(id);
+    const cx=baseCx+off.dx, cy=baseCy+off.dy;
+    ctx.fillRect(cx,cy,colSzPx,colSzPx);
+    ctx.strokeRect(cx,cy,colSzPx,colSzPx);
     ctx.strokeStyle=C.steel; ctx.lineWidth=0.6;
-    ctx.strokeRect(cx-2,PH-colSzPx-2,colSzPx+4,colSzPx+4);
+    ctx.strokeRect(cx-2,cy-2,colSzPx+4,colSzPx+4);
     ctx.strokeStyle=C.line; ctx.lineWidth=1;
+    porchColPositions.push({id,label:'Front column '+(ci+1),baseCx,baseCy});
   }
   // Back row (attached = house wall, freestanding = posts)
   if(!attached){
     for(let ci=0;ci<paN;ci++){
-      const cx=ci*(PW/(paN-1))-colSzPx/2;
+      const baseCx=ci*(PW/(paN-1))-colSzPx/2;
+      const baseCy=0;
+      const id='porch_col_back_'+ci;
+      const off=pOffset(id);
+      const cx=baseCx+off.dx, cy=baseCy+off.dy;
       ctx.fillStyle=C.woodDark;
-      ctx.fillRect(cx,0,colSzPx,colSzPx);
-      ctx.strokeRect(cx,0,colSzPx,colSzPx);
+      ctx.fillRect(cx,cy,colSzPx,colSzPx);
+      ctx.strokeRect(cx,cy,colSzPx,colSzPx);
+      porchColPositions.push({id,label:'Back column '+(ci+1),baseCx,baseCy});
     }
   } else {
     // House wall line
@@ -8725,26 +8806,36 @@ function drawPorch2D(ctx, w, h, params){
   }
   ctx.setLineDash([]);
 
-  // Ceiling fans
+  // Ceiling fans — draggable
+  const porchFanPositions=[];
   if(fans>0){
     const fanSpX=PW/(fans+1);
     for(let fi=1;fi<=fans;fi++){
-      const fx=fi*fanSpX, fy=PH/2;
+      const baseFx=fi*fanSpX, baseFy=PH/2;
+      const id='porch_fan_'+(fi-1);
+      const off=pOffset(id);
+      const fx=baseFx+off.dx, fy=baseFy+off.dy;
       ctx.strokeStyle=C.teal; ctx.lineWidth=1;
       ctx.beginPath();ctx.arc(fx,fy,8,0,Math.PI*2);ctx.stroke();
       ctx.beginPath();ctx.moveTo(fx-12,fy);ctx.lineTo(fx+12,fy);ctx.stroke();
       ctx.beginPath();ctx.moveTo(fx,fy-12);ctx.lineTo(fx,fy+12);ctx.stroke();
       if(_show2DDims) callout(ctx,fx-6,fy+14,'FAN');
+      porchFanPositions.push({id,label:'Ceiling fan '+fi,baseFx,baseFy});
     }
   }
 
-  // Lights
+  // Lights — draggable
+  const porchLightPositions=[];
   if(lights>0){
     for(let li=0;li<lights;li++){
-      const lx=PW*(0.2+li*(0.6/(Math.max(lights-1,1)))), ly=PH*0.25;
+      const baseLx=PW*(0.2+li*(0.6/(Math.max(lights-1,1)))), baseLy=PH*0.25;
+      const id='porch_light_'+li;
+      const off=pOffset(id);
+      const lx=baseLx+off.dx, ly=baseLy+off.dy;
       ctx.fillStyle=C.gold;
       ctx.beginPath();ctx.arc(lx,ly,4,0,Math.PI*2);ctx.fill();
       if(_show2DDims) callout(ctx,lx-6,ly+8,'LT');
+      porchLightPositions.push({id,label:'Light '+(li+1),baseLx,baseLy});
     }
   }
 
@@ -8996,12 +9087,28 @@ function drawPorch2D(ctx, w, h, params){
     (screening!=='none'?screening.toUpperCase()+' enclosure':'Open porch')+
     (railing!=='none'?'  |  '+railing.toUpperCase()+' railing':''));
 
-  // Register draggable elements
-  pReg('porch_plan','Porch Plan',planL,planT,PW,PH,0);
+  // Register draggable elements — per-column / per-fan / per-light handles
+  // on the plan, plus per-column on the elevation. The plan-level bounding
+  // box is intentionally not registered so users can grab sub-elements.
+  porchColPositions.forEach(pc=>{
+    pReg(pc.id, pc.label,
+      planL+pc.baseCx, planT+pc.baseCy,
+      colSzPx, colSzPx, 0);
+  });
+  porchFanPositions.forEach(pf=>{
+    pReg(pf.id, pf.label,
+      planL+pf.baseFx-12, planT+pf.baseFy-12,
+      24, 24, 0);
+  });
+  porchLightPositions.forEach(pl=>{
+    pReg(pl.id, pl.label,
+      planL+pl.baseLx-6, planT+pl.baseLy-6,
+      12, 12, 0);
+  });
   pReg('porch_elv','Porch Elevation',elvOX+elvL,baseY-ceilHt*scE-ridgeHt*scE,EW,ceilHt*scE+ridgeHt*scE,0);
   for(let ci=0;ci<frontCols;ci++){
     const cx=ci*((len)*scE/(frontCols-1));
-    pReg('col_elv_'+ci,'Column',elvOX+elvL+eaveOffE+cx-6,baseY-flHt*scE-ceilHt*scE,12,ceilHt*scE,0);
+    pReg('col_elv_'+ci,'Column (elev)',elvOX+elvL+eaveOffE+cx-6,baseY-flHt*scE-ceilHt*scE,12,ceilHt*scE,0);
   }
 }
 
@@ -10707,10 +10814,19 @@ function drawCarport2D(ctx, w, h, params){
     ctx.beginPath();ctx.arc(cx,cy,colSzPx,0,Math.PI*2);ctx.stroke();
   };
 
+  const carportColPositions=[]; // for pReg afterwards
   for(let ci=0;ci<paN;ci++){
-    const cx=ci*(PW/(paN-1));
-    drawCol(cx,PH,isSteel); // front
-    if(!attached) drawCol(cx,0,isSteel); // back
+    const baseX=ci*(PW/(paN-1));
+    // Front row
+    const fOff=pOffset('cp_col_front_'+ci);
+    drawCol(baseX+fOff.dx, PH+fOff.dy, isSteel);
+    carportColPositions.push({id:'cp_col_front_'+ci,label:'Front column '+(ci+1),baseX,baseY:PH});
+    // Back row (if not attached)
+    if(!attached){
+      const bOff=pOffset('cp_col_back_'+ci);
+      drawCol(baseX+bOff.dx, 0+bOff.dy, isSteel);
+      carportColPositions.push({id:'cp_col_back_'+ci,label:'Back column '+(ci+1),baseX,baseY:0});
+    }
   }
 
   // Header beams in plan
@@ -10977,12 +11093,17 @@ function drawCarport2D(ctx, w, h, params){
     '  |  '+roofMat.toUpperCase()+'  |  Found: '+foundType.replace('_',' ')+
     (sides!=='open'?'  |  Walls: '+wallMat+' ('+sides+')':'  |  Open'));
 
-  // Register draggable elements
-  pReg('carport_plan','Carport Plan',planL,planT,PW,PH,0);
+  // Register draggable elements — each column is its own draggable handle.
+  // The plan-view bounding box is intentionally omitted so users can grab
+  // individual columns/walls/gutters without the whole plan swallowing the
+  // click.
+  const _colHandleSz=Math.max(colSzPx,10);
+  carportColPositions.forEach(cp=>{
+    pReg(cp.id, cp.label,
+      planL+cp.baseX-_colHandleSz/2, planT+cp.baseY-_colHandleSz/2,
+      _colHandleSz, _colHandleSz, 0);
+  });
   pReg('carport_elv','Carport Elevation',OXe,baseY-ht*scE-ridgeHt*scE,EW,ht*scE+ridgeHt*scE,0);
-  for(let ci=0;ci<paN;ci++){
-    // column pReg calls omitted — handled in pvBuildCarport
-  }
 }
 
 // ══════════════════════════════════════════════════════════════════════════
