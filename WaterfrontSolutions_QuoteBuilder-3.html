@@ -194,6 +194,19 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 #toast{position:fixed;bottom:calc(var(--nav-h) + var(--safe-bottom) + 12px);left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface2);border:1px solid var(--border2);border-radius:20px;padding:10px 18px;font-size:13px;font-weight:500;white-space:nowrap;z-index:300;opacity:0;transition:all .25s;pointer-events:none}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
+/* ── CODE LINKS (IRC / ACI references) ── */
+.code-link{color:#00b8c8;border-bottom:1px dashed rgba(0,184,200,.5);cursor:pointer;font-weight:600;text-decoration:none;padding:0 1px;transition:all .15s}
+.code-link:hover{color:#0ff;border-bottom-style:solid;background:rgba(0,229,255,.08);border-radius:2px}
+.code-link:active{color:var(--gold)}
+.code-modal-sec{font-family:DM Mono,monospace;font-size:13px;color:#00e5ff;font-weight:700;margin-bottom:4px;letter-spacing:.5px}
+.code-modal-title{font-size:15px;font-weight:600;margin-bottom:12px;color:var(--text)}
+.code-modal-body{font-size:13px;line-height:1.65;color:var(--text2);white-space:pre-wrap}
+.code-modal-source{margin-top:14px;padding-top:10px;border-top:1px solid var(--border);font-size:11px;color:var(--text3);font-style:italic}
+.code-modal-related{margin-top:14px;padding-top:10px;border-top:1px solid var(--border)}
+.code-modal-related-title{font-size:11px;color:var(--gold);font-weight:600;letter-spacing:.5px;margin-bottom:6px}
+.code-modal-related a{display:inline-block;margin:2px 6px 2px 0;padding:3px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;font-size:11px;color:var(--accent);cursor:pointer}
+.code-modal-related a:hover{background:var(--accent-dim);color:#fff}
+
 /* ── EMPTY STATE ── */
 .empty{text-align:center;padding:48px 24px;color:var(--text3)}
 .empty-icon{font-size:40px;margin-bottom:12px}
@@ -4028,7 +4041,7 @@ function toRenderResults(items, summary, type){
         +'</div>'
         +'<div style="font-size:10px;color:var(--text3);margin-top:2px;line-height:1.6">'
         +(unitMatCost?'<span style="color:var(--text3)">$'+unitMatCost+'/'+item.unit+' mat</span>':'')
-        +(item.note?'<br><span style="font-style:italic">'+item.note+'</span>':'')
+        +(item.note?'<br><span style="font-style:italic">'+linkifyCodeRefs(item.note)+'</span>':'')
         +(item.laborHrs>0?'<br><span style="color:var(--accent)">'+item.laborHrs.toFixed(1)+' hrs @ $'+Math.round(labRate)+'/hr</span>':'')
         +'</div></div>';
       const matHtml = '<div style="text-align:right;font-size:12px">'
@@ -7159,7 +7172,161 @@ const CODE_REFS = {
     {sec:'IRC R905',     txt:'Roof covering installed per manufacturer; metal min 3:12 unless specified.'},
     {sec:'IRC R301.4',   txt:'Snow load — verify ground snow load with local AHJ; design for Pg per ASCE 7.'},
   ],
+  blockwall: [
+    {sec:'IRC R404.1',     txt:'Concrete and masonry foundation walls — design per ACI 318 / ACI 530 or Tables R404.1.1.'},
+    {sec:'IRC R404.1.1',   txt:'Masonry foundation walls — Table R404.1.1(1)–(4); min thickness, max unbalanced backfill.'},
+    {sec:'IRC R608.6',     txt:'Reinforcement — vertical bars in grouted cells; cover ≥¾". See ACI 318 Ch. 25 for laps.'},
+    {sec:'IRC R608.7',     txt:'Grout — fine for cells ≤2"×3", coarse for larger; min 28-day strength 2000 psi.'},
+    {sec:'IRC R404.1.6',   txt:'Drainage — drain tile or perforated pipe at footing exterior with ≥6" of gravel.'},
+    {sec:'IRC R406.1',     txt:'Foundation damp-proofing — bituminous coating min 10 mil; required below grade.'},
+    {sec:'IRC R406.2',     txt:'Foundation waterproofing — required where high water table exists or hydrostatic pressure.'},
+    {sec:'IRC R403.1.1',   txt:'Footings — minimum width and thickness per Table R403.1; centered under wall.'},
+    {sec:'IRC R403.1.4',   txt:'Footing depth — bottom of footing below frost line (verify with AHJ).'},
+    {sec:'IRC R608.8',     txt:'Bond beam — required at top of foundation wall and at floor diaphragms.'},
+  ],
 };
+
+// ══════════════════════════════════════════════════════════════════════════
+// CODE REFERENCE LIBRARY — Full extended text for click-through lookup
+// Indexed by raw section number (e.g. 'R507.5'). Sources: ICC IRC 2021,
+// ACI 318-19, AWC DCA6 Prescriptive Residential Wood Deck Construction.
+// ══════════════════════════════════════════════════════════════════════════
+const CODE_DETAIL = {
+  'R301.2.1':{title:'Wind Design Criteria',body:'Building shall be designed for wind loads per ASCE 7. Wind exposure category (B, C, or D) based on terrain. Ultimate design wind speed (Vult) from Fig. R301.2(4); converted to nominal Vasd for prescriptive tables. Verify hurricane-prone region (≥130 mph) and special wind region designations for site.'},
+  'R301.2.1.4':{title:'Exposure Category',body:'Wind exposure category — B (urban/suburban with closely-spaced obstructions), C (open terrain, scattered obstructions), or D (flat unobstructed, water surfaces). Most residential = Exposure B or C. Affects pressure coefficients and uplift loads.'},
+  'R301.4':{title:'Snow Loads',body:'Ground snow load (Pg) determined from Fig. R301.2(5) or local AHJ data. Flat-roof snow load Pf = 0.7 × Ce × Ct × I × Pg. Roof live load = 20 psf or Pf, whichever is greater. Verify with AHJ for site-specific ground snow load.'},
+  'R301.5':{title:'Live Loads',body:'Minimum uniformly distributed live loads:\n• Decks and porches — 40 psf\n• Exterior balconies — 60 psf\n• Stairs — 40 psf (40-lb concentrated on 4 in²)\n• Guards/handrails — 200 lb concentrated\n• Habitable attics & sleeping rooms — 30 psf\n• Other rooms — 40 psf\n• Roof live load — 20 psf min\nDead load: 10 psf typical for wood-framed decks.'},
+  'R309.4':{title:'Carports — Open Sides',body:'Carports shall be open on at least two sides. If enclosed on three or more sides, the structure is classified as a private garage (Section R309) requiring fire separation from the dwelling and a self-closing 20-min rated door. Open carports do not require fire separation.'},
+  'R311.2':{title:'Egress Door',body:'At least one egress door from the dwelling shall be a side-hinged door, minimum 36" wide × 80" tall. Door shall open directly to the exterior or to a porch/balcony/stoop with a maximum 7¾" step down.'},
+  'R311.7':{title:'Stairways — General',body:'Stairways shall comply with rise/run, headroom, width, handrail, illumination, and landing requirements of R311.7. Minimum width 36" above handrail height (R311.7.1). Headroom 6\'-8" measured vertically (R311.7.2). Walking surface uniform and slip-resistant.'},
+  'R311.7.1':{title:'Stair Width',body:'Stairways shall be ≥36" clear width above the handrail height and below the required headroom. Where handrails project no more than 4½" on each side, the minimum width below the handrail shall be 31½" (one handrail) or 27" (two handrails).'},
+  'R311.7.5':{title:'Stair Treads and Risers',body:'See R311.7.5.1 (riser) and R311.7.5.2 (tread).\nGreatest riser height within any flight shall not exceed the smallest by more than ⅜". Tread depth uniformity tolerance ⅜".'},
+  'R311.7.5.1':{title:'Riser Height',body:'Maximum riser height — 7¾" measured vertically between leading edges of adjacent treads. Minimum 4". Variation within a single stair flight ≤ ⅜". Where solid risers required, openings shall not permit passage of a 4" sphere.'},
+  'R311.7.5.2':{title:'Tread Depth',body:'Minimum tread depth — 10" measured horizontally between vertical planes of foremost projection of adjacent treads and at a right angle to the tread\'s leading edge. Nosing projection ¾" min to 1¼" max where solid risers are used; tread depth uniformity ⅜".'},
+  'R311.7.8':{title:'Handrails',body:'Handrails required on at least one side of stairs having 4 or more risers. Mounted 34"–38" above the leading edge of treads (and the finished surface of ramp slopes). Continuous full length of stair from a point above top riser to a point above bottom riser. Returns to wall or post required. Grip — Type I (circular 1¼"–2" Ø) or Type II per R311.7.8.5.'},
+  'R312.1':{title:'Guards — Where Required',body:'Guards required on open sides of walking surfaces (porches, balconies, decks, ramps, landings) located more than 30" above the floor or grade below at any point within 36" horizontally. Includes open-sided stairs (R312.1.1).'},
+  'R312.1.2':{title:'Guard Height',body:'Required guard height — 36" minimum measured vertically above the adjacent walking surface, adjacent fixed seating, or the line connecting leading edges of treads on stairs. For decks ≤30" above grade, no guard is required. 42" required for some commercial/IBC use groups.'},
+  'R312.1.3':{title:'Guard Opening Limitations',body:'Required guards shall not have openings from the walking surface to a height of 34" that allow passage of a 4" sphere. From 34" up to the top of the guard, openings shall not allow passage of a 4⅜" sphere. The triangular area at stair treads/risers/guard bottom shall not allow passage of a 6" sphere.'},
+  'R402.2':{title:'Concrete Strength',body:'Minimum compressive strength (f\'c) at 28 days:\n• Basement walls, foundations, other concrete not exposed to weather — 2,500 psi\n• Basement slabs and interior slabs on grade — 2,500 psi\n• Walls/foundations/slabs exposed to weather — 3,000 psi (severe weathering) or 2,500 psi (moderate/negligible)\n• Garage floor slabs — 3,000 psi (severe weathering)\n• Porches, carport slabs, steps exposed to weather — 3,500 psi (severe weathering, air-entrained 5%–7%)'},
+  'R403.1':{title:'Footings — General',body:'Concrete footings shall be sized per Table R403.1 based on soil bearing capacity (default 1,500 psf), stories, and roof/floor live loads. Minimum 12" wide × 6" thick for 1-story light frame. Footings shall extend below the frost line (R403.1.4) and rest on undisturbed natural soil or engineered fill.'},
+  'R403.1.1':{title:'Minimum Size',body:'Footing projection from face of foundation wall shall be 2" min, 7" max. Footing thickness ≥6" or projection, whichever is greater. Reinforcement per Table R404.1.2(8). Plain concrete footings permitted for residential ≤2 stories. Centered under wall.'},
+  'R403.1.4':{title:'Frost Protection',body:'Exterior footings shall extend below the frost line. Local frost depth determined by AHJ. Typical depths: TN ~12"–18", PA/OH ~36", northern US 42"–48". Alternative: frost-protected shallow foundation (FPSF) with horizontal/vertical insulation per ASCE 32. Heated buildings only.'},
+  'R403.1.6':{title:'Foundation Anchorage',body:'Wood sill plates shall be anchored with ½" Ø bolts embedded ≥7" into masonry/concrete, spaced ≤6\'-0" O.C., with one anchor within 12" of each end of each plate section. Minimum 2 anchors per plate. Washers (≥3"×3"×0.229") required in Seismic Design Cat D₀/D₁/D₂. Approved anchor straps may be substituted.'},
+  'R404.1':{title:'Foundation Walls — General',body:'Concrete and masonry foundation walls supporting ≥48" of unbalanced backfill shall be designed per ACI 318, ACI 530, or in accordance with Tables R404.1.1(1)–(4) for prescriptive design. Plain masonry walls limited by Table R404.1.1; reinforced masonry per Tables R404.1.1(2)–(4).'},
+  'R404.1.1':{title:'Masonry Foundation Walls',body:'Prescriptive design tables specify minimum wall thickness, vertical reinforcement size, and spacing based on: wall height, maximum unbalanced backfill height, and soil class. Example (Table R404.1.1(2)): 8" CMU, 8\' wall, 7\' backfill, sandy soil — #5 @ 32" O.C. vertical. Cells with rebar shall be solid-grouted full height.'},
+  'R404.1.6':{title:'Foundation Drainage',body:'Drains shall be provided around concrete or masonry foundations that retain earth and enclose habitable or usable spaces below grade. Drainage tiles, perforated pipe, or other approved system; min 4" Ø; bottom not higher than the bottom of the base under the floor; ≥6" of washed gravel/crushed rock over and around. Discharge by gravity or mechanical means to approved drainage system.'},
+  'R406.1':{title:'Damp-Proofing',body:'Exterior foundation walls enclosing habitable/usable space below grade shall be damp-proofed from top of footing to finished grade. Asphalt-based or other approved coating not less than 10 mil. Masonry walls shall have a parge coat min ⅜" cement plaster prior to damp-proofing application.'},
+  'R406.2':{title:'Waterproofing',body:'Where a high water table or other severe soil-water conditions are known to exist, exterior foundation walls enclosing habitable space below grade shall be waterproofed (rather than damp-proofed) from the top of the footing to the finished grade. Approved materials: 2-ply hot-mopped felts, 6-mil polyvinyl chloride, 6-mil polyethylene, or 60-mil EPDM.'},
+  'R407.3':{title:'Wood Columns — Protection',body:'Wood columns shall be protected against decay by:\n(1) Setting on a concrete pier ≥1" above grade with proper post base anchor, or\n(2) Using naturally durable wood or preservative-treated wood approved for ground contact. Embedment depth ≥12" or per design.\nColumns shall be restrained against lateral displacement at the base.'},
+  'R506.1':{title:'Concrete Floors on Ground',body:'Concrete slabs on grade — minimum 3½" thick. Slabs in habitable spaces require a 6-mil polyethylene vapor retarder (R506.2.3) and 4" base course of clean gravel or crushed stone (R506.2.2).'},
+  'R506.2.2':{title:'Base Course',body:'A 4" base course consisting of clean graded sand, gravel, crushed stone, crushed concrete, or crushed blast-furnace slag passing a 2" sieve shall be placed on the prepared subgrade where the slab is below grade. Base course required where slab is below grade or where ground water table is high.'},
+  'R506.2.3':{title:'Vapor Retarder',body:'A 6-mil (0.006 in) polyethylene or approved vapor retarder with joints lapped 6" shall be placed between the concrete floor slab and the base course or subgrade where no base course exists. Required for habitable spaces; not required for detached structures or garages.'},
+  'R507':{title:'Exterior Decks',body:'Decks shall be designed per R507 prescriptive provisions or by approved engineering. Covers materials (R507.2), footings (R507.3), beams (R507.5), joists (R507.6), ledger attachment (R507.9), guards (R312), and lateral load connections (R507.9.2). Snow/wind/seismic loads per R301.'},
+  'R507.2':{title:'Deck Materials',body:'Wood materials used in exterior deck construction shall be either:\n(1) Naturally durable wood (e.g. cedar, redwood heart) where members are 18" above grade and not in ground contact, or\n(2) Preservative-treated wood per AWPA U1, treated for the use category required (UC4A for ground contact ≥6", UC4B for severe ground contact). Fasteners and connectors in contact with PT wood shall be hot-dip galvanized (ASTM A153), stainless steel, silicon bronze, or copper.'},
+  'R507.3':{title:'Footings',body:'Deck footings sized per Table R507.3.1 based on tributary area, soil class, and post spacing. Minimum 12" Ø concrete footings; depth below frost line (R403.1.4). Footings shall bear on solid ground (not fill). Post-to-footing connection per Table R507.4.'},
+  'R507.4':{title:'Deck Posts',body:'Deck posts — minimum 6×6 nominal where the deck post height exceeds 8 feet, otherwise 4×4 or larger per Table R507.4. Maximum post height 14\'. Post base shall provide standoff (1" min) from concrete to prevent moisture wicking; corrosion-resistant connector required.'},
+  'R507.5':{title:'Deck Beams',body:'Beam spans per Table R507.5 — based on beam size, species/grade, and number of plies (typically doubled or tripled 2× material or single-ply LVL/PSL). Example: doubled 2×10 SYP #2 spans 8\'-3" between posts with 12\' joist span. Cantilevers ≤¼ of beam span. Plies fastened with 10d nails @ 16" O.C. each face, top and bottom.'},
+  'R507.5.2':{title:'Beam-to-Post Connections',body:'Beam shall bear directly on top of post (notched-post or post-cap connection). Notched post connections require min 1½" bearing on remaining wood and through-bolt(s) per Figure R507.5.2. Post-cap (Simpson AC, BC, or LCB series) — manufacturer-rated, secured with through-bolts to beam and post per listing.'},
+  'R507.6':{title:'Deck Joists',body:'Joist spans per Table R507.6 — based on joist size, spacing, lumber species/grade, and cantilever. Example: 2×10 SYP #2 @ 16" O.C., max span 14\'-0" with 1\'-9" cantilever. Joist hangers (Simpson LUS, LSSU, or HUC series) required where joists frame into ledger or beam side. Joists fastened to top of beam with hurricane ties (H2.5A or equivalent).'},
+  'R507.9':{title:'Deck Ledger Attachment',body:'Where deck is attached to a wood-framed exterior wall, the ledger shall be attached per Table R507.9.1.3(1) or (2) using ½" lag screws or through-bolts. Z-flashing required over ledger; ledger separated from house sheathing with continuous flashing. Lateral load connection per R507.9.2. Attachment to brick veneer/stucco is NOT permitted — ledger must engage band joist/rim or solid blocking.'},
+  'R507.9.1':{title:'Ledger Fastener Schedule',body:'Table R507.9.1.3(1): ½" lag screw spacing (in inches) based on joist span and on-center spacing. Example: 12\' joist span with 16" O.C. joists — lags @ 13" O.C. staggered top-and-bottom row. Min edge distance 2" from top/bottom of ledger; 3¾" from end of ledger. Through-bolt option Table R507.9.1.3(2) allows wider spacing.'},
+  'R507.9.1.3':{title:'Ledger Fastener Tables',body:'Tables R507.9.1.3(1) and (2) — lag screw and through-bolt schedules. Lags shall extend through ledger and band joist with washers under heads/nuts. Stagger top/bottom rows. Pre-drill pilots per fastener manufacturer (½" lag = ⁵⁄₃₂" pilot for soft wood, ³⁄₁₆" for hardwood). Predrilling into ledger/band joist required to avoid splitting.'},
+  'R507.9.2':{title:'Deck Lateral Load Connection',body:'A lateral load connection capable of resisting 1,500 lb shall be provided. Two acceptable methods:\n(1) Four (4) Simpson DTT2Z hold-down devices attached to two interior floor joists in pairs, with ½" Ø threaded rod through the joist into the deck framing, or\n(2) Engineered tension ties placed between deck joists and house floor joists per manufacturer specifications.\nMethod 1 typical for prescriptive design.'},
+  'R602.3(1)':{title:'Fastener Schedule for Structural Members',body:'Table R602.3(1) — fastener schedule for structural members. Common examples:\n• Joist to sill/girder, toe-nail — 4-8d common or 3-10d box\n• Stud to top/bottom plate, toe-nail — 4-8d or 3-10d\n• Top plate to stud, end-nail — 2-16d\n• Double top plate, face-nail — 16d @ 16" O.C.\n• Sole plate to joist/blocking, face-nail — 16d @ 16" O.C.\n• Top/bottom plate splice — 8-16d or 12-10d each side'},
+  'R602.3(5)':{title:'Stud Size, Height, and Spacing',body:'Table R602.3(5) — bearing wall studs:\n• 2×4 SPF #2 — max 10\' height, 24" O.C. (1 floor + roof) or 16" O.C. (2 floors + roof)\n• 2×6 SPF #2 — max 10\' height, 24" O.C. (2 floors + roof)\nNon-bearing partitions — 2×4 @ 24" O.C. up to 14\'. Reduce spacing where supporting non-prescriptive loads.'},
+  'R602.6':{title:'Drilling and Notching of Studs',body:'Holes drilled in bearing wall studs ≤40% of stud width; non-bearing ≤60%. Notches in bearing studs ≤25% of width; non-bearing ≤40%. Holes/notches centered along stud length. Top plate splices: top plate may be cut/notched ≤50% if reinforced with 1.5"×3" 16-ga metal tie strap fastened with 6-16d nails each side.'},
+  'R602.7':{title:'Headers',body:'Header sizing per Tables R602.7(1)–(3) based on building width, snow load, span, and load condition. Example (Table R602.7(1)): 28\' building, 30 psf snow, supporting 1 floor + roof — 2-2×10 spans 5\'-4". Headers shall bear on jack/king stud per Table R602.7(5). For openings over 12\', engineered LVL/PSL beam typically required.'},
+  'R602.10':{title:'Wall Bracing',body:'Wall bracing shall resist lateral and racking loads. Methods (R602.10.4): continuous structural sheathing (CS-WSP), let-in 1×4 brace, diagonal wood boards, structural fiberboard, gypsum board, etc. Minimum braced panel length per Table R602.10.5 based on wind speed and seismic. Cripple walls braced per R602.10.11.'},
+  'R608.6':{title:'Concrete Masonry Wall Reinforcement',body:'Vertical and horizontal reinforcement in concrete masonry walls shall be placed in grouted cells. Vertical bars at corners, wall intersections, ends of walls, and either side of openings ≥3\'. Min cover ¾" from inside face. Lap splices = 48× bar diameter for #4–#5 (e.g. #5 lap = 30"). Bend dowels into footer with 90° hook, 6" leg min.'},
+  'R608.7':{title:'Grout for Masonry',body:'Grout shall comply with ASTM C476. Fine grout for cells ≤2"×3" or grout spaces with limited clearance; coarse grout otherwise. Min compressive strength 2,000 psi at 28 days. Slump 8"–11". Pour in lifts ≤5\' tall with consolidation (rod or vibrator) within 10 min of placement and reconsolidated after settlement. Cleanouts at bottom of cells required for high-lift grouting.'},
+  'R608.8':{title:'Bond Beams',body:'A bond beam shall be provided at the top of foundation walls and at intermediate floor diaphragm levels. Bond beam = a course of channel-shaped (U-block) CMU filled with grout and continuous reinforcement (typically 2-#4 horizontal). Bond beams continuous around perimeter with corner bars.'},
+  'R703.1':{title:'Weather-Resistive Barrier',body:'Exterior walls shall provide a continuous weather-resistive barrier behind the exterior cladding. Approved materials: asphalt-saturated felt (No. 15 / Type I), house wrap (e.g. Tyvek, Typar) meeting ICC-ES AC38, or equivalent. Lapped shingle-style with min 2" horizontal lap and 6" vertical lap. Continuous behind cladding.'},
+  'R703.4':{title:'Flashing',body:'Flashing shall be installed at all exterior window and door openings, intersections of dissimilar materials, projections (decks, balconies, chimneys), built-in gutters, and any location with potential water intrusion. Min 26-ga galvanized, aluminum, copper, lead, or approved corrosion-resistant material. Self-adhered membrane flashing acceptable per manufacturer.'},
+  'R802.3':{title:'Roof Framing — Rafters and Ceiling Joists',body:'Where ceiling joists are not parallel to rafters, an equivalent rafter tie shall be installed in a manner to provide a continuous tie across the building, at not greater than 4 ft on center. Rafter ties shall be located in the lower third of the attic space. Ridge boards min 1" nominal, depth ≥ cut end of rafter.'},
+  'R802.4':{title:'Rafter Spans',body:'Rafter spans per Tables R802.4.1(1)–(8) based on rafter size, species/grade, spacing, snow load, dead load, and slope. Example: 2×8 SPF #2 @ 16" O.C., 30 psf ground snow, 10 psf DL — max span 14\'-7" horizontal projection. Verify deflection (L/180 LL+DL).'},
+  'R803.2.3':{title:'Roof Sheathing — Installation',body:'Wood structural panels (OSB or plywood) installed with face grain perpendicular to supports. Min thickness 7/16" for ≤24" O.C. rafters; ½" for 24" O.C.; ⁵⁄₈" for 32" O.C. (with edge blocking). H-clips required at unsupported edges for panels <24" O.C. blocked spacing. Fasteners — 8d common @ 6" edges, 12" field.'},
+  'R806.2':{title:'Attic Ventilation',body:'Net free ventilating area shall be 1/150 of the area being ventilated, or 1/300 where (a) 50%–80% of vents are at upper portion (≥3\' above eave) AND (b) class I or II vapor retarder is installed on warm-in-winter side. Balanced low/high vents (soffit + ridge/gable) preferred. Cross-ventilation required across attic.'},
+  'R905.1.2':{title:'Underlayment & Ice Barriers',body:'Asphalt shingle underlayment — min 1 layer ASTM D226 Type I (#15 felt) or D4869 Type I, or D8257 synthetic underlayment. For roof slopes <4:12, 2 layers of underlayment required (or 1 layer self-adhered).\nIce barrier — required where mean January temp ≤25°F. 2 layers ASTM D1970 cemented or 1 self-adhered polymer-modified bitumen membrane. Extend from eave edge to ≥24" inside warm wall line.'},
+  'R905.2':{title:'Asphalt Shingles',body:'Asphalt shingles — comply with ASTM D225 (organic) or ASTM D3462 (fiberglass). Minimum slope 2:12 (with double underlayment 2:12–4:12). Standard 4 fasteners per shingle; 6 fasteners in high-wind areas (>110 mph) and on slopes ≥21:12. Nails 12-ga, ≥⅜" head, penetrate sheathing ¾" or through full thickness.'},
+  'R903.2':{title:'Flashings — Roof',body:'Flashings shall be installed at wall and roof intersections, wherever there is a change in roof slope or direction, around roof openings, and where a roof intersects a chimney/wall. Continuous flashing or step flashing per shingle. Counter flashing into masonry reglets/chases. Apron flashing at lower side of penetrations, head flashing at upper. Step flashing min 4"×5" at each course.'},
+  'N1102.4':{title:'Air Sealing',body:'Building thermal envelope shall be sealed to limit infiltration. Caulk, gasket, foam, or weather strip all top/bottom plates, rim joists, penetrations (electrical, plumbing, HVAC), windows, doors, and other openings in the envelope. Blower-door test ≤5 ACH50 (climate zone 3/TN). Verified by visual inspection per Table N1102.4.1.1.'},
+  'Table R507.5':{title:'Deck Beam Span Table',body:'Maximum beam spans in feet — based on beam size and joist span. Example values for SYP #2:\n• 2-2×8: 6\'-2" @ 6\' joist span, 5\'-1" @ 12\'\n• 2-2×10: 7\'-7" @ 6\', 6\'-3" @ 12\', 5\'-9" @ 14\'\n• 2-2×12: 8\'-11" @ 6\', 7\'-5" @ 12\', 6\'-9" @ 14\'\n• 3-2×10: 9\'-3" @ 6\', 7\'-8" @ 12\', 6\'-11" @ 14\'\nMaximum cantilever = ¼ × beam span.'},
+  'Table R507.6':{title:'Deck Joist Span Table',body:'Maximum joist spans in feet for SYP #2 at 16" O.C.:\n• 2×6: 9\'-11" no cantilever, 9\'-6" w/ 1\' cantilever\n• 2×8: 13\'-1" no cantilever, 12\'-4" w/ 1\' cantilever\n• 2×10: 16\'-2" no cantilever, 14\'-0" w/ 1\'-9" cantilever\n• 2×12: 18\'-0" no cantilever, 16\'-6" w/ 2\'-2" cantilever\n@ 12" O.C. increase ~20%; @ 24" O.C. reduce ~15%.'},
+  'Table R602.7(1)':{title:'Girders & Headers Supporting 1 Floor + Roof',body:'Header spans (ft-in) for buildings ≤28\' wide, 30 psf snow:\n• 2-2×6: 5\'-3" with 6\' floor span, 3\'-8" with 14\' span\n• 2-2×8: 6\'-8" with 6\', 4\'-8" with 14\'\n• 2-2×10: 8\'-2" with 6\', 5\'-9" with 14\'\n• 2-2×12: 9\'-6" with 6\', 6\'-8" with 14\'\nDouble jacks required for openings >4\'.'},
+  'Table R602.3(5)':{title:'Stud Size, Height, and Spacing',body:'Bearing wall stud limits:\n• 2×4 SPF #2 — max 10\' height; 1 floor + roof @ 24" O.C., 2 floors + roof @ 16" O.C.\n• 2×6 SPF #2 — max 10\' height; 1 floor + roof @ 24" O.C., 2 floors + roof @ 24" O.C., 3 floors + roof @ 16" O.C.\nNon-bearing 2×4 — up to 14\' @ 24" O.C.\nReduce spacing for larger lateral or vertical loads.'},
+  'Table R404.1.1':{title:'Foundation Wall Tables',body:'Tables R404.1.1(1)–(4) give prescriptive wall thickness, mortar type, and vertical reinforcement for plain and reinforced masonry foundation walls based on wall height and max unbalanced backfill. Example (Table R404.1.1(2), 8" CMU, GW/GP/SW/SP soil): 7\' backfill in 8\' wall → #5 @ 32"; 8\' backfill in 9\' wall → #5 @ 24".'},
+  'ACI 318 §20.6':{title:'Concrete Cover — Reinforcement Protection',body:'ACI 318-19 Table 20.6.1.3.1 — minimum specified cover for cast-in-place concrete:\n• Cast against and permanently in contact with earth — 3"\n• Exposed to weather/earth (≥#6 bars) — 2"\n• Exposed to weather/earth (≤#5 bars) — 1½"\n• Not exposed to weather, slabs/walls — ¾"\n• Beams/columns not exposed — 1½"\nIncrease for corrosion exposure or in lieu of testing.'},
+  'ACI 318 §25.5':{title:'Development & Splice Lengths',body:'ACI 318-19 §25.5 — tension lap splice lengths. Class B splice (most common, staggered splices) = 1.3 × ld (development length).\nDevelopment length ld ≈ 40db for #5 and smaller bars (Grade 60, normal-weight concrete, top bars).\nQuick reference:\n• #3 (⅜") — ld ≈ 15", lap 20"\n• #4 (½") — ld ≈ 20", lap 26"\n• #5 (⅝") — ld ≈ 25", lap 33"\n• #6 (¾") — ld ≈ 30", lap 39"\nUse Eq. 25.4.2.4(a) for precise values.'},
+};
+
+// Aliases — different ways a code may be referenced map to the same detail
+CODE_DETAIL['R507.5'] = CODE_DETAIL['R507.5'];
+CODE_DETAIL['R507.9.1.3(1)'] = CODE_DETAIL['R507.9.1.3'];
+CODE_DETAIL['R507.9.1.3(2)'] = CODE_DETAIL['R507.9.1.3'];
+
+// ── CODE-REFERENCE MODAL ─────────────────────────────────────────────────
+function showCodeRef(rawKey){
+  if(!rawKey) return;
+  // Normalize: strip leading "IRC ", "Table " prefix when looking up the
+  // canonical key. Try both with and without "Table " prefix.
+  let key = String(rawKey).trim().replace(/^IRC\s+/i,'');
+  let detail = CODE_DETAIL[key];
+  if(!detail){
+    // Try without "Table " prefix
+    const stripped = key.replace(/^Table\s+/i,'');
+    detail = CODE_DETAIL[stripped] || CODE_DETAIL['Table '+stripped];
+  }
+  if(!detail){
+    // Try truncating subsections — e.g. R507.9.2 → R507.9 → R507
+    const parts = key.replace(/\(\d+\)$/,'').split('.');
+    while(parts.length > 1 && !detail){
+      parts.pop();
+      detail = CODE_DETAIL[parts.join('.')];
+    }
+  }
+  const title = detail ? detail.title : 'Code Reference';
+  const body = detail ? detail.body :
+    'No extended text available for this section. Refer to the published code (2021 IRC / ACI 318-19) at codes.iccsafe.org or your AHJ-adopted edition.';
+  // Find related sections (sharing root, e.g. R507.x → all R507.x)
+  const rootMatch = key.match(/^(R\d+|N\d+|ACI[^§]*§\d+)/);
+  const root = rootMatch ? rootMatch[1] : '';
+  const related = root
+    ? Object.keys(CODE_DETAIL).filter(k => k !== key && k.startsWith(root) && !k.startsWith('Table '))
+        .slice(0, 8)
+    : [];
+
+  let html = `<div class="code-modal-sec">${key.startsWith('ACI')?key:('IRC '+key)}${detail?' — 2021 Edition':''}</div>`;
+  html += `<div class="code-modal-title">${title}</div>`;
+  html += `<div class="code-modal-body">${body.replace(/</g,'&lt;')}</div>`;
+  html += `<div class="code-modal-source">${detail?'Source: International Residential Code (IRC) 2021 / ACI 318-19. Text condensed for reference; verify against the AHJ-adopted edition before construction.':'This reference is not in the local library. The 2021 IRC is the controlling document for residential construction in most Tennessee jurisdictions.'}</div>`;
+  if(related.length){
+    html += '<div class="code-modal-related"><div class="code-modal-related-title">RELATED SECTIONS</div>';
+    related.forEach(k=>{
+      html += `<a onclick="showCodeRef('${k}')">${k.startsWith('ACI')?k:k}</a>`;
+    });
+    html += '</div>';
+  }
+  html += `<div style="margin-top:18px;display:flex;gap:8px"><button class="btn btn-ghost" style="flex:1" onclick="closeModalNow()">Close</button></div>`;
+  openModal('Code Reference', html);
+}
+
+// ── LINKIFY — wrap IRC/ACI references in clickable spans ─────────────────
+// Matches "IRC R507.9.2", "Table R602.7(1)", "R507.5", "ACI 318 §25.5".
+const CODE_REF_REGEX = /(?:\bIRC\s+)?(?:\bTable\s+)?\b(?:R\d+(?:\.\d+)*(?:\(\d+\))?|N\d+(?:\.\d+)*)|\bACI\s+318(?:-\d+)?\s+§\s*\d+(?:\.\d+)*/g;
+function linkifyCodeRefs(text){
+  if(text == null) return '';
+  const s = String(text);
+  return s.replace(CODE_REF_REGEX, (match) => {
+    // Extract canonical key for lookup
+    let key = match.replace(/^IRC\s+/i,'').trim();
+    return `<span class="code-link" onclick="showCodeRef('${key.replace(/'/g,"\\'")}')">${match}</span>`;
+  });
+}
+// Expose globally
+if(typeof window !== 'undefined'){
+  window.showCodeRef = showCodeRef;
+  window.linkifyCodeRefs = linkifyCodeRefs;
+}
 
 function pvMemberSchedule(type, p){
   p=p||{};
@@ -7255,6 +7422,35 @@ function pvMemberSchedule(type, p){
     sch.push(`SIDES .......... ${(p.sides==='none'||!p.sides)?'OPEN ALL SIDES (R309.4 carport)':p.sides+' enclosed — '+(p.wallMat||'').toUpperCase()}`);
     if(p.gutter) sch.push(`GUTTERS ........ 5" K-style aluminum · downspout each end · slope ¼" per 10\'`);
     sch.push(`ATTACHMENT ..... ${p.attached?'LEDGER to dwelling — flashed':'FREESTANDING'}`);
+  } else if(type==='blockwall'){
+    const wt = ({straight:'Freestanding', retaining:'Retaining', underhome:'Crawlspace stem wall', piers:'Block piers'})[p.wallType||'straight'];
+    sch.push(`WALL TYPE ...... ${wt.toUpperCase()}`);
+    sch.push(`OVERALL ........ ${pvFmtFt(p.len||0)} L × ${pvFmtFt(p.ht||0)} H × ${p.blkSz||8}" thick (${p.courses||0} courses)`);
+    sch.push(`BLOCK .......... ${p.blkSz||8}" CMU ${(({standard:'standard gray',split:'split-face',smooth:'smooth-face',segmental:'segmental retaining'})[p.style||'standard'])} · running bond`);
+    sch.push(`MORTAR ......... Type S per ASTM C270 · ⅜" joints · tooled concave`);
+    if(p.vReb && p.vReb>0){
+      sch.push(`VERT REBAR ..... #5 @ ${p.vReb}" O.C. in grouted cells · R608.6 · lap 30" min (40db)`);
+    } else {
+      sch.push(`VERT REBAR ..... none — verify R404.1.1 prescriptive limit for height/backfill`);
+    }
+    sch.push(`CORE FILL ...... ${(({none:'hollow',rebar_only:'rebar cells only',alt:'every other core',all:'all cores grouted full'})[p.fill||'all'])} · R608.7 (fine grout, 2000 psi)`);
+    if(p.footerDims){
+      sch.push(`FOOTER ......... ${p.footerDims[0]}"W × ${p.footerDims[1]}"D continuous concrete · 2-#4 longitudinal · R403.1`);
+      sch.push(`FOOTER DEPTH ... ${p.fdep||18}" below grade · below frost line per R403.1.4`);
+      if(p.vReb && p.vReb>0) sch.push(`DOWELS ......... #5 @ ${p.vReb}" O.C. into footer · 90° hook · 24" wall lap`);
+    }
+    if(p.cap && p.cap!=='none'){
+      sch.push(`CAP ............ ${({solid:'Solid CMU cap',precast:'Precast concrete cap',stone:'Natural stone cap',brick:'Brick rowlock cap'})[p.cap]} bedded in Type S mortar`);
+    }
+    if(p.wp && p.wp!=='none'){
+      sch.push(`WATERPROOFING .. ${({damp:'Bituminous damp-proofing (R406.1)',membrane:'Self-adhered membrane (R406.2)',dimple:'Membrane + dimple board (R406.2)'})[p.wp]}`);
+    }
+    if(p.drain && p.drain!=='none'){
+      sch.push(`DRAINAGE ....... ${({weep:'Weep holes only @ 4 ft O.C.',standard:'4" perf pipe + #57 gravel + filter fabric (R404.1.6)',full:'Drain board + perf pipe + gravel (R404.1.6)'})[p.drain]}`);
+    }
+    if(p.finish && p.finish!=='none'){
+      sch.push(`FINISH ......... ${({paint:'Block filler + acrylic paint',stucco:'3-coat stucco on metal lath',parge:'Parge coat / surface bonding cement',stone:'Adhered stone veneer over scratch coat'})[p.finish]}`);
+    }
   }
   return sch;
 }
@@ -7268,11 +7464,14 @@ function pvRenderProcessDims(type, p){
   let html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start">';
   html += '<div>';
   html += '<div style="color:var(--gold);font-weight:700;margin-bottom:6px;letter-spacing:.5px">MEMBER SCHEDULE</div>';
-  html += sch.map(s=>`<div style="margin:2px 0">${s.replace(/\s\.\.+\s/, m=>'<span style="color:#444">'+m+'</span>')}</div>`).join('');
+  html += sch.map(s=>`<div style="margin:2px 0">${linkifyCodeRefs(s).replace(/\s\.\.+\s/, m=>'<span style="color:#444">'+m+'</span>')}</div>`).join('');
   html += '</div>';
   html += '<div>';
-  html += '<div style="color:var(--gold);font-weight:700;margin-bottom:6px;letter-spacing:.5px">CODE REFERENCES (IRC / IBC 2021)</div>';
-  html += refs.map(r=>`<div style="margin:2px 0"><b style="color:#00e5ff">${r.sec}</b> — ${r.txt}</div>`).join('');
+  html += '<div style="color:var(--gold);font-weight:700;margin-bottom:6px;letter-spacing:.5px">CODE REFERENCES (IRC / IBC 2021) — tap any to view</div>';
+  html += refs.map(r=>{
+    const key = r.sec.replace(/^IRC\s+/i,'');
+    return `<div style="margin:2px 0"><span class="code-link" onclick="showCodeRef('${key.replace(/'/g,"\\'")}')">${r.sec}</span> — ${linkifyCodeRefs(r.txt)}</div>`;
+  }).join('');
   html += '</div>';
   html += '</div>';
   html += '<div style="margin-top:10px;padding:8px;border:1px dashed #444;color:var(--text3);font-size:9.5px;line-height:1.5">';
@@ -8387,7 +8586,12 @@ function render2DFull(type, params){
       carport:`${params.len}' × ${params.wid}'  ·  ${params.ht}' eave  ·  ${params.pitch}:12 pitch  ·  ${params.postSp || 8}' OC posts`,
       blockwall:`${params.len}' × ${params.ht}'  ·  ${params.blkSz}" CMU  ·  ${params.courses} courses  ·  ${({none:'hollow', rebar_only:'rebar cells filled', alt:'every-other filled', all:'all cores filled'}[params.fill]||'')}${params.vReb>0?'  ·  #5 vert @ '+params.vReb+'" OC':''}${params.footer&&params.footer!=='none'?'  ·  Footer '+params.footer:''}`,
     };
-    dimsEl.textContent=labels[type] ? labels[type] + '  |  Drag posts / columns / stairs / lights to reposition.  |  Per IRC 2021: verify footing depth R403, ledger attachment R507.9, railing height ≥36" R312.1, stair geometry R311.7.' : '';
+    if(labels[type]){
+      const baseText = labels[type] + '  |  Drag posts / columns / stairs / lights to reposition.  |  Per IRC 2021: verify footing depth R403, ledger attachment R507.9, railing height ≥36" R312.1, stair geometry R311.7.';
+      dimsEl.innerHTML = linkifyCodeRefs(baseText);
+    } else {
+      dimsEl.innerHTML = '';
+    }
   }
 
   // Prime process view
