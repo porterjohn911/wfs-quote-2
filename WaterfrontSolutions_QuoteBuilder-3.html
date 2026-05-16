@@ -395,6 +395,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
               <option value="framing">Room Addition / Wall Framing</option>
               <option value="concrete">Concrete & Foundation</option>
               <option value="carport">Carport</option>
+              <option value="blockwall">Block / Retaining Wall</option>
             </select>
           </div>
           <div class="field"><label>Project Name / Description</label>
@@ -953,6 +954,130 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
                 </select>
               </div>
               <div class="field"><label>Sonotube piers (qty)</label><input type="number" id="co-piers" value="0" min="0" step="1" oninput="toCalc()"/></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BLOCK WALL / RETAINING WALL inputs -->
+      <div id="to-blockwall" class="to-panel" style="display:none">
+        <div class="section">
+          <div class="section-head"><span class="section-title">Block Wall Configuration</span></div>
+          <div class="section-body">
+            <div class="field"><label>Wall purpose</label>
+              <select id="bw-type" onchange="toCalc()">
+                <option value="straight">Straight freestanding wall (privacy / yard)</option>
+                <option value="retaining">Retaining wall (holds back earth)</option>
+                <option value="underhome">Block foundation under home (crawlspace stem wall)</option>
+                <option value="piers">Block piers / pads (point loads only)</option>
+              </select>
+            </div>
+            <div class="field-row">
+              <div class="field"><label>Wall length (ft)</label><input type="number" id="bw-len" value="40" min="2" step="0.5" oninput="toCalc()"/></div>
+              <div class="field"><label>Wall height above grade (ft)</label><input type="number" id="bw-ht" value="4" min="0.67" max="12" step="0.67" oninput="toCalc()"/></div>
+            </div>
+            <div class="field-row">
+              <div class="field"><label>Block size</label>
+                <select id="bw-block" onchange="toCalc()">
+                  <option value="4">4" CMU (4×8×16) — veneer / partition</option>
+                  <option value="6">6" CMU (6×8×16) — light load</option>
+                  <option value="8" selected>8" CMU (8×8×16) — standard</option>
+                  <option value="10">10" CMU (10×8×16) — taller walls</option>
+                  <option value="12">12" CMU (12×8×16) — heavy / tall retaining</option>
+                </select>
+              </div>
+              <div class="field"><label>Block style</label>
+                <select id="bw-style" onchange="toCalc()">
+                  <option value="standard">Standard gray CMU</option>
+                  <option value="split">Split-face decorative</option>
+                  <option value="smooth">Smooth-face architectural</option>
+                  <option value="segmental">Segmental retaining (Versa-Lok / Allan Block)</option>
+                </select>
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field"><label>Core fill (grout)</label>
+                <select id="bw-fill" onchange="toCalc()">
+                  <option value="none">Hollow — no fill (light walls only)</option>
+                  <option value="rebar_only">Filled at rebar cells only (every 32–48")</option>
+                  <option value="alt">Every other core (every 16")</option>
+                  <option value="all" selected>All cores filled (max strength, retaining)</option>
+                </select>
+              </div>
+              <div class="field"><label>Vertical rebar spacing</label>
+                <select id="bw-vreb" onchange="toCalc()">
+                  <option value="0">None (non-structural)</option>
+                  <option value="48">#5 @ 48" OC (light)</option>
+                  <option value="32" selected>#5 @ 32" OC (standard)</option>
+                  <option value="24">#5 @ 24" OC (retaining)</option>
+                  <option value="16">#5 @ 16" OC (tall retaining)</option>
+                </select>
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field"><label>Horizontal reinforcement</label>
+                <select id="bw-hreb" onchange="toCalc()">
+                  <option value="none">None</option>
+                  <option value="ladur" selected>Ladur / truss wire every 2nd course</option>
+                  <option value="bondbeam">Bond beam every 4' + ladur</option>
+                  <option value="full">Bond beam every course + #4 horiz @ 16"</option>
+                </select>
+              </div>
+              <div class="field"><label>Wall cap</label>
+                <select id="bw-cap" onchange="toCalc()">
+                  <option value="none">No cap</option>
+                  <option value="solid" selected>Solid CMU cap block</option>
+                  <option value="precast">Precast concrete cap</option>
+                  <option value="stone">Natural stone cap</option>
+                  <option value="brick">Brick rowlock cap</option>
+                </select>
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field"><label>Footer / foundation</label>
+                <select id="bw-foot" onchange="toCalc()">
+                  <option value="none">None (existing footer)</option>
+                  <option value="16x8">16"×8" concrete footer (light)</option>
+                  <option value="20x10" selected>20"×10" concrete footer (standard)</option>
+                  <option value="24x12">24"×12" concrete footer (tall / retaining)</option>
+                  <option value="32x12">32"×12" concrete footer (heavy retaining)</option>
+                </select>
+              </div>
+              <div class="field"><label>Footer depth below grade (in)</label><input type="number" id="bw-fdep" value="18" min="0" max="48" step="2" oninput="toCalc()"/></div>
+            </div>
+            <div class="field-row">
+              <div class="field"><label>Wall finish (exposed face)</label>
+                <select id="bw-finish" onchange="toCalc()">
+                  <option value="none" selected>None (bare block)</option>
+                  <option value="paint">Block paint / sealer</option>
+                  <option value="stucco">Stucco (3-coat)</option>
+                  <option value="parge">Parge coat (smooth)</option>
+                  <option value="stone">Stone veneer</option>
+                </select>
+              </div>
+              <div class="field"><label>Waterproofing (buried side)</label>
+                <select id="bw-wp" onchange="toCalc()">
+                  <option value="none">None (above-grade only)</option>
+                  <option value="damp" selected>Damp-proofing (asphalt emulsion)</option>
+                  <option value="membrane">Self-adhered membrane</option>
+                  <option value="dimple">Dimple board + membrane (premium)</option>
+                </select>
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field"><label>Drainage (retaining walls)</label>
+                <select id="bw-drain" onchange="toCalc()">
+                  <option value="none">None</option>
+                  <option value="weep">Weep holes every 4' only</option>
+                  <option value="standard" selected>Perf pipe + gravel + filter fabric</option>
+                  <option value="full">Full drain board + perf pipe + gravel</option>
+                </select>
+              </div>
+              <div class="field"><label>Corners / returns (qty)</label><input type="number" id="bw-corners" value="2" min="0" max="20" step="1" oninput="toCalc()"/></div>
+            </div>
+            <div class="field-row">
+              <div class="field"><label>Wall openings (vents/access, qty)</label><input type="number" id="bw-vents" value="4" min="0" step="1" oninput="toCalc()"/></div>
+              <div class="field"><label>Pilasters / piers (qty)</label><input type="number" id="bw-pilast" value="0" min="0" step="1" oninput="toCalc()"/></div>
             </div>
           </div>
         </div>
@@ -2234,7 +2359,7 @@ document.getElementById('b-qnum').value='Q-'+(Math.floor(Math.random()*900)+100)
 
 function toSwitchType(){
   const t=document.getElementById('to-type').value;
-  ['deck','porch','roof','framing','concrete','carport'].forEach(p=>{
+  ['deck','porch','roof','framing','concrete','carport','blockwall'].forEach(p=>{
     const el=document.getElementById('to-'+p);
     if(el) el.style.display=(p===t)?'block':'none';
   });
@@ -2249,7 +2374,7 @@ function toCalc(){
   else if(t==='framing') toCalcFraming();
   else if(t==='concrete') toCalcConcrete();
   else if(t==='carport') toCalcCarport();
-  else if(t==='carport')  toCalcCarport();
+  else if(t==='blockwall') toCalcBlockwall();
 }
 
 // ── DECK TAKEOFF ──────────────────────────────────────────
@@ -2800,6 +2925,301 @@ function toCalcConcrete(){
   });
 
   toRenderResults(items, summary, 'concrete');
+}
+
+// ── BLOCK WALL / RETAINING WALL TAKEOFF ──────────────────────────────────
+// CMU block walls, retaining walls, crawlspace stem walls, and pier blocks.
+// Standards: 8"×8"×16" nominal block = 1.125 blocks/sqft of wall face.
+// Mortar: ~3 bags / 100 blocks. Grout fill volumes per NCMA TEK 5-1A.
+function toCalcBlockwall(){
+  const wallType = document.getElementById('bw-type').value;        // straight|retaining|underhome|piers
+  const len   = parseFloat(document.getElementById('bw-len').value)||40;
+  const ht    = parseFloat(document.getElementById('bw-ht').value)||4;
+  const blkSz = parseInt(document.getElementById('bw-block').value)||8;        // nominal width inches
+  const style = document.getElementById('bw-style').value;           // standard|split|smooth|segmental
+  const fill  = document.getElementById('bw-fill').value;            // none|rebar_only|alt|all
+  const vReb  = parseInt(document.getElementById('bw-vreb').value)||0; // vertical rebar spacing inches (0 = none)
+  const hReb  = document.getElementById('bw-hreb').value;            // none|ladur|bondbeam|full
+  const cap   = document.getElementById('bw-cap').value;             // none|solid|precast|stone|brick
+  const footer= document.getElementById('bw-foot').value;            // none|16x8|20x10|24x12|32x12
+  const fdep  = parseFloat(document.getElementById('bw-fdep').value)||18;
+  const finish= document.getElementById('bw-finish').value;          // none|paint|stucco|parge|stone
+  const wp    = document.getElementById('bw-wp').value;              // none|damp|membrane|dimple
+  const drain = document.getElementById('bw-drain').value;           // none|weep|standard|full
+  const corners= parseInt(document.getElementById('bw-corners').value)||0;
+  const vents = parseInt(document.getElementById('bw-vents').value)||0;
+  const pilast= parseInt(document.getElementById('bw-pilast').value)||0;
+
+  // ── GEOMETRY ────────────────────────────────────────────────────────────
+  // CMU is nominal 8" tall × 16" long → 8/9 sqft face. 1.125 blocks/sqft.
+  const courses = Math.max(1, Math.round(ht * 12 / 8));   // each course = 8" tall
+  const blocksPerCourse = Math.ceil(len * 12 / 16);
+  const wallSqft = len * (courses * 8 / 12);              // face area
+  let blockQty = Math.ceil(blocksPerCourse * courses * 1.05); // 5% waste
+
+  // Segmental retaining (Versa-Lok style) — different geometry, sold per block, no mortar
+  const isSegmental = (style === 'segmental');
+  if(isSegmental){
+    // Typical Versa-Lok = 16"×6"×12" deep, ~1.5 blocks/sqft face
+    blockQty = Math.ceil(wallSqft * 1.5 * 1.05);
+  }
+
+  // Pricing per block by size
+  const blockUnitCost = {4:1.65, 6:1.95, 8:2.35, 10:3.10, 12:3.85}[blkSz] || 2.35;
+  const blockCostMult = {standard:1.0, split:1.65, smooth:1.45, segmental:2.85}[style] || 1.0;
+  const blockCostEach = +(blockUnitCost * blockCostMult).toFixed(2);
+
+  // ── MORTAR ──────────────────────────────────────────────────────────────
+  // ~3 bags Type S mortar per 100 std CMU. Segmental uses adhesive instead.
+  const mortarBags = isSegmental ? 0 : Math.ceil(blockQty / 100 * 3 * 1.10);
+  const sandTons   = isSegmental ? 0 : Math.ceil(mortarBags * 0.025 * 10) / 10; // ~50 lb sand per bag
+  const segAdhesive = isSegmental ? Math.ceil(blockQty / 20) : 0; // ~1 tube / 20 blocks
+
+  // ── GROUT FILL ──────────────────────────────────────────────────────────
+  // 8" CMU cores: ~0.0084 CY per cell per course. ~2 cells per block.
+  // Fill ratio: none=0, rebar_only=cells with rebar (~1 per 32"), alt=50%, all=100%.
+  const cellVolPerBlockCY = {4:0.0028, 6:0.0050, 8:0.0080, 10:0.0110, 12:0.0145}[blkSz] || 0.0080;
+  let fillFrac = {none:0, rebar_only:0.18, alt:0.50, all:1.0}[fill];
+  if(isSegmental) fillFrac = 0; // segmental is solid block, no grout
+  const groutCY = +(blockQty * cellVolPerBlockCY * fillFrac * 1.10).toFixed(2);
+  const groutBags = Math.ceil(groutCY * 60);  // ~60 80lb bags per CY (mix on-site for small jobs)
+  const groutReadyMix = groutCY >= 0.75 ? Math.ceil(groutCY * 10) / 10 : 0; // order ready-mix if ≥ ¾ CY
+
+  // ── VERTICAL REBAR ──────────────────────────────────────────────────────
+  // Sticks needed: one per cell at vReb spacing. Length = wall ht + footer
+  // embed (6") + lap into next stick (24") if wall > 8'.
+  let vRebSticks = 0, vRebLF = 0;
+  if(vReb > 0){
+    const cellCount = Math.ceil(len * 12 / vReb) + 1 + corners; // extra at corners
+    const stickLen = Math.min(20, Math.ceil(ht + 0.5 + 2)); // 20' stock
+    vRebLF = Math.ceil(cellCount * stickLen);
+    vRebSticks = Math.ceil(vRebLF / 20);
+  }
+
+  // ── HORIZONTAL REINFORCEMENT ────────────────────────────────────────────
+  let ladurLF = 0, bondBeamLF = 0, hRebStick = 0;
+  if(hReb === 'ladur')      ladurLF = Math.ceil(len * Math.ceil(courses/2) * 1.05);
+  if(hReb === 'bondbeam'){  ladurLF = Math.ceil(len * Math.ceil(courses/2) * 1.05);
+                            bondBeamLF = Math.ceil(len * Math.ceil(ht/4) * 1.05);
+                            hRebStick = Math.ceil(bondBeamLF * 2 / 20); }
+  if(hReb === 'full'){      bondBeamLF = Math.ceil(len * courses * 1.05);
+                            hRebStick = Math.ceil(bondBeamLF * 2 / 20); }
+  const ladurRolls = Math.ceil(ladurLF / 10); // 10' truss wire sticks
+
+  // ── CAP ─────────────────────────────────────────────────────────────────
+  const capLF = (cap === 'none' || isSegmental) ? 0 : len;
+  const capQty = {none:0, solid:Math.ceil(capLF*12/16), precast:Math.ceil(capLF), stone:Math.ceil(capLF), brick:Math.ceil(capLF*4)}[cap];
+  const capCostEach = {none:0, solid:3.10, precast:8.50, stone:14.00, brick:1.20}[cap];
+
+  // ── FOOTER ──────────────────────────────────────────────────────────────
+  const footerDims = {none:null, '16x8':[16,8], '20x10':[20,10], '24x12':[24,12], '32x12':[32,12]}[footer];
+  let footerCY = 0, footerLF = 0, footerRebarSticks = 0;
+  if(footerDims){
+    const [fw, ft] = footerDims;
+    footerLF = Math.ceil(len + corners * 2);  // add some for corner returns
+    footerCY = +((footerLF * (fw/12) * (ft/12)) / 27 * 1.05).toFixed(2);
+    // 2 continuous #4 runs in footer + dowels every 32" for wall rebar
+    const dowels = vReb > 0 ? Math.ceil(footerLF * 12 / vReb) : 0;
+    const footerContRebarLF = footerLF * 2 * 1.10;
+    const dowelLF = dowels * 2.5; // 18" footer embed + 12" wall lap
+    footerRebarSticks = Math.ceil((footerContRebarLF + dowelLF) / 20);
+  }
+
+  // ── EXCAVATION ──────────────────────────────────────────────────────────
+  let excavCY = 0;
+  if(footerDims){
+    const [fw] = footerDims;
+    const trenchW = fw + 12;  // 6" each side of footer
+    excavCY = +((footerLF * (trenchW/12) * ((fdep + footerDims[1])/12)) / 27 * 1.15).toFixed(1);
+  }
+
+  // ── WATERPROOFING ───────────────────────────────────────────────────────
+  // Applied to "buried" side — only meaningful for retaining or underhome.
+  const buriedSqft = (wallType === 'retaining' || wallType === 'underhome')
+    ? len * Math.min(ht, fdep/12 + ht) : 0;
+  let dampGals = 0, membraneRolls = 0, dimpleRolls = 0;
+  if(wp === 'damp' && buriedSqft > 0)     dampGals = Math.ceil(buriedSqft / 100); // 1 gal / 100 sqft
+  if(wp === 'membrane' && buriedSqft > 0) membraneRolls = Math.ceil(buriedSqft / 200); // 200 sqft / roll
+  if(wp === 'dimple' && buriedSqft > 0){  membraneRolls = Math.ceil(buriedSqft / 200);
+                                          dimpleRolls   = Math.ceil(buriedSqft / 65); }  // 65 sqft / roll
+
+  // ── DRAINAGE ────────────────────────────────────────────────────────────
+  let weepHoles = 0, perfPipeLF = 0, drainGravelTons = 0, filterFabricSF = 0, drainBoardRolls = 0;
+  if(drain === 'weep'){
+    weepHoles = Math.ceil(len / 4);
+  } else if(drain === 'standard' || drain === 'full'){
+    weepHoles    = Math.ceil(len / 4);
+    perfPipeLF   = Math.ceil(len * 1.05);
+    // gravel backfill ~ 1 CY per 4 LF of wall, ~1.4 tons/CY
+    drainGravelTons = +(len / 4 * 1.4 * 1.10).toFixed(1);
+    filterFabricSF  = Math.ceil(buriedSqft + perfPipeLF * 4);
+    if(drain === 'full') drainBoardRolls = Math.ceil(buriedSqft / 65);
+  }
+
+  // ── FINISH ──────────────────────────────────────────────────────────────
+  // Exposed face = visible side of wall (above grade). Retaining walls have
+  // one face hidden by earth, but the opposite (downhill) face is still
+  // fully visible at full wall height.
+  const exposedSqft = wallSqft;
+  let paintGals = 0, stuccoBags = 0, pargeGals = 0, stoneVeneerSF = 0;
+  if(finish === 'paint')  paintGals  = Math.ceil(exposedSqft / 100 * 1.10);
+  if(finish === 'stucco') stuccoBags = Math.ceil(exposedSqft / 25 * 1.10);  // ~25 sqft / bag, 3-coat
+  if(finish === 'parge')  pargeGals  = Math.ceil(exposedSqft / 80);
+  if(finish === 'stone')  stoneVeneerSF = Math.ceil(exposedSqft * 1.10);
+
+  // ── PILASTERS / VENTS ───────────────────────────────────────────────────
+  // Pilaster = bumped-out column for lateral support, typ. 16"×16" tied into wall
+  const pilastBlocks = pilast * courses * 4;  // ~4 extra blocks per pilaster per course
+  const ventBricks   = vents * 1;             // 8×16 foundation vent units
+
+  // ── RENDER ──────────────────────────────────────────────────────────────
+  render2D('blockwall', {wallType, len, ht, blkSz, style, fill, vReb, cap,
+                         footer, footerDims, fdep, drain, finish, wp,
+                         courses, corners, pilast});
+
+  // ── ITEMS ───────────────────────────────────────────────────────────────
+  const styleLabel = {standard:'Standard CMU', split:'Split-Face CMU', smooth:'Smooth-Face CMU', segmental:'Segmental Retaining Block'}[style];
+  const items = {};
+
+  // Site prep / layout
+  _pushIfPositive(items, 'Site Work & Layout',
+    _i('Mason\'s string line 500\' roll', 1, 'roll', 'roll', 6),
+    _i('Marking paint (utility orange)', 2, 'can', 'can', 7),
+    _i('Layout stakes 1×2×24"', Math.max(8, corners*2 + Math.ceil(len/8)), 'ea', 'bundle(50)', 1.20),
+    _i('Mason\'s level 48"', 1, 'ea', 'ea', 38),
+    _i('Mortar tub / mixing pan', 2, 'ea', 'ea', 22),
+  );
+
+  // Excavation & footer
+  if(footerDims){
+    const [fw, ft] = footerDims;
+    _pushIfPositive(items, 'Excavation & Footer',
+      _i('Trench excavation (machine, footer)', excavCY, 'CY', 'CY', 18),
+      _i('#57 crushed stone — footer base', Math.ceil(footerLF * (fw/12) * 0.33 / 27 * 1.4 * 10)/10, 'tons', 'tons', 32),
+      _i(`Form boards 2×${Math.max(8, ft)} × 12'`, Math.ceil(footerLF * 2 / 12 * 1.10), 'pcs', 'pcs', 14),
+      _i('Form stakes 18" wood', Math.ceil(footerLF / 2), 'ea', 'bundle(50)', 1.20),
+      _i('Ready-mix concrete (footer)', footerCY, 'CY', 'CY', 165),
+      _i(`#4 rebar 20' stick (footer + dowels)`, footerRebarSticks, 'sticks', 'sticks', 14),
+      _i('Rebar tie wire 3.5lb roll', 1, 'roll', 'roll', 11),
+      _i('Rebar chairs (footer)', Math.ceil(footerLF / 3), 'ea', 'bag(25)', 0.50),
+      _i('Form release oil', Math.ceil(footerLF/200)+1, 'gal', 'gal', 18),
+    );
+  }
+
+  // Block + mortar
+  _pushIfPositive(items, 'Block & Mortar',
+    {name: `${styleLabel} — ${blkSz}"×8"×16"`, qty: blockQty, unit:'ea', orderUnit:'ea', matCostEach: blockCostEach},
+    _i('Type S mortar mix — 70 lb bag', mortarBags, 'bag', 'bag', 8.50),
+    _i('Masonry sand', sandTons, 'tons', 'tons', 42),
+    _i('Construction adhesive (segmental)', segAdhesive, 'tube', 'tube', 9),
+    _i('Mortar coloring (charcoal/buff, optional)', isSegmental?0:Math.ceil(mortarBags/8), 'bag', 'bag', 14),
+    _i('Half / corner / end-cap blocks', Math.ceil(corners * courses * 2 + len / 8), 'ea', 'ea', +(blockCostEach*1.3).toFixed(2)),
+    _i('Vent block (8×16 foundation vent)', ventBricks, 'ea', 'ea', 28),
+    _i('Pilaster blocks (16×16)', pilastBlocks, 'ea', 'ea', 5.20),
+  );
+
+  // Reinforcement
+  if(vRebSticks > 0 || ladurRolls > 0 || bondBeamLF > 0){
+    _pushIfPositive(items, 'Reinforcement',
+      _i(`#5 rebar 20' stick — vertical cells`, vRebSticks, 'sticks', 'sticks', 18),
+      _i('Ladur / truss wire 9-ga × 10\' (every 2nd course)', ladurRolls, 'pcs', 'pcs', 6.50),
+      _i('Bond beam blocks (U-shape)', Math.ceil(bondBeamLF * 12 / 16), 'ea', 'ea', +(blockCostEach*1.15).toFixed(2)),
+      _i(`#4 rebar 20' stick — bond beam`, hRebStick, 'sticks', 'sticks', 14),
+      _i('Rebar positioners / cell guides', Math.ceil((vRebSticks||0) * 2), 'ea', 'bag(50)', 0.85),
+      _i('Wall anchor / dowels (existing slab tie-in)', wallType==='underhome'?Math.ceil(len/4):0, 'ea', 'ea', 4.20),
+    );
+  }
+
+  // Grout fill
+  if(groutCY > 0){
+    if(groutReadyMix > 0){
+      _pushIfPositive(items, 'Core Grout Fill',
+        _i('Ready-mix grout (fine, pea gravel — pumped)', groutReadyMix, 'CY', 'CY', 215),
+        _i('Concrete pump truck (¼ day)', 1, 'ea', 'ea', 425),
+        _i('Grout cleanout / inspection covers', Math.ceil(len/8), 'ea', 'ea', 2.40),
+      );
+    } else {
+      _pushIfPositive(items, 'Core Grout Fill',
+        _i('Grout mix 80 lb bag (S-type, fine)', groutBags, 'bag', 'bag', 6.50),
+        _i('Grout funnel / chute', 1, 'ea', 'ea', 28),
+        _i('Grout cleanout covers', Math.ceil(len/8), 'ea', 'ea', 2.40),
+      );
+    }
+  }
+
+  // Cap
+  if(capQty > 0){
+    _pushIfPositive(items, 'Wall Cap',
+      _i({none:'', solid:'Solid CMU cap block 4×8×16', precast:`Precast concrete cap ${blkSz}"`, stone:'Natural stone cap', brick:'Brick rowlock cap'}[cap], capQty, 'ea', 'ea', capCostEach),
+      _i('Cap adhesive (PL-500 or equivalent)', Math.ceil(capLF / 8), 'tube', 'tube', 9),
+    );
+  }
+
+  // Waterproofing
+  if(buriedSqft > 0 && wp !== 'none'){
+    _pushIfPositive(items, 'Waterproofing',
+      _i('Asphalt damp-proofing — 5 gal pail', Math.ceil(dampGals/5), 'pail', 'pail', 58),
+      _i('Self-adhered membrane — 200 sqft roll', membraneRolls, 'roll', 'roll', 145),
+      _i('Dimple drainage board — 65 sqft roll', dimpleRolls, 'roll', 'roll', 185),
+      _i('Membrane primer 1 gal', wp!=='none'?Math.ceil(buriedSqft/300):0, 'gal', 'gal', 38),
+      _i('Termination bar 10\' + fasteners', wp!=='none'?Math.ceil(len/10):0, 'ea', 'ea', 14),
+    );
+  }
+
+  // Drainage
+  if(drain !== 'none'){
+    _pushIfPositive(items, 'Drainage',
+      _i('Weep hole sleeves / vents', weepHoles, 'ea', 'ea', 2.40),
+      _i('4" perforated drain pipe (10\' lengths)', Math.ceil(perfPipeLF/10), 'ea', 'ea', 16),
+      _i('Drain pipe couplings & end caps', Math.ceil(perfPipeLF/10)+2, 'ea', 'ea', 4.50),
+      _i('#57 drain gravel (wash rock)', drainGravelTons, 'tons', 'tons', 32),
+      _i('Filter fabric (Mirafi 140N) — 300 sqft roll', Math.ceil(filterFabricSF/300), 'roll', 'roll', 78),
+      _i('Drain board (dimple sheet) — 65 sqft roll', drainBoardRolls, 'roll', 'roll', 185),
+    );
+  }
+
+  // Finish
+  if(finish !== 'none'){
+    _pushIfPositive(items, 'Wall Finish',
+      _i('Block paint / acrylic block filler — 5 gal pail', Math.ceil(paintGals/5), 'pail', 'pail', 195),
+      _i('Stucco base + finish mix — 80 lb bag', stuccoBags, 'bag', 'bag', 14),
+      _i('Stucco metal lath 27×97"', finish==='stucco'?Math.ceil(exposedSqft/18 * 1.10):0, 'sheet', 'sheet', 11),
+      _i('Stucco corner bead 10\'', finish==='stucco'?Math.ceil(corners*ht/10):0, 'ea', 'ea', 7),
+      _i('Parge / surface bonding cement — 50 lb bag', Math.ceil(pargeGals*2), 'bag', 'bag', 16),
+      _i('Stone veneer (flats)', stoneVeneerSF, 'sqft', 'sqft', 9.50),
+      _i('Stone veneer corners', finish==='stone'?Math.ceil(corners*ht*1.10):0, 'lf', 'lf', 18),
+      _i('Mortar bag / striking tools', finish==='stone'?2:0, 'ea', 'ea', 9),
+    );
+  }
+
+  // Miscellaneous
+  _pushIfPositive(items, 'Miscellaneous',
+    _i('Masonry blades 14" diamond', Math.ceil(blockQty/250)+1, 'ea', 'ea', 28),
+    _i('Block scaffolding rental (per day)', ht>4?Math.ceil(len/20):0, 'day', 'day', 45),
+    _i('PPE — gloves, knee pads, eye pro', 2, 'set', 'set', 32),
+    _i('Building permit fee (allowance)', 1, 'ea', 'ea', wallType==='retaining'?225:150),
+    _i('Wall inspection fee', 1, 'ea', 'ea', 75),
+    _i(wallType==='retaining'?'Engineer wall design stamp (>4\' retaining)':'',
+       (wallType==='retaining' && ht>4)?1:0, 'ea', 'ea', 450),
+  );
+
+  // ── SUMMARY ─────────────────────────────────────────────────────────────
+  const typeLabel = {straight:'Freestanding wall', retaining:'Retaining wall',
+                     underhome:'Crawlspace stem wall', piers:'Block piers'}[wallType];
+  const summary = {
+    'Wall type': typeLabel,
+    'Face area': wallSqft.toFixed(0) + ' sq ft  ('+len+'\' × '+ht+'\')',
+    'Courses × blocks': courses + ' courses × ' + blocksPerCourse + '/course',
+    'Total blocks': blockQty + ' (' + styleLabel + ')',
+    'Mortar': isSegmental ? 'N/A (adhesive)' : mortarBags + ' bags Type S',
+    'Grout fill': groutCY > 0 ? (groutCY.toFixed(2) + ' CY') : 'None (hollow)',
+    'Vert. rebar': vReb > 0 ? ('#5 @ '+vReb+'" OC  ('+vRebSticks+' sticks)') : 'None',
+    'Footer': footerDims ? (footer + ' × ' + footerLF + ' lf  ('+footerCY.toFixed(1)+' CY)') : 'None',
+    'Drainage': {none:'None', weep:'Weep holes only', standard:'Perf pipe + gravel', full:'Drain board + perf pipe'}[drain],
+    'Finish': finish==='none' ? 'Bare block' : finish.charAt(0).toUpperCase()+finish.slice(1),
+  };
+
+  toRenderResults(items, summary, 'blockwall');
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -3416,6 +3836,11 @@ function toRenderResults(items, summary, type){
     'Screening / Enclosure':R.sk, 'Railing / Half-Walls':R.sk,
     'Electrical (Rough-In)':R.elec,'Summary':            0,
     'Miscellaneous':       R.sk,  'Stairs':              R.sk,
+    'Site Work & Layout':  R.gen, 'Excavation & Footer': R.sk,
+    'Block & Mortar':      R.mason, 'Reinforcement':     R.mason,
+    'Core Grout Fill':     R.mason, 'Wall Cap':          R.mason,
+    'Waterproofing':       R.sk,  'Drainage':            R.sk,
+    'Wall Finish':         R.mason,
   };
 
   // Estimate labor by category if not provided explicitly
@@ -3440,6 +3865,15 @@ function toRenderResults(items, summary, type){
     'Side Walls':          {sqft:0.08, default:0.10},
     'Screening / Enclosure':{ea:0.50, roll:0.50, default:0.40},
     'Miscellaneous':       {default:0.05},
+    'Site Work & Layout':  {default:0.10},
+    'Excavation & Footer': {CY:1.2, lf:0.35, sticks:0.10, default:0.20},
+    'Block & Mortar':      {ea:0.22, bag:0.05, tons:0.40, default:0.15},
+    'Reinforcement':       {sticks:0.18, pcs:0.05, lf:0.05, ea:0.15, default:0.10},
+    'Core Grout Fill':     {CY:1.5, bag:0.08, ea:0.10, default:0.12},
+    'Wall Cap':            {ea:0.18, tube:0.04, default:0.20},
+    'Waterproofing':       {pail:1.5, roll:0.60, gal:0.20, ea:0.08, default:0.30},
+    'Drainage':            {ea:0.20, tons:0.80, roll:0.40, default:0.25},
+    'Wall Finish':         {pail:1.5, bag:0.30, sqft:0.10, lf:0.30, default:0.20, sheet:0.25},
   };
 
   // Build full cost data per item
@@ -5127,6 +5561,439 @@ function drawConcrete2D(ctx, w, h, params){
 }
 
 // ══════════════════════════════════════════════════════════════════════════
+// BLOCK WALL 2D RENDERING — Elevation + Plan + Cross-Section
+// ══════════════════════════════════════════════════════════════════════════
+function drawBlockwall2D(ctx, w, h, params){
+  const {wallType, len, ht, blkSz, style, fill, vReb, cap, footer, footerDims,
+         fdep, drain, finish, wp, courses, corners, pilast} = params;
+  setPaper(ctx, w, h);
+  const PAD = 52, TB = 44;
+
+  // Layout: top-left = elevation (wide), top-right = plan, bottom = cross-section
+  const elevW = w * 0.58 - PAD - 8;
+  const elevH = (h - PAD - TB - 20) * 0.55;
+  const scElX = elevW / len;
+  const scElY = elevH / Math.max(ht + 1.5, 4);
+  const scEl  = Math.min(scElX, scElY);
+
+  // ── ELEVATION VIEW ──────────────────────────────────────────────────────
+  ctx.save();
+  ctx.translate(PAD + 8, PAD + 10);
+  const EW = len * scEl, EH = ht * scEl;
+  const courseH = EH / courses;
+  const blockLenPx = (16 / 12) * scEl;
+
+  // Sky / background tone
+  ctx.fillStyle = 'rgba(200,224,240,0.25)';
+  ctx.fillRect(0, -8, EW, EH + 8);
+
+  // Earth on buried side (retaining / underhome)
+  const buriedFt = (wallType === 'retaining' || wallType === 'underhome')
+    ? Math.min(ht, fdep / 12 + ht * 0.6) : 0;
+  if(buriedFt > 0){
+    const bury = buriedFt * scEl;
+    ctx.fillStyle = '#8a6a3a';
+    ctx.fillRect(0, EH - bury, EW, bury + 6);
+    drawHatch(ctx, 0, EH - bury, EW, bury + 6, 5, Math.PI / 3);
+  }
+
+  // Footer (drawn below grade beneath wall)
+  if(footerDims){
+    const [fw, ft] = footerDims;
+    const ftPx = (ft / 12) * scEl;
+    const fwExt = ((fw - blkSz) / 2 / 12) * scEl;
+    ctx.fillStyle = C.concreteDk;
+    ctx.fillRect(-fwExt, EH, EW + fwExt * 2, ftPx);
+    drawHatch(ctx, -fwExt, EH, EW + fwExt * 2, ftPx, 6, Math.PI / 4);
+    ctx.strokeStyle = C.line; ctx.lineWidth = 1.2;
+    ctx.strokeRect(-fwExt, EH, EW + fwExt * 2, ftPx);
+    // Footer rebar
+    ctx.strokeStyle = C.rebar; ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.moveTo(-fwExt+4, EH + ftPx*0.35); ctx.lineTo(EW+fwExt-4, EH + ftPx*0.35); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-fwExt+4, EH + ftPx*0.7);  ctx.lineTo(EW+fwExt-4, EH + ftPx*0.7);  ctx.stroke();
+  }
+
+  // Grade line
+  ctx.strokeStyle = C.groundDk; ctx.lineWidth = 1.8;
+  ctx.beginPath(); ctx.moveTo(-20, EH); ctx.lineTo(EW + 20, EH); ctx.stroke();
+  ctx.fillStyle = C.grass; ctx.fillRect(-20, EH - 3, 20, 6);
+  if(wallType !== 'retaining' && wallType !== 'underhome'){
+    ctx.fillRect(EW, EH - 3, 20, 6);
+  }
+
+  // ── BLOCK COURSES ───────────────────────────────────────────────────────
+  // Color by style
+  const blockFill = {standard:'#a8a59a', split:'#9a8a78', smooth:'#bcb8ab', segmental:'#7c6a52'}[style] || '#a8a59a';
+  const blockEdge = {standard:'#54514a', split:'#4a3f30', smooth:'#6a665a', segmental:'#3a3020'}[style] || '#54514a';
+
+  for(let c2 = 0; c2 < courses; c2++){
+    const yTop = EH - (c2 + 1) * courseH;
+    const offset = (c2 % 2 === 0) ? 0 : blockLenPx / 2; // running bond
+    // Draw individual blocks across course
+    for(let bx = -offset; bx < EW + blockLenPx; bx += blockLenPx){
+      const x0 = Math.max(0, bx);
+      const x1 = Math.min(EW, bx + blockLenPx);
+      if(x1 <= x0) continue;
+      ctx.fillStyle = blockFill;
+      ctx.fillRect(x0, yTop, x1 - x0, courseH);
+      // Texture by style
+      if(style === 'split'){
+        for(let tx = x0 + 1; tx < x1; tx += 3){
+          ctx.fillStyle = 'rgba(60,40,20,0.18)';
+          ctx.fillRect(tx, yTop + Math.random()*courseH, 1, 1);
+        }
+      } else if(style === 'segmental'){
+        // Subtle banded face
+        ctx.fillStyle = 'rgba(40,30,20,0.10)';
+        ctx.fillRect(x0, yTop + courseH*0.7, x1-x0, 1);
+      }
+      // Mortar joints — vertical
+      if(style !== 'segmental'){
+        ctx.strokeStyle = '#d6cfb8'; ctx.lineWidth = 0.7;
+        if(bx + blockLenPx <= EW + 0.5){
+          ctx.beginPath(); ctx.moveTo(x1, yTop); ctx.lineTo(x1, yTop + courseH); ctx.stroke();
+        }
+      }
+      // Block outline (subtle)
+      ctx.strokeStyle = blockEdge; ctx.lineWidth = 0.4;
+      ctx.strokeRect(x0, yTop, x1 - x0, courseH);
+    }
+    // Mortar joint — horizontal between courses
+    if(style !== 'segmental' && c2 < courses){
+      ctx.strokeStyle = '#d6cfb8'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(0, yTop); ctx.lineTo(EW, yTop); ctx.stroke();
+    }
+  }
+
+  // ── REBAR (vertical) ────────────────────────────────────────────────────
+  if(vReb > 0){
+    const vRebPx = (vReb / 12) * scEl;
+    ctx.strokeStyle = C.rebar; ctx.lineWidth = 1.4; ctx.setLineDash([4, 2]);
+    for(let rx = vRebPx / 2; rx < EW; rx += vRebPx){
+      ctx.beginPath(); ctx.moveTo(rx, EH); ctx.lineTo(rx, 0); ctx.stroke();
+    }
+    ctx.setLineDash([]);
+  }
+
+  // ── GROUT FILL INDICATOR ────────────────────────────────────────────────
+  if(fill === 'all' || fill === 'alt'){
+    ctx.fillStyle = fill === 'all' ? 'rgba(140,120,90,0.30)' : 'rgba(140,120,90,0.18)';
+    ctx.fillRect(0, 0, EW, EH);
+  }
+
+  // ── CAP ─────────────────────────────────────────────────────────────────
+  if(cap !== 'none'){
+    const capH = 4 / 12 * scEl;
+    const capFill = {solid:'#9c988a', precast:'#7a7466', stone:'#5c5040', brick:'#9a3a28'}[cap] || '#9c988a';
+    ctx.fillStyle = capFill;
+    ctx.fillRect(-2, -capH, EW + 4, capH);
+    ctx.strokeStyle = C.line; ctx.lineWidth = 0.8;
+    ctx.strokeRect(-2, -capH, EW + 4, capH);
+  }
+
+  // ── WALL OUTLINE ────────────────────────────────────────────────────────
+  ctx.strokeStyle = C.line; ctx.lineWidth = 1.5;
+  ctx.strokeRect(0, 0, EW, EH);
+
+  // ── DIMS ────────────────────────────────────────────────────────────────
+  dimLine(ctx, 0, EH + (footerDims ? (footerDims[1]/12*scEl + 10) : 14),
+              EW, EH + (footerDims ? (footerDims[1]/12*scEl + 10) : 14),
+              len + "'", 0, C.dim);
+  dimLine(ctx, -26, 0, -26, EH, ht + "'", 0, C.dim);
+
+  callout(ctx, 4, -10, `${courses} courses · ${blkSz}" ${({standard:'std', split:'split', smooth:'smooth', segmental:'seg'}[style])} CMU`);
+  if(cap !== 'none') callout(ctx, EW - 90, -10, `Cap: ${cap}`);
+
+  ctx.fillStyle = C.dimText; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('ELEVATION', EW / 2, -32);
+  ctx.font = '8px monospace';
+  ctx.fillText(`${({straight:'Freestanding', retaining:'Retaining', underhome:'Crawlspace Stem', piers:'Block Piers'}[wallType])} · running bond`, EW / 2, -20);
+
+  ctx.restore();
+
+  // ── PLAN VIEW (top-right) ───────────────────────────────────────────────
+  const planL = w * 0.6;
+  const planT = PAD + 10;
+  const planMaxW = w - planL - PAD / 2;
+  const planMaxH = elevH;
+  const planSc = Math.min(planMaxW / len, planMaxH / Math.max(blkSz / 12 * 6, 2));
+  const PW = len * planSc;
+  const PH = (blkSz / 12) * planSc;
+
+  ctx.save();
+  ctx.translate(planL, planT + planMaxH * 0.3);
+
+  // Earth side (if buried)
+  if(buriedFt > 0){
+    ctx.fillStyle = '#8a6a3a';
+    ctx.fillRect(0, -planSc * 1.5, PW, planSc * 1.5);
+    drawHatch(ctx, 0, -planSc * 1.5, PW, planSc * 1.5, 5, Math.PI/3);
+  }
+
+  // Wall (top-down)
+  ctx.fillStyle = blockFill;
+  ctx.fillRect(0, 0, PW, PH);
+  // Mortar joints
+  if(style !== 'segmental'){
+    ctx.strokeStyle = '#d6cfb8'; ctx.lineWidth = 0.7;
+    for(let bx = blockLenPx; bx < PW; bx += blockLenPx){
+      ctx.beginPath(); ctx.moveTo(bx, 0); ctx.lineTo(bx, PH); ctx.stroke();
+    }
+  }
+  // Cores (hollow indication)
+  if(fill !== 'all'){
+    ctx.fillStyle = 'rgba(245,240,232,0.55)';
+    for(let bx = blockLenPx*0.2; bx < PW; bx += blockLenPx){
+      ctx.fillRect(bx, PH*0.2, blockLenPx*0.3, PH*0.6);
+      ctx.fillRect(bx + blockLenPx*0.45, PH*0.2, blockLenPx*0.3, PH*0.6);
+    }
+  }
+  ctx.strokeStyle = C.line; ctx.lineWidth = 1.2;
+  ctx.strokeRect(0, 0, PW, PH);
+
+  // Vertical rebar dots
+  if(vReb > 0){
+    const vRebPx = (vReb / 12) * planSc;
+    ctx.fillStyle = C.rebar;
+    for(let rx = vRebPx / 2; rx < PW; rx += vRebPx){
+      ctx.beginPath(); ctx.arc(rx, PH / 2, 2.2, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  // Corner returns
+  for(let i = 0; i < corners; i++){
+    const xc = (i + 0.5) * PW / Math.max(corners, 1);
+    ctx.fillStyle = blockFill;
+    ctx.fillRect(xc - PH/2, PH, PH, PH * 1.5);
+    ctx.strokeStyle = C.line; ctx.lineWidth = 1;
+    ctx.strokeRect(xc - PH/2, PH, PH, PH * 1.5);
+  }
+
+  // Pilasters
+  for(let i = 0; i < pilast; i++){
+    const xp = (i + 0.5) * PW / Math.max(pilast, 1);
+    ctx.fillStyle = blockEdge;
+    ctx.fillRect(xp - PH*0.7, -PH*0.5, PH*1.4, PH*1.5);
+    ctx.strokeStyle = C.line; ctx.lineWidth = 1;
+    ctx.strokeRect(xp - PH*0.7, -PH*0.5, PH*1.4, PH*1.5);
+  }
+
+  dimLine(ctx, 0, PH + (corners > 0 ? PH * 1.5 + 8 : 8),
+              PW, PH + (corners > 0 ? PH * 1.5 + 8 : 8),
+              len + "'", 0, C.teal);
+  dimLine(ctx, -22, 0, -22, PH, blkSz + '"', 0, C.teal);
+
+  ctx.fillStyle = C.dimText; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('PLAN', PW / 2, -planSc * 1.5 - 6);
+
+  ctx.restore();
+
+  // ── CROSS-SECTION (bottom) ──────────────────────────────────────────────
+  const secT = PAD + elevH + 30;
+  const secMaxH = h - secT - TB - 12;
+  const secMaxW = w - PAD * 2;
+  const sectTotalH = (ht + (footerDims ? footerDims[1]/12 : 0) + 1.0);
+  const sectTotalW = Math.max((footerDims ? footerDims[0]/12 : blkSz/12) + 2.5,
+                              (drain !== 'none' ? 3 : 1.5));
+  const scS = Math.min(secMaxW / sectTotalW, secMaxH / sectTotalH) * 0.85;
+  const SW = sectTotalW * scS;
+  const SH = sectTotalH * scS;
+
+  ctx.save();
+  ctx.translate((w - SW) / 2, secT + (secMaxH - SH) / 2);
+
+  const bury2 = (wallType === 'retaining' || wallType === 'underhome');
+  const blockWPx = (blkSz / 12) * scS;
+  const wallHPx = ht * scS;
+  const ftWPx = footerDims ? (footerDims[0]/12) * scS : 0;
+  const ftHPx = footerDims ? (footerDims[1]/12) * scS : 0;
+  const wallX = bury2 ? (SW * 0.55 - blockWPx / 2) : ((SW - blockWPx) / 2);
+  const ftX = bury2 ? (wallX - (ftWPx - blockWPx) / 2) : ((SW - ftWPx) / 2);
+  const wallY = scS * 0.5;
+  const ftY = wallY + wallHPx;
+
+  // Sky
+  ctx.fillStyle = 'rgba(200,224,240,0.20)';
+  ctx.fillRect(0, 0, SW, wallY + wallHPx);
+
+  // Earth on buried side
+  if(bury2){
+    ctx.fillStyle = '#8a6a3a';
+    ctx.fillRect(0, wallY + wallHPx * 0.15, wallX, wallHPx * 0.85 + ftHPx);
+    drawHatch(ctx, 0, wallY + wallHPx * 0.15, wallX, wallHPx * 0.85 + ftHPx, 6, Math.PI / 3);
+  }
+  // Native earth on opposite side below grade
+  ctx.fillStyle = '#8a6a3a';
+  const oppX = wallX + blockWPx;
+  ctx.fillRect(oppX, ftY, SW - oppX, ftHPx);
+  drawHatch(ctx, oppX, ftY, SW - oppX, ftHPx, 6, Math.PI / 3);
+  if(bury2){
+    // Drainage trench cutout against wall
+    if(drain === 'standard' || drain === 'full'){
+      const trX = wallX - blockWPx * 0.8;
+      const trW = blockWPx * 0.8;
+      const trH = wallHPx * 0.7;
+      ctx.fillStyle = '#9a8c70';
+      ctx.fillRect(trX, ftY - trH, trW, trH);
+      // gravel dots
+      for(let dx = trX + 2; dx < trX + trW; dx += 4){
+        for(let dy = ftY - trH + 2; dy < ftY; dy += 4){
+          ctx.fillStyle = '#6a5a40';
+          ctx.beginPath(); ctx.arc(dx + Math.random()*2, dy + Math.random()*2, 1.2, 0, Math.PI*2); ctx.fill();
+        }
+      }
+      // perf pipe
+      ctx.fillStyle = '#1a1a1a';
+      ctx.beginPath(); ctx.arc(trX + trW/2, ftY - 8, 6, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 0.6;
+      for(let h2 = 0; h2 < Math.PI * 2; h2 += Math.PI / 3){
+        ctx.beginPath(); ctx.moveTo(trX + trW/2 + Math.cos(h2)*3, ftY - 8 + Math.sin(h2)*3);
+        ctx.lineTo(trX + trW/2 + Math.cos(h2)*5, ftY - 8 + Math.sin(h2)*5); ctx.stroke();
+      }
+      callout(ctx, trX - 60, ftY - trH/2, '#57 stone + perf pipe');
+    }
+  }
+
+  // Grade line
+  ctx.strokeStyle = C.groundDk; ctx.lineWidth = 2;
+  if(bury2){
+    ctx.beginPath();
+    ctx.moveTo(0, wallY + wallHPx * 0.15);
+    ctx.lineTo(wallX, wallY + wallHPx * 0.15);
+    ctx.lineTo(wallX, ftY);
+    ctx.lineTo(oppX, ftY);
+    ctx.lineTo(SW, ftY);
+    ctx.stroke();
+  } else {
+    ctx.beginPath(); ctx.moveTo(0, ftY); ctx.lineTo(SW, ftY); ctx.stroke();
+  }
+
+  // Footer
+  if(footerDims){
+    ctx.fillStyle = C.concreteDk;
+    ctx.fillRect(ftX, ftY, ftWPx, ftHPx);
+    drawHatch(ctx, ftX, ftY, ftWPx, ftHPx, 5, Math.PI / 4);
+    ctx.strokeStyle = C.line; ctx.lineWidth = 1.2;
+    ctx.strokeRect(ftX, ftY, ftWPx, ftHPx);
+    // Footer rebar (2 runs)
+    ctx.fillStyle = C.rebar;
+    ctx.beginPath(); ctx.arc(ftX + ftWPx*0.25, ftY + ftHPx*0.65, 2.5, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(ftX + ftWPx*0.75, ftY + ftHPx*0.65, 2.5, 0, Math.PI*2); ctx.fill();
+    callout(ctx, ftX + ftWPx + 6, ftY + ftHPx*0.6, `Footer ${footerDims[0]}"×${footerDims[1]}"`);
+  }
+
+  // Wall (cross-section showing cores)
+  ctx.fillStyle = blockFill;
+  ctx.fillRect(wallX, wallY, blockWPx, wallHPx);
+
+  // Show each course
+  const courseHPx = wallHPx / courses;
+  ctx.strokeStyle = '#d6cfb8'; ctx.lineWidth = 0.8;
+  for(let c2 = 1; c2 < courses; c2++){
+    const yL = wallY + c2 * courseHPx;
+    ctx.beginPath(); ctx.moveTo(wallX, yL); ctx.lineTo(wallX + blockWPx, yL); ctx.stroke();
+  }
+
+  // Show hollow cores (2 cores per block)
+  if(fill !== 'all'){
+    ctx.fillStyle = '#f5f0e8';
+    for(let c2 = 0; c2 < courses; c2++){
+      const yC = wallY + c2 * courseHPx;
+      ctx.fillRect(wallX + blockWPx*0.15, yC + courseHPx*0.18, blockWPx*0.32, courseHPx*0.64);
+      ctx.fillRect(wallX + blockWPx*0.53, yC + courseHPx*0.18, blockWPx*0.32, courseHPx*0.64);
+    }
+  }
+  // Show grout-filled cores
+  if(fill === 'all' || fill === 'alt'){
+    ctx.fillStyle = fill === 'all' ? '#9a8a70' : '#9a8a70';
+    for(let c2 = 0; c2 < courses; c2++){
+      const yC = wallY + c2 * courseHPx;
+      ctx.fillRect(wallX + blockWPx*0.15, yC + courseHPx*0.18, blockWPx*0.32, courseHPx*0.64);
+      if(fill === 'all'){
+        ctx.fillRect(wallX + blockWPx*0.53, yC + courseHPx*0.18, blockWPx*0.32, courseHPx*0.64);
+      }
+    }
+  }
+
+  // Vertical rebar (cross-section)
+  if(vReb > 0){
+    ctx.strokeStyle = C.rebar; ctx.lineWidth = 1.5;
+    // First cell
+    ctx.beginPath(); ctx.moveTo(wallX + blockWPx*0.30, wallY - 4);
+    ctx.lineTo(wallX + blockWPx*0.30, ftY + ftHPx*0.7); ctx.stroke();
+    // Dowel hook into footer
+    ctx.beginPath(); ctx.moveTo(wallX + blockWPx*0.30, ftY + ftHPx*0.7);
+    ctx.lineTo(wallX + blockWPx*0.30 + 8, ftY + ftHPx*0.7); ctx.stroke();
+    callout(ctx, wallX - 80, wallY + wallHPx*0.4, `#5 vert @ ${vReb}" OC`);
+  }
+
+  // Wall outline
+  ctx.strokeStyle = C.line; ctx.lineWidth = 1.5;
+  ctx.strokeRect(wallX, wallY, blockWPx, wallHPx);
+
+  // Cap
+  if(cap !== 'none'){
+    const capH = (4 / 12) * scS;
+    const capFill = {solid:'#9c988a', precast:'#7a7466', stone:'#5c5040', brick:'#9a3a28'}[cap] || '#9c988a';
+    ctx.fillStyle = capFill;
+    ctx.fillRect(wallX - 3, wallY - capH, blockWPx + 6, capH);
+    ctx.strokeStyle = C.line; ctx.lineWidth = 0.8;
+    ctx.strokeRect(wallX - 3, wallY - capH, blockWPx + 6, capH);
+  }
+
+  // Waterproofing membrane line on buried side
+  if(bury2 && wp !== 'none'){
+    ctx.strokeStyle = '#1c3a7a'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(wallX - 2, wallY - 2); ctx.lineTo(wallX - 2, ftY); ctx.stroke();
+    callout(ctx, wallX - 110, wallY + wallHPx*0.15,
+            ({damp:'Damp-proof', membrane:'Membrane', dimple:'Dimple+membrane'}[wp]) || '');
+  }
+
+  // Weep holes
+  if(drain === 'weep' || drain === 'standard' || drain === 'full'){
+    ctx.fillStyle = '#1a1a1a';
+    const weepY = wallY + wallHPx - courseHPx * 0.5;
+    ctx.beginPath(); ctx.arc(wallX + blockWPx, weepY, 2.2, 0, Math.PI*2); ctx.fill();
+    callout(ctx, wallX + blockWPx + 6, weepY + 2, 'Weep');
+  }
+
+  // Dimensions
+  dimLine(ctx, wallX + blockWPx + 18, wallY, wallX + blockWPx + 18, ftY, ht + "'", 0, C.dim);
+  dimLine(ctx, wallX, wallY - 14, wallX + blockWPx, wallY - 14, blkSz + '"', 0, C.teal);
+  if(footerDims){
+    dimLine(ctx, ftX, ftY + ftHPx + 10, ftX + ftWPx, ftY + ftHPx + 10, footerDims[0] + '"', 0, C.teal);
+  }
+
+  ctx.fillStyle = C.dimText; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('CROSS SECTION', SW / 2, SH + 14);
+  ctx.font = '8px monospace';
+  const fillLabel = {none:'Hollow', rebar_only:'Filled @ rebar', alt:'Every other core', all:'All cores filled'}[fill];
+  ctx.fillText(`${fillLabel} · ${({standard:'Std CMU', split:'Split-face', smooth:'Smooth-face', segmental:'Segmental'}[style])}`, SW / 2, SH + 26);
+
+  ctx.restore();
+
+  // ── REGISTER ELEMENTS ───────────────────────────────────────────────────
+  pReg('bw_elev_wall', 'Wall Elevation', PAD + 8, PAD + 10, EW, EH, 0);
+  if(footerDims){
+    const fw2 = footerDims[0]; const ft2 = footerDims[1];
+    pReg('bw_elev_footer', 'Footer', PAD + 8 - ((fw2-blkSz)/2/12)*scEl,
+         PAD + 10 + EH, EW + ((fw2-blkSz)/12)*scEl, (ft2/12)*scEl, 0);
+  }
+  pReg('bw_plan_wall', 'Plan View', planL, planT + planMaxH * 0.3, PW, PH, 0);
+  pReg('bw_section', 'Cross Section', (w - SW) / 2, secT + (secMaxH - SH) / 2, SW, SH, 0);
+
+  // Title block
+  const finishLabel = finish === 'none' ? '' : '  |  Finish: ' + finish;
+  titleBlock(ctx, w, h,
+    `BLOCK WALL — ${len}' × ${ht}' tall  |  ${blkSz}" CMU  |  ${courses} courses`,
+    `${({straight:'Freestanding', retaining:'Retaining wall', underhome:'Crawlspace stem wall', piers:'Block piers'}[wallType])}  |  ` +
+    `${({none:'Hollow', rebar_only:'Filled @ rebar', alt:'Every other core', all:'All cores filled'}[fill])}` +
+    (vReb > 0 ? `  |  #5 vert @ ${vReb}" OC` : '') +
+    (footerDims ? `  |  Footer ${footer}` : '') +
+    finishLabel);
+}
+
+// ══════════════════════════════════════════════════════════════════════════
 // MAIN DISPATCHER
 // ══════════════════════════════════════════════════════════════════════════
 function render2D(type, params){
@@ -5189,6 +6056,7 @@ const PHASE_NAMES = {
   framing:  ['Foundation & Slab','Anchor Bolts & Bottom Plate','Stud Wall Framing','Headers & Blocking','Double Top Plate & Sheathing','Window & Door Install','Insulation & Wrap'],
   concrete: ['Excavation & Layout','Vapor Barrier & Gravel','Form Boards','Rebar Placement','Wire Mesh','Concrete Pour & Finish','Curing & Seal'],
   carport:  ['Foundation & Post Setting','Roof Beam & Purlins','Roof Sheathing','Roofing Material','Side Walls (if any)','Gutters & Trim','Final Inspection'],
+  blockwall:['Site Layout & Excavation','Footer Forms & Rebar','Footer Pour & Cure','Lay First Course','Build Up Courses & Rebar','Grout Cells & Cap','Waterproof / Drain / Finish'],
 };
 
 // ── VIEW / PHASE / ORIENT SWITCHERS ──────────────────────────────────────
@@ -7489,7 +8357,7 @@ function render2DFull(type, params){
   else if(type==='framing')  drawFraming2D(ctx,w,h,params);
   else if(type==='concrete') drawConcrete2D(ctx,w,h,params);
   else if(type==='carport') drawCarport2D(ctx,w,h,params);
-  else if(type==='carport')  drawCarport2D(ctx,w,h,params);
+  else if(type==='blockwall') drawBlockwall2D(ctx,w,h,params);
 
   // Draw selection handles on top
   _ppDrawHandles(ctx);
@@ -7517,6 +8385,7 @@ function render2DFull(type, params){
       concrete:`${params.len}' × ${params.wid}'  ·  ${params.thick}" slab  ·  #${params.rebar} rebar`,
       porch:`${params.len}' × ${params.dep}'  ·  ${params.flHt}' floor height  ·  ${params.roofStyle} roof`,
       carport:`${params.len}' × ${params.wid}'  ·  ${params.ht}' eave  ·  ${params.pitch}:12 pitch  ·  ${params.postSp || 8}' OC posts`,
+      blockwall:`${params.len}' × ${params.ht}'  ·  ${params.blkSz}" CMU  ·  ${params.courses} courses  ·  ${({none:'hollow', rebar_only:'rebar cells filled', alt:'every-other filled', all:'all cores filled'}[params.fill]||'')}${params.vReb>0?'  ·  #5 vert @ '+params.vReb+'" OC':''}${params.footer&&params.footer!=='none'?'  ·  Footer '+params.footer:''}`,
     };
     dimsEl.textContent=labels[type] ? labels[type] + '  |  Drag posts / columns / stairs / lights to reposition.  |  Per IRC 2021: verify footing depth R403, ledger attachment R507.9, railing height ≥36" R312.1, stair geometry R311.7.' : '';
   }
