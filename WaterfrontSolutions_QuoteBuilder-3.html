@@ -3798,6 +3798,28 @@ function _pushIfPositive(items, cat, ...newItems){
 function extendTakeoffWithCompleteList(type, items, c){
   if(!c) c={};
   const P = _pushIfPositive;
+
+  // ── COMMON: General Conditions block ────────────────────────────────────
+  // Shared helper so every takeoff gets a consistent "general conditions"
+  // category. Quantities scale with project size. Each value is a sensible
+  // East TN allowance for a quality build.
+  function addGeneralConditions(projSqft, durationDays, hasSidewalkProtection){
+    const days = Math.max(7, durationDays|0);
+    // Deliveries scale with duration, not raw sqft. Most jobs need at
+    // least 2 deliveries; trades that span weeks need more.
+    const deliveries = Math.max(2, Math.ceil(days/5));
+    P(items, 'General Conditions',
+      _i('Dumpster 20-yard (delivered, 2-week)',    Math.max(1, Math.ceil(days/14)), 'rental', 'rental', 485),
+      _i('Porta-John Rental (monthly)',             Math.max(1, Math.ceil(days/30)), 'month',  'month',  165),
+      _i('General Cleanup Labor (day)',             Math.max(1, Math.ceil(days/14)), 'day',    'day',    240),
+      _i('Material Delivery Charges (estimate)',    deliveries, 'delivery','delivery', 185),
+      _i('Tarps / Temporary Weather Protection',    2, 'ea', 'ea', 42),
+      _i('Tool Blade / Bit Replacement',            1, 'lot','lot', 65),
+      _i('Final Walk-Through / Punch List',         1, 'visit','visit', 180),
+      _i('Site Protection Plywood / Plastic',       hasSidewalkProtection?1:0, 'lot','lot', 95),
+    );
+  }
+
   if(type==='deck'){
     const {len=0,wid=0,ht=0,joc=16,rail=0,postQty=0,joistCount=0,rises=0,stairs=0,sqft=0,perim=0,railType='wood'}=c;
     // Site Prep & Layout — completely missing from current calc
@@ -3846,9 +3868,15 @@ function extendTakeoffWithCompleteList(type, items, c){
       _i('PT End-Cut Preservative qt (Copper Coat)', 1, 'qt', 'qt', 18),
       _i('Carbide Circular Blade 7¼" (PT-rated)', 1, 'ea', 'ea', 18),
       _i('Recip Saw Blade Pack', 1, 'pack', 'pack', 18),
-      _i('Building Permit Fee (allowance)', 1, 'ea', 'ea', 150),
-      _i('Inspection Fee', 1, 'ea', 'ea', 75),
     );
+    // Permits & Inspections — separate category for clarity
+    P(items, 'Permits & Inspections',
+      _i('Building Permit Fee (allowance)',         1, 'ea', 'ea', 150),
+      _i('Footing Inspection Fee',                  1, 'ea', 'ea', 75),
+      _i('Final Deck Inspection Fee',               1, 'ea', 'ea', 75),
+    );
+    // General conditions — small deck duration ~5-10 days
+    addGeneralConditions(sqft, Math.max(7, Math.ceil(sqft/40)), false);
   }
   else if(type==='roof'){
     const {blen=0,bwid=0,eaveExt=0,roofSqFt=0,eavePerim=0,rakePerim=0,ridge=0,valley=0,shingle='arch',sheetsNeeded=0,tearoff=0,gutterLF=0,penetr=0}=c;
@@ -3887,9 +3915,28 @@ function extendTakeoffWithCompleteList(type, items, c){
         _i('F-Channel + J-Channel 12\'', Math.ceil(gutterLF/12)*2, 'ea', 'ea', 9),
       );
     }
-    P(items, 'Summary',
-      _i('Building Permit Fee (allowance)', 1, 'ea', 'ea', 150),
-      _i('Roofing Inspection Fee', 1, 'ea', 'ea', 75),
+    // Roof ventilation — IRC R806 net free vent area = 1/300 of attic floor.
+    // Split ~50% intake at soffit, 50% exhaust at ridge or box vents.
+    P(items, 'Ventilation',
+      _i('Cobra Ridge Vent 20\' Roll',              ridge>0?Math.ceil(ridge/20):0, 'roll', 'roll', 48),
+      _i('Off-Ridge Box Vent (50 sqin NFA)',        ridge>0?0:Math.max(2, Math.ceil(roofSqFt/600)), 'ea', 'ea', 24),
+      _i('Soffit Continuous Vent 8\'×3"',           Math.ceil((blen+eaveExt*2)*2/8), 'ea', 'ea', 14),
+      _i('Gable End Vent (decorative, 14×24)',      roofSqFt>1500?2:0, 'ea', 'ea', 48),
+      _i('Insulation Baffle (rafter bay)',          Math.ceil((blen+eaveExt*2)*2/2), 'ea', 'ea', 4.20),
+    );
+    // Permits & Inspections — separated from Summary for clarity
+    P(items, 'Permits & Inspections',
+      _i('Building Permit Fee (allowance)',         1, 'ea', 'ea', 150),
+      _i('Roof Decking Inspection',                 sheetsNeeded>0?1:0, 'ea', 'ea', 75),
+      _i('Final Roofing Inspection Fee',            1, 'ea', 'ea', 75),
+    );
+    // General conditions — reroofing duration scales with squares
+    const roofDays = Math.max(2, Math.ceil(roofSqFt/700));
+    addGeneralConditions(roofSqFt, roofDays, true);
+    P(items, 'General Conditions',
+      _i('Magnetic Nail Sweeper (final yard pass)', 1, 'svc', 'svc', 35),
+      _i('Landscape Protection Tarps (large)',      Math.ceil(roofSqFt/2000)+1, 'ea', 'ea', 28),
+      _i('Sherpa Ladder + Roof Hooks Rental',       1, 'day', 'day', 38),
     );
   }
   else if(type==='framing'){
@@ -3975,10 +4022,34 @@ function extendTakeoffWithCompleteList(type, items, c){
         _i('16-ga Tie Wire Roll (additional)', 1, 'roll', 'roll', 11),
       );
     }
-    P(items, 'Summary',
-      _i('Building Permit Fee (allowance)', 1, 'ea', 'ea', 150),
-      _i('Concrete Inspection Fee', 1, 'ea', 'ea', 75),
+    // Concrete testing & QC — required on engineered slabs / large pours.
+    // Slump test + cylinder set when CY > 10 or sqft > 500.
+    P(items, 'Testing & QC',
+      _i('Concrete Cylinder Test Set (4 cyls)',     orderCY>10||sqft>500?1:0, 'set', 'set', 165),
+      _i('Slump Cone Test (on-truck)',              orderCY>10?1:0, 'test', 'test', 48),
+      _i('Air-Entrainment Meter (rent)',            0, 'day', 'day', 65),
+      _i('Soil Compaction Density Test',            sqft>800?1:0, 'test', 'test', 145),
     );
+    // Saw-cut control joints — ACI 302: max joint spacing ≈ 24-36× slab
+    // thickness. For 4" slab assume 10' grid. Approximate total joint lf
+    // as len/10 cuts across full width + wid/10 cuts across full length.
+    if(sqft>400){
+      const cutsAcross = Math.max(0, Math.floor(Math.sqrt(sqft)/10) - 1);
+      const cutsDown   = cutsAcross; // square-equivalent grid
+      const jointLF    = cutsAcross * Math.sqrt(sqft) + cutsDown * Math.sqrt(sqft);
+      P(items, 'Finishing',
+        _i('Saw Cut Control Joint Labor (lf)', Math.ceil(jointLF), 'lf', 'lf', 0),
+      );
+    }
+    // Permits & Inspections — broken out for visibility
+    P(items, 'Permits & Inspections',
+      _i('Building Permit Fee (allowance)',         1, 'ea', 'ea', 150),
+      _i('Pre-Pour Reinforcement Inspection',       1, 'ea', 'ea', 75),
+      _i('Final Concrete Inspection Fee',           1, 'ea', 'ea', 75),
+    );
+    // General conditions — slab pour usually 5-10 days w/ cure
+    const concDays = Math.max(5, Math.ceil(sqft/120));
+    addGeneralConditions(sqft, concDays, false);
   }
   else if(type==='porch'){
     const {len=0,dep=0,sqft=0,perim=0,attached=false,ridgeLF=0,screening='none',fans=0,lights=0,totalCols=0}=c;
@@ -4029,9 +4100,16 @@ function extendTakeoffWithCompleteList(type, items, c){
       _i('Exterior Primer 1 gal (Sherwin Multipurpose)', Math.ceil(perim*8/300), 'gal', 'gal', 52),
       _i('Exterior Paint 1 gal (SuperPaint)', Math.ceil(perim*8/300), 'gal', 'gal', 78),
       _i('Big Stretch Caulk 10 oz', 12, 'tube', 'tube', 11),
-      _i('Building Permit Fee (allowance)', 1, 'ea', 'ea', 175),
-      _i('Inspection Fee', 1, 'ea', 'ea', 75),
     );
+    // Permits & Inspections
+    P(items, 'Permits & Inspections',
+      _i('Building Permit Fee (allowance)',         1, 'ea', 'ea', 175),
+      _i('Footing Inspection Fee',                  1, 'ea', 'ea', 75),
+      _i('Framing Inspection Fee',                  1, 'ea', 'ea', 75),
+      _i('Final Porch Inspection Fee',              1, 'ea', 'ea', 75),
+    );
+    // General conditions — porch build typically 2-4 weeks
+    addGeneralConditions(sqft, Math.max(14, Math.ceil(sqft/12)), false);
   }
   else if(type==='carport'){
     const {len=0,wid=0,ht=0,perim=0,sqft=0,postCount=4,ridgeLF=0,roofMat='metal',sides='none'}=c;
@@ -4076,10 +4154,16 @@ function extendTakeoffWithCompleteList(type, items, c){
       _i('Solid-color Stain 1 gal (Behr Premium PT)', Math.ceil((perim*ht)/300), 'gal', 'gal', 48),
       _i('Big Stretch Caulk 10 oz', 6, 'tube', 'tube', 11),
       _i('Concrete Pad Sealer 5 gal', sqft>0?1:0, 'pail', 'pail', 185),
-      _i('Building Permit Fee (allowance)', 1, 'ea', 'ea', 175),
-      _i('Zoning / Setback Verification Fee', 1, 'ea', 'ea', 85),
-      _i('Inspection Fee', 1, 'ea', 'ea', 75),
     );
+    // Permits & Inspections — carport often needs zoning approval too
+    P(items, 'Permits & Inspections',
+      _i('Building Permit Fee (allowance)',         1, 'ea', 'ea', 175),
+      _i('Zoning / Setback Verification Fee',       1, 'ea', 'ea', 85),
+      _i('Footing Inspection Fee',                  1, 'ea', 'ea', 75),
+      _i('Final Carport Inspection Fee',            1, 'ea', 'ea', 75),
+    );
+    // General conditions — carport build ~1-2 weeks for wood-framed
+    addGeneralConditions(sqft, Math.max(10, Math.ceil(sqft/24)), false);
   }
 }
 
@@ -4144,6 +4228,8 @@ function toRenderResults(items, summary, type){
     'HVAC':                    R.hvac,
     'Permits & Inspections':   0,
     'General Conditions':      R.gen,
+    'Ventilation':             R.roof,
+    'Testing & QC':            R.sub,
   };
 
   // Estimate labor by category if not provided explicitly
@@ -4194,6 +4280,8 @@ function toRenderResults(items, summary, type){
     'HVAC':                    {ea:0.50, lf:0.10, default:0.40},
     'Permits & Inspections':   {default:0},
     'General Conditions':      {day:0, ea:0, default:0},
+    'Ventilation':             {ea:0.30, roll:0.30, default:0.20},
+    'Testing & QC':            {test:0, set:0, day:0, default:0},
   };
 
   // Build full cost data per item
@@ -9012,6 +9100,34 @@ const PRICE_MAP = (()=>{
   add('Tarps / Temporary Weather Protection',   42,   0,    'gen');
   add('Tool Blade / Bit Replacement',           65,   0,    'sk');
   add('Final Walk-Through / Punch List',       180,   0,    'fore');
+  add('Site Protection Plywood / Plastic',      95,   0,    'gen');
+
+  // ── COMMON: SHARED-ACROSS-TAKEOFFS ENTRIES ─────────────────────────────
+  // Roof ventilation (used by roof + addition reroof)
+  add('Off-Ridge Box Vent (50 sqin NFA)',       24,  0.40,'roof');
+  add('Soffit Continuous Vent 8\'×3"',          14,  0.20,'sk');
+  add('Gable End Vent (decorative, 14×24)',     48,  0.50,'sk');
+  add('Insulation Baffle (rafter bay)',          4.20, 0.05,'sk');
+  // Roof tear-off / re-roof general conditions
+  add('Magnetic Nail Sweeper (final yard pass)', 35,  0,   'gen');
+  add('Landscape Protection Tarps (large)',     28,   0,   'gen');
+  add('Sherpa Ladder + Roof Hooks Rental',      38,   0,   'sub');
+  // Concrete testing & QC
+  add('Concrete Cylinder Test Set (4 cyls)',   165,   0,   'sub');
+  add('Slump Cone Test (on-truck)',             48,   0,   'sub');
+  add('Air-Entrainment Meter (rent)',           65,   0,   'sub');
+  add('Soil Compaction Density Test',          145,   0,   'sub');
+  add('Saw Cut Control Joint Labor (lf)',        0,   0.05,'sk');
+  // Permit & inspection variants used across takeoffs
+  add('Footing Inspection Fee',                 75,   0,   'sub');
+  add('Final Deck Inspection Fee',              75,   0,   'sub');
+  add('Final Porch Inspection Fee',             75,   0,   'sub');
+  add('Final Carport Inspection Fee',           75,   0,   'sub');
+  add('Roof Decking Inspection',                75,   0,   'sub');
+  add('Final Roofing Inspection Fee',           75,   0,   'sub');
+  add('Pre-Pour Reinforcement Inspection',      75,   0,   'sub');
+  add('Final Concrete Inspection Fee',          75,   0,   'sub');
+  add('Zoning / Setback Verification Fee',      85,   0,   'sub');
 
   // ── PORCH ──────────────────────────────────────────────────────────────
   add('Outdoor Tile 12×12',            1.85, 0.12,'mason');
