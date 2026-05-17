@@ -4190,9 +4190,13 @@ function toRenderResults(items, summary, type){
       let swapHtml = '';
       if(altsInfo && altsInfo.alts && altsInfo.alts.length){
         const currentLabel = item.name;
+        // Pricing-page edits land in `qb_prices` keyed by label; read here
+        // so any user-edited price overrides the ALT_CATALOG default.
+        const _userPx = (function(){ try{return JSON.parse(localStorage.getItem('qb_prices')||'{}');}catch(e){return {};} })();
         const optsArr = altsInfo.alts.map(a=>{
           const lab=(a.label||'').replace(/"/g,'&quot;');
-          return `<option value="${lab}||${a.matCostEach}" ${currentLabel===a.label?'selected':''}>${a.label} — $${a.matCostEach.toFixed(2)}</option>`;
+          const px = (_userPx[a.label]!=null) ? _userPx[a.label] : a.matCostEach;
+          return `<option value="${lab}||${px}" ${currentLabel===a.label?'selected':''}>${a.label} — $${(+px).toFixed(2)}</option>`;
         });
         // Insert a "current/keep" option if the current label isn't in the alts list
         const inAlts = altsInfo.alts.some(a=>a.label===currentLabel);
@@ -9991,8 +9995,56 @@ function getPricingItems(){
       });
     });
   }
+  // ALT_CATALOG — brand/color alternates exposed via the per-line "swap"
+  // dropdown in the takeoff. Surfacing them here lets the user view and
+  // edit every branded option from one place. Category is a friendly
+  // label per role; unit is inferred from the entry's _per* flag.
+  if(typeof ALT_CATALOG !== 'undefined'){
+    Object.entries(ALT_CATALOG).forEach(([role, alts])=>{
+      const catLabel = ALT_ROLE_CATEGORY[role] || ('Alternates — '+role);
+      alts.forEach(a=>{
+        if(!a || !a.label || seen.has(a.label)) return;
+        seen.add(a.label);
+        const unit = a._perFt ? 'lf' : a._perSf ? 'sf' : a._perSq ? 'sq (100 sf)' : 'ea';
+        items.push({
+          name: a.label,
+          price: a.matCostEach,
+          unit,
+          cat: catLabel,
+          note: 'Brand/color alternate selectable from the per-line "swap" dropdown in any takeoff.'
+        });
+      });
+    });
+  }
   return items.sort((a,b)=>a.cat.localeCompare(b.cat)||a.name.localeCompare(b.name));
 }
+
+// Friendly category label per ALT_CATALOG role, used on the Pricing page.
+const ALT_ROLE_CATEGORY = {
+  joist:           'Framing — Joists',
+  beam:            'Framing — Beams',
+  ledger:          'Framing — Ledgers',
+  post:            'Framing — Posts',
+  stud:            'Framing — Studs',
+  sheathing_panel: 'Sheathing & Subfloor',
+  anchor_bolt:     'Fasteners — Anchor Bolts',
+  rebar:           'Concrete — Rebar',
+  sonotube:        'Concrete — Sonotubes',
+  vapor_barrier:   'Concrete — Vapor Barrier',
+  decking_board:   'Decking — Boards (Brands & Colors)',
+  deck_screw:      'Decking — Fasteners',
+  underlayment:    'Roofing — Underlayment',
+  shingle:         'Roofing — Shingles (Brands & Colors)',
+  shingle_starter: 'Roofing — Starter Strip',
+  ridge_cap:       'Roofing — Ridge Cap',
+  drip_edge:       'Roofing — Drip Edge',
+  gutter:          'Roofing — Gutters',
+  siding:          'Siding (Brands & Colors)',
+  insulation:      'Insulation (Brands)',
+  column:          'Columns & Wraps',
+  paint:           'Paint (Brands & Lines)',
+  caulk:           'Sealants & Caulk',
+};
 
 function renderPriceEditor(){
   buildPriceCatPills();
