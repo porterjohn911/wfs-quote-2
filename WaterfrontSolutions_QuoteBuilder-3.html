@@ -2795,6 +2795,7 @@ function toCalcFraming(){
 
   extendTakeoffWithCompleteList('framing', items, {
     extPerim, ht, totalStuds, openings, doors, windows, studSz, sheath,
+    sqft, floorSqft: sqft,
   });
 
   toRenderResults(items, summary, 'framing');
@@ -3219,6 +3220,10 @@ function toCalcBlockwall(){
     'Finish': finish==='none' ? 'Bare block' : finish.charAt(0).toUpperCase()+finish.slice(1),
   };
 
+  extendTakeoffWithCompleteList('blockwall', items, {
+    len, ht, wallSqft, blockQty,
+  });
+
   toRenderResults(items, summary, 'blockwall');
 }
 
@@ -3567,6 +3572,35 @@ function extendTakeoffWithCompleteList(type, items, c){
       _i('Building Permit Fee (allowance)', 1, 'ea', 'ea', 150),
       _i('Inspection Fee', 1, 'ea', 'ea', 75),
     );
+    // Sonotube forms — not in base calc; required for every pier
+    P(items, 'Foundation & Posts',
+      _i('Sonotube Form 12"Ø × 48"', postQty, 'ea', 'ea', 24),
+    );
+    // Excavation & site prep — pier holes, spoils haul
+    P(items, 'Site Prep & Excavation',
+      _i('Post Hole Auger Rental (1-man, day)', postQty>6?1:0, 'day', 'day', 85),
+      _i('Manual Post Hole Digger', 1, 'ea', 'ea', 38),
+      _i('Wheelbarrow 6 cu ft', 1, 'ea', 'ea', 95),
+      _i('Round-Point Shovel', 2, 'ea', 'ea', 28),
+      _i('Spoils Haul-off (per pier ~½ CY)', Math.ceil(postQty*0.5), 'CY', 'CY', 32),
+    );
+    // Finish coat — every deck needs sealing/staining
+    P(items, 'Finish & Sealing',
+      _i('Penetrating Deck Stain/Sealer 5 gal (Ready Seal)', Math.ceil(sqft/200), 'pail', 'pail', 165),
+      _i('Stain Brush 4"', 2, 'ea', 'ea', 9),
+      _i('9" Roller Frame + Pad (3-pk)', 1, 'set', 'set', 18),
+      _i('Pump Sprayer 2 gal', 1, 'ea', 'ea', 38),
+      _i('Drop Cloth 9×12 Canvas', 1, 'ea', 'ea', 18),
+      _i('Painter\'s Tape 1.88"×60yd', 2, 'roll', 'roll', 9),
+    );
+    // Final cleanup & disposal
+    P(items, 'Cleanup & Disposal',
+      _i('30-yd Dumpster Rental', sqft>200?1:0, 'ea', 'ea', 425),
+      _i('Construction Trash Bag 3mil (32 ct)', 1, 'box', 'box', 28),
+      _i('Push Broom 24"', 1, 'ea', 'ea', 22),
+      _i('Magnetic Nail Sweep Rental (day)', 1, 'day', 'day', 18),
+      _i('Final Cleanup Labor Allowance', 1, 'ea', 'ea', 145),
+    );
   }
   else if(type==='roof'){
     const {blen=0,bwid=0,eaveExt=0,roofSqFt=0,eavePerim=0,rakePerim=0,ridge=0,valley=0,shingle='arch',sheetsNeeded=0,tearoff=0,gutterLF=0,penetr=0}=c;
@@ -3605,6 +3639,28 @@ function extendTakeoffWithCompleteList(type, items, c){
         _i('F-Channel + J-Channel 12\'', Math.ceil(gutterLF/12)*2, 'ea', 'ea', 9),
       );
     }
+    // Additional penetration flashing (skylights/chimneys/lead boots)
+    if(penetr>0){
+      P(items, 'Flashing & Trim',
+        _i('Chimney Cricket Saddle Kit', 1, 'ea', 'ea', 145),
+        _i('Lead Pipe Boot 1.5"-3" (replaces EPDM, 50-yr)', penetr, 'ea', 'ea', 32),
+        _i('Storm Collar (around vent stack)', penetr, 'ea', 'ea', 8),
+      );
+    }
+    // Finish / touch-up paint — fascia + soffit + trim
+    P(items, 'Finish & Paint',
+      _i('Fascia/Soffit Touch-up Paint qt (Sherwin Exterior)', 1, 'qt', 'qt', 24),
+      _i('Angle Sash Brush 2.5"', 1, 'ea', 'ea', 11),
+      _i('Drop Cloth 9×12', 1, 'ea', 'ea', 18),
+    );
+    // Cleanup & Disposal — always needed even on new construction
+    P(items, 'Cleanup & Disposal',
+      _i('30-yd Dumpster (debris haul, new const)', tearoff>0?0:1, 'ea', 'ea', 425),
+      _i('Magnetic Nail Sweep Rental (day)', 1, 'day', 'day', 18),
+      _i('Push Broom 24"', 1, 'ea', 'ea', 22),
+      _i('Ground Tarp 20×30 (catch debris)', 2, 'ea', 'ea', 28),
+      _i('Final Cleanup Labor Allowance', 1, 'ea', 'ea', 165),
+    );
     P(items, 'Summary',
       _i('Building Permit Fee (allowance)', 1, 'ea', 'ea', 150),
       _i('Roofing Inspection Fee', 1, 'ea', 'ea', 75),
@@ -3643,6 +3699,32 @@ function extendTakeoffWithCompleteList(type, items, c){
         _i('1" Plastic-Cap Staple 1000 ct (wrap fastener)', Math.ceil(extPerim*ht*4/1000), 'box', 'box', 32),
       );
     }
+    // Floor framing — rim joist, sill, subfloor (typical addition/new const)
+    {
+      const floorSqft = (c.floorSqft != null) ? c.floorSqft : 0;
+      P(items, 'Floor Framing',
+        _i('2×10 PT Rim Joist 16\'', Math.ceil(extPerim/16*1.10), 'ea', 'ea', 32),
+        _i('23/32" T&G Subfloor (Advantech) 4×8', Math.ceil((floorSqft||extPerim*extPerim/16)/32*1.08), 'sheet', 'sheet', 52),
+        _i('Subfloor Adhesive PL Premium 28 oz', Math.ceil(extPerim/12), 'tube', 'tube', 9),
+        _i('Subfloor Screws 2½" (5 lb box)', 2, 'box', 'box', 62),
+        _i('Joist Hangers LUS210 (rim-to-joist)', Math.ceil(extPerim/1.33), 'ea', 'box(50)', 1.40),
+      );
+    }
+    // Site prep — needed even before framing (layout, batter boards)
+    P(items, 'Site Work & Layout',
+      _i('Batter Board 1×4×8\'', 12, 'ea', 'ea', 7),
+      _i('Mason\'s Twine 500\' Roll', 1, 'roll', 'roll', 6),
+      _i('Marking Paint (utility orange)', 2, 'can', 'can', 7),
+      _i('Self-Leveling Laser Rental (day)', 1, 'day', 'day', 65),
+    );
+    // Cleanup & Disposal — every framing job
+    P(items, 'Cleanup & Disposal',
+      _i('30-yd Dumpster Rental', 1, 'ea', 'ea', 425),
+      _i('Construction Trash Bag 3mil (32 ct)', 1, 'box', 'box', 28),
+      _i('Push Broom 24"', 1, 'ea', 'ea', 22),
+      _i('Magnetic Nail Sweep Rental (day)', 1, 'day', 'day', 18),
+      _i('Final Cleanup Labor Allowance', 1, 'ea', 'ea', 245),
+    );
     P(items, 'Summary',
       _i('Building Permit Fee (allowance)', 1, 'ea', 'ea', 150),
       _i('Framing Inspection Fee', 1, 'ea', 'ea', 75),
@@ -3693,6 +3775,29 @@ function extendTakeoffWithCompleteList(type, items, c){
         _i('16-ga Tie Wire Roll (additional)', 1, 'roll', 'roll', 11),
       );
     }
+    // Excavation — separate from compaction; required to dig footers/grade pad
+    P(items, 'Site Work & Excavation',
+      _i('Mini-Excavator Rental (day, ≤500 sf)', sqft<=500?1:0, 'day', 'day', 285),
+      _i('Skid-Steer Rental (day, >500 sf)', sqft>500?1:0, 'day', 'day', 365),
+      _i('Spoils Haul-off (excavated dirt)', Math.ceil(sqft*0.4/27), 'CY', 'CY', 32),
+      _i('Round-Point Shovel', 2, 'ea', 'ea', 28),
+      _i('Pick Mattock', 1, 'ea', 'ea', 38),
+      _i('Grade Stake 1×2×36"', Math.ceil(perim/4), 'ea', 'bundle(50)', 1.40),
+    );
+    // Cold-weather / curing protection — concrete fails if frozen
+    P(items, 'Finishing',
+      _i('Concrete Curing Blanket 6×25\'', sqft>200?Math.ceil(sqft/150):0, 'ea', 'ea', 58),
+      _i('Plastic Cure Sheeting 10\'×100\' (alt to blanket)', 1, 'roll', 'roll', 42),
+      _i('Calcium Chloride Accelerator (cold pour)', orderCY>5?Math.ceil(orderCY):0, 'bag', 'bag', 18),
+    );
+    // Cleanup & Disposal
+    P(items, 'Cleanup & Disposal',
+      _i('Concrete Washout Bag Disposal Fee', 1, 'ea', 'ea', 85),
+      _i('30-yd Dumpster Rental (form lumber/debris)', sqft>500?1:0, 'ea', 'ea', 425),
+      _i('Push Broom 24" (concrete surface clean)', 1, 'ea', 'ea', 22),
+      _i('Pressure Washer Rental (day, slab rinse)', 1, 'day', 'day', 95),
+      _i('Final Cleanup Labor Allowance', 1, 'ea', 'ea', 165),
+    );
     P(items, 'Summary',
       _i('Building Permit Fee (allowance)', 1, 'ea', 'ea', 150),
       _i('Concrete Inspection Fee', 1, 'ea', 'ea', 75),
@@ -3750,6 +3855,36 @@ function extendTakeoffWithCompleteList(type, items, c){
       _i('Building Permit Fee (allowance)', 1, 'ea', 'ea', 175),
       _i('Inspection Fee', 1, 'ea', 'ea', 75),
     );
+    // Insulation — needed if ceiling is closed (drywall/T&G)
+    P(items, 'Ceiling',
+      _i('R-19 Faced Fiberglass Batt (bag, covers ~64 sf)', Math.ceil(sqft/64), 'bag', 'bag', 58),
+      _i('Insulation Hangers / Staples', Math.ceil(sqft/50), 'ea', 'box(100)', 0.20),
+      _i('Vapor Barrier 6mil 10\'×100\'', Math.ceil(sqft/1000), 'roll', 'roll', 58),
+    );
+    // Paint & Finish — ceiling, columns, floor stain
+    P(items, 'Paint & Finish',
+      _i('Ceiling Paint 5 gal (Flat White)', Math.ceil(sqft/1500), 'pail', 'pail', 145),
+      _i('Column Wrap Paint qt (Semi-Gloss)', Math.ceil(totalCols/4), 'qt', 'qt', 24),
+      _i('Floor Stain/Sealer 5 gal (if PT/Cedar)', Math.ceil(sqft/200), 'pail', 'pail', 165),
+      _i('9" Roller + Frame + Sleeve (3pk)', 1, 'set', 'set', 18),
+      _i('2.5" Angle Sash Brush', 2, 'ea', 'ea', 11),
+      _i('Drop Cloth 9×12 Canvas', 2, 'ea', 'ea', 18),
+    );
+    // Door — required for screened porches; allowance for screen door
+    if(screening==='screen'){
+      P(items, 'Screening / Enclosure',
+        _i('Screen Door 36" Aluminum w/ Closer', 1, 'ea', 'ea', 245),
+        _i('Door Hardware Lockset + Latch', 1, 'ea', 'ea', 38),
+      );
+    }
+    // Cleanup & Disposal
+    P(items, 'Cleanup & Disposal',
+      _i('30-yd Dumpster Rental', sqft>150?1:0, 'ea', 'ea', 425),
+      _i('Construction Trash Bag 3mil (32 ct)', 1, 'box', 'box', 28),
+      _i('Push Broom 24"', 1, 'ea', 'ea', 22),
+      _i('Magnetic Nail Sweep Rental (day)', 1, 'day', 'day', 18),
+      _i('Final Cleanup Labor Allowance', 1, 'ea', 'ea', 195),
+    );
   }
   else if(type==='carport'){
     const {len=0,wid=0,ht=0,perim=0,sqft=0,postCount=4,ridgeLF=0,roofMat='metal',sides='none'}=c;
@@ -3798,6 +3933,40 @@ function extendTakeoffWithCompleteList(type, items, c){
       _i('Zoning / Setback Verification Fee', 1, 'ea', 'ea', 85),
       _i('Inspection Fee', 1, 'ea', 'ea', 75),
     );
+    // Insulation — only when enclosed (any sides)
+    if(sides && sides!=='none' && sides!=='open'){
+      P(items, 'Side Walls',
+        _i('R-13 Faced Fiberglass Batt (bag, covers ~88 sf)', Math.ceil(perim*ht/88), 'bag', 'bag', 52),
+        _i('Insulation Hangers / Staples', Math.ceil(perim*ht/50), 'ea', 'box(100)', 0.20),
+      );
+    }
+    // Garage door opening framing/hardware allowance (carports often add later)
+    P(items, 'Roof Framing',
+      _i('Garage Door Header LVL 1¾×11⅞ × 16\' (rough opening allowance)', 0, 'ea', 'ea', 145),
+      _i('Garage Door Jamb Trim 2×6 PT × 10\'', 0, 'ea', 'ea', 22),
+    );
+    // Cleanup & Disposal
+    P(items, 'Cleanup & Disposal',
+      _i('30-yd Dumpster Rental', sqft>300?1:0, 'ea', 'ea', 425),
+      _i('Construction Trash Bag 3mil (32 ct)', 1, 'box', 'box', 28),
+      _i('Push Broom 24"', 1, 'ea', 'ea', 22),
+      _i('Magnetic Nail Sweep Rental (day)', 1, 'day', 'day', 18),
+      _i('Final Cleanup Labor Allowance', 1, 'ea', 'ea', 195),
+    );
+  }
+  else if(type==='blockwall'){
+    const {len=0,ht=0,wallSqft=0,blockQty=0}=c;
+    // Blockwall calc is comprehensive inline; this adds final cleanup/disposal
+    // and finish items that round out the construction sequence.
+    P(items, 'Cleanup & Disposal',
+      _i('30-yd Dumpster Rental (block scrap, mortar bags)', wallSqft>200?1:0, 'ea', 'ea', 425),
+      _i('Construction Trash Bag 3mil (32 ct)', 1, 'box', 'box', 28),
+      _i('Push Broom 24"', 1, 'ea', 'ea', 22),
+      _i('Wire Brush (mortar cleanup)', 2, 'ea', 'ea', 9),
+      _i('Muriatic Acid Wash 1 gal (block surface)', Math.ceil(wallSqft/300), 'gal', 'gal', 14),
+      _i('Pressure Washer Rental (day)', 1, 'day', 'day', 95),
+      _i('Final Cleanup Labor Allowance', 1, 'ea', 'ea', 185),
+    );
   }
 }
 
@@ -3841,6 +4010,11 @@ function toRenderResults(items, summary, type){
     'Core Grout Fill':     R.mason, 'Wall Cap':          R.mason,
     'Waterproofing':       R.sk,  'Drainage':            R.sk,
     'Wall Finish':         R.mason,
+    'Site Prep & Excavation':R.gen,'Site Work & Excavation':R.gen,
+    'Finish & Sealing':    R.sk,  'Finish & Paint':      R.sk,
+    'Paint & Finish':      R.sk,  'Cleanup & Disposal':  R.gen,
+    'Floor Framing':       R.sk,  'Interior Finish':     R.sk,
+    'Doors & Windows':     R.sk,  'Ceiling':             R.sk,
   };
 
   // Estimate labor by category if not provided explicitly
@@ -3874,6 +4048,15 @@ function toRenderResults(items, summary, type){
     'Waterproofing':       {pail:1.5, roll:0.60, gal:0.20, ea:0.08, default:0.30},
     'Drainage':            {ea:0.20, tons:0.80, roll:0.40, default:0.25},
     'Wall Finish':         {pail:1.5, bag:0.30, sqft:0.10, lf:0.30, default:0.20, sheet:0.25},
+    'Site Prep & Excavation':{day:0,  ea:0.10, cy:0.40, bundle:0.05, default:0.15},
+    'Site Work & Excavation':{day:0,  cy:0.40, ea:0.10, bundle:0.05, default:0.15},
+    'Finish & Sealing':    {pail:0.80,gal:0.50, ea:0.10, set:0.10, roll:0.10, qt:0.30, default:0.20},
+    'Finish & Paint':      {qt:0.30, gal:0.50, ea:0.10, default:0.15},
+    'Paint & Finish':      {pail:0.80,gal:0.50, qt:0.30, ea:0.10, set:0.10, default:0.20},
+    'Cleanup & Disposal':  {ea:0.10, day:0,    box:0.05, gal:0.15, default:0.10},
+    'Floor Framing':       {ea:0.20, sheet:0.30,tube:0.05,box:0.10, default:0.15},
+    'Interior Finish':     {sheet:0.50,pail:1.5,roll:0.30,ea:0.20, box:0.10, default:0.20},
+    'Doors & Windows':     {ea:1.50, default:1.0},
   };
 
   // Build full cost data per item
