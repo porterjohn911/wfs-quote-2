@@ -4243,6 +4243,40 @@ function toRenderResults(items, summary, type){
     od.appendChild(sBox);
   });
 
+  // DECK-SPECIFIC ADDENDA (per docs/drawing-standards/01-decks.md)
+  let _deckCheck = null, _deckNotes = null, _deckDwg = null;
+  if(type==='deck'){
+    _deckCheck = dca6DeckCheck(_params);
+    _deckNotes = dca6DeckGeneralNotes(_params);
+    _deckDwg   = DCA6_DECK_REQUIRED_DRAWINGS;
+    const dwgBox = document.createElement('div');
+    dwgBox.style.cssText = 'margin-top:8px;padding:8px 10px;border:0.5px solid var(--border);border-radius:8px;font-size:10px;line-height:1.45;color:var(--text2)';
+    let dwgHtml = '<div style="color:var(--gold);font-weight:700;margin-bottom:4px;letter-spacing:.4px">REQUIRED DRAWINGS — DECK SET</div>';
+    _deckDwg.forEach(d=>{
+      dwgHtml += '<div style="display:grid;grid-template-columns:55px 90px 1fr;gap:6px;padding:1px 0"><b>'+d.sheet+'</b><span>'+d.view+'</span><span><b>'+d.title+'</b> <span style="color:var(--text3)">— '+d.notes+'</span></span></div>';
+    });
+    dwgBox.innerHTML = dwgHtml;
+    od.appendChild(dwgBox);
+    if(_deckCheck.length){
+      const lvlCol = {ok:'#1a9b6c', warn:'#c08020', fail:'#b13030'};
+      const chkBox = document.createElement('div');
+      chkBox.style.cssText = 'margin-top:8px;padding:8px 10px;border:0.5px solid var(--border);border-radius:8px;font-size:10px;line-height:1.45;color:var(--text2)';
+      let chkHtml = '<div style="color:var(--gold);font-weight:700;margin-bottom:4px;letter-spacing:.4px">DCA 6 / IRC R507 PRESCRIPTIVE CHECK</div>';
+      _deckCheck.forEach(c=>{
+        chkHtml += '<div style="margin:2px 0"><b style="color:'+(lvlCol[c.level]||'#888')+'">['+c.level.toUpperCase()+']</b> '+c.msg+'</div>';
+      });
+      chkBox.innerHTML = chkHtml;
+      od.appendChild(chkBox);
+    }
+    const notesBox2 = document.createElement('div');
+    notesBox2.style.cssText = 'margin-top:8px;padding:8px 10px;border:0.5px solid var(--border);border-radius:8px;font-size:10px;line-height:1.45;color:var(--text2)';
+    let n2 = '<div style="color:var(--gold);font-weight:700;margin-bottom:4px;letter-spacing:.4px">DECK NOTES (DCA 6 / IRC R507 — paste into drawings)</div><ol style="margin:0;padding-left:18px">';
+    _deckNotes.forEach(t=>{ n2 += '<li style="margin:1px 0">'+t+'</li>'; });
+    n2 += '</ol>';
+    notesBox2.innerHTML = n2;
+    od.appendChild(notesBox2);
+  }
+
   // Store for copy/quote
   window._lastOrder = {
     name,
@@ -4260,6 +4294,9 @@ function toRenderResults(items, summary, type){
     scale:    stdScale.label,
     notes:    WFS_REQUIRED_NOTES,
     schedules: _schedules.map(s => ({title:s[0], rows:s[1], col2:s[2]})),
+    deckCheck:           _deckCheck,
+    deckNotes:           _deckNotes,
+    deckRequiredDrawings:_deckDwg,
   };
 }
 
@@ -4310,7 +4347,7 @@ function blueprintSpecs(type, params){
 
 function toCopyOrder(){
   if(!window._lastOrder){toast('No takeoff calculated yet');return;}
-  const {name,items,summary,sheet,scale,notes,schedules}=window._lastOrder;
+  const {name,items,summary,sheet,scale,notes,schedules,deckCheck,deckNotes,deckRequiredDrawings}=window._lastOrder;
   let txt='MATERIAL ORDER — '+name+'\n';
   txt+='Waterfront Solutions · '+new Date().toLocaleDateString()+'\n';
   if(sheet) txt+='Sheet '+sheet+' · Scale '+scale+' · REV 0 · CODE: IRC 2021\n';
@@ -4337,6 +4374,18 @@ function toCopyOrder(){
       txt+='\n'+s.title+'\n'+'-'.repeat(30)+'\n';
       s.rows.forEach(r=>{ txt+='  '+r.tag+'  '+r.spec+' — '+(r[s.col2]||'')+'\n'; });
     });
+  }
+  if(deckRequiredDrawings && deckRequiredDrawings.length){
+    txt+='\nREQUIRED DRAWINGS — DECK SET\n'+'-'.repeat(30)+'\n';
+    deckRequiredDrawings.forEach(d=>{ txt+='  '+d.sheet+'  '+d.view+'  — '+d.title+': '+d.notes+'\n'; });
+  }
+  if(deckCheck && deckCheck.length){
+    txt+='\nDCA 6 / IRC R507 PRESCRIPTIVE CHECK\n'+'-'.repeat(30)+'\n';
+    deckCheck.forEach(c=>{ txt+='  ['+c.level.toUpperCase()+'] '+c.msg+'\n'; });
+  }
+  if(deckNotes && deckNotes.length){
+    txt+='\nDECK NOTES (DCA 6 / IRC R507):\n';
+    deckNotes.forEach((n,i)=>{ txt+=(i+1)+'. '+n+'\n'; });
   }
   txt+='\nNOTE: Verify structural sizes, footing depth, railing height and all load-bearing connections with local building code and site-specific conditions.\n';
   txt+='\n★ Quantities include waste factors. Verify before ordering.';
@@ -6157,12 +6206,17 @@ function wfsFastenerSchedule(type, p){
   p = p||{};
   const rows = [];
   if(type==='deck'){
-    rows.push({tag:'F1', spec:'Simpson LUS210 joist hanger', loc:'each joist-to-ledger / joist-to-beam'});
-    rows.push({tag:'F2', spec:'Simpson DTT2Z lateral tension tie (or equiv.)', loc:'2 per deck min, opposite corners — R507.9.2'});
-    rows.push({tag:'F3', spec:'1/2" Ø hot-dip galv. lag bolts, 5" min', loc:'ledger to band joist, per Table R507.9.1.3(1)'});
-    rows.push({tag:'F4', spec:'10d HDG common nails', loc:'rim-to-joist, blocking, general framing'});
-    rows.push({tag:'F5', spec:'2-1/2" stainless or coated deck screws', loc:'decking to joist, 2 per intersection'});
-    if(p.stairs>0) rows.push({tag:'F6', spec:'Simpson LSC stair-stringer connector', loc:'each stringer-to-rim'});
+    const jSpan = +p.wid||0;
+    const lag = dca6LedgerSpacing(jSpan);
+    const lagTxt = lag ? lag+'" O.C., 2-row staggered' : 'per engineered detail (span > 18\')';
+    rows.push({tag:'F1', spec:'Simpson LUS hanger (size to joist)', loc:'each joist-to-ledger / joist-to-beam — no toenail substitute'});
+    rows.push({tag:'F2', spec:'Simpson DTT2Z lateral hold-down (4 ea.)', loc:'tie joists to interior floor framing — IRC R507.9.2 / DCA 6 Fig. 16-17'});
+    rows.push({tag:'F3', spec:'1/2" Ø HDG lag screws or through-bolts', loc:`ledger to 2× band/LVL rim @ ${lagTxt} (IRC R507.9.1, joist span ${_ftDec(jSpan)})`});
+    rows.push({tag:'F4', spec:'Simpson ABU/PB post base (HDG), stand-off', loc:'each post-to-pier — no direct embed in concrete'});
+    rows.push({tag:'F5', spec:'Simpson DTT2Z or HD7B guard-post hold-down', loc:'each guard post — verify 200 lb top-rail load (IRC R312 / R301.5)'});
+    rows.push({tag:'F6', spec:'10d HDG common nails (ACQ-compatible)', loc:'rim-to-joist, blocking, general framing'});
+    rows.push({tag:'F7', spec:'#8 stainless or coated deck screws (2 per joist)', loc:'decking to joist, ~1/8" gap for drainage'});
+    if(p.stairs>0) rows.push({tag:'F8', spec:'Simpson LSC stair-stringer connector', loc:'each stringer-to-rim (stringer max span 13\'-3" cut / 18\' solid, DCA 6 Tbl 8)'});
   } else if(type==='roof'){
     rows.push({tag:'F1', spec:'Simpson H2.5A hurricane tie', loc:'each rafter-to-top-plate — R301.2.1'});
     rows.push({tag:'F2', spec:'8d common ring-shank, 1-3/4"', loc:'7/16" OSB sheathing — 6" edge / 12" field'});
@@ -6197,11 +6251,28 @@ function wfsLumberSchedule(type, p){
   const rows = [];
   const pt = '(PT, ground-contact AC2 where applicable)';
   if(type==='deck'){
-    rows.push({tag:'L1', spec:'2×10 SYP #2 PT', use:`joists @ ${p.joc||16}" O.C. ${pt}`});
-    rows.push({tag:'L2', spec:'(2) 2×10 SYP #2 PT', use:'beams, fastened 3-row 16d'});
-    rows.push({tag:'L3', spec:'2×10 SYP #2 PT', use:'ledger, Z-flashed'});
-    rows.push({tag:'L4', spec:`${(p.postSz||'6×6').replace('x','×')} SYP PT`, use:'posts, ≤8\'-0" O.C.'});
-    rows.push({tag:'L5', spec:'5/4×6 SYP PT or composite', use:'decking, 1/8" gap'});
+    const sp     = (p.species||'syp').toLowerCase();
+    const spLbl  = DCA6.speciesLabel[sp]||'SYP';
+    const oc     = p.joc||16;
+    const jSpan  = +p.wid||0;
+    const beamSp = +p.postSp||8;
+    const j      = jSpan>0 ? (dca6PickJoist(jSpan, oc, sp) || {size:'2x12', max:dca6JoistMaxSpan('2x12',oc,sp)})
+                            : {size:'2x10', max:null};
+    const b      = jSpan>0 ? (dca6PickBeam(beamSp, jSpan) || {size:'2x12', max:dca6BeamMaxSpan('2x12',jSpan)})
+                            : {size:'2x10', max:null};
+    const jStr   = j.size.replace('x','×').toUpperCase();
+    const bStr   = b.size.replace('x','×').toUpperCase();
+    const jMaxT  = j.max!=null ? ` (DCA 6 max ${_ftDec(j.max)})` : '';
+    const bMaxT  = b.max!=null ? ` (DCA 6 max ${_ftDec(b.max)})` : '';
+    const tribSf = jSpan*beamSp/2;
+    const post   = dca6PostSize(tribSf, +p.ht||0);
+    rows.push({tag:'L1', spec:`${jStr} ${spLbl} #2 PT`, use:`joists @ ${oc}" O.C., span ${_ftDec(jSpan)||'—'}${jMaxT} ${pt}`});
+    rows.push({tag:'L2', spec:`(2) ${bStr} ${spLbl} #2 PT`, use:`built-up beam between posts @ ${_ftDec(beamSp)} O.C.${bMaxT}`});
+    rows.push({tag:'L3', spec:`${jStr} ${spLbl} #2 PT`, use:'ledger (match joist depth), Z-flashed, lateral hold-downs per F2'});
+    rows.push({tag:'L4', spec:`${post} ${spLbl} PT`, use:`posts ≤${_ftDec(beamSp)} O.C., tributary ${Math.round(tribSf)} sf (DCA 6 Tbl 7)`});
+    const deckMin = oc<=16 ? '5/4×6 or 2× lumber' : '2× lumber (5/4 not permitted @ 24" O.C.)';
+    rows.push({tag:'L5', spec:`${deckMin} ${spLbl} PT or composite`, use:'decking, ~1/8" gap for drainage'});
+    if(p.stairs>0) rows.push({tag:'L6', spec:'2×12 SYP #2 PT cut stringer', use:'stair stringers — max cut span 13\'-3" (solid 18\', DCA 6 Tbl 8)'});
   } else if(type==='roof'){
     rows.push({tag:'L1', spec:'2×8 SPF #2', use:'rafters @ 16" O.C., span per Table R802.4.1'});
     rows.push({tag:'L2', spec:'(1) 2×10 SPF #2', use:'ridge board — depth ≥ rafter cut'});
@@ -6231,9 +6302,13 @@ function wfsConcreteSchedule(type, p){
   p = p||{};
   const rows = [];
   if(type==='deck' && (p.ht||0)>=2){
-    rows.push({tag:'C1', spec:"f'c 3,000 psi @ 28 days", use:'sonotube pier footings — exterior exposure'});
-    rows.push({tag:'C2', spec:'Slump 4"–6"', use:'workability for hand placement'});
-    rows.push({tag:'C3', spec:'Air entrainment 5–7%', use:'all exterior exposure (freeze-thaw)'});
+    const tribSf = (+p.wid||0)*(+p.postSp||8)/2;
+    const f = tribSf>0 ? dca6FootingFor(tribSf) : null;
+    const fStr = f ? `${f.dia}" Ø round × ${f.thk}" min thickness` : 'engineered (tributary > 100 sf)';
+    rows.push({tag:'C1', spec:"f'c 3,000 psi @ 28 days", use:'sonotube pier footings — exterior exposure, below frost depth'});
+    rows.push({tag:'C2', spec:`Pier size: ${fStr}`, use:`tributary ${Math.round(tribSf)||'—'} sf @ 1,500 psf (DCA 6 Fig. 9)`});
+    rows.push({tag:'C3', spec:'Slump 4"–6"', use:'workability for hand placement in sonotube'});
+    rows.push({tag:'C4', spec:'Air entrainment 5–7%', use:'all exterior exposure (freeze-thaw)'});
   } else if(type==='concrete'){
     rows.push({tag:'C1', spec:"f'c 3,000 psi @ 28 days", use:'slab + continuous footer'});
     rows.push({tag:'C2', spec:'Slump 4"–6"', use:'flat work — verify with pump if required'});
@@ -6269,6 +6344,212 @@ function wfsRebarSchedule(type, p){
     rows.push({tag:'R3', spec:'(2) #5 continuous', loc:'top + bottom of footer'});
   }
   return rows;
+}
+
+// ── DCA 6 PRESCRIPTIVE TABLES (Decks) ─────────────────────────────────────
+// AWC DCA 6-2015 + IRC 2021 R507. See docs/drawing-standards/01-decks.md.
+// Spans in DECIMAL FEET. Species: SYP, DF-L, Hem-Fir, SPF, Redwood.
+// (Maximum joist span, center-to-center of supports, No. 2 or better.)
+const DCA6 = {
+  speciesLabel: {syp:'SYP', dfl:'DF-L', hf:'Hem-Fir', spf:'SPF', rw:'Redwood'},
+  // joistSpan[size][oc][species] = max span (ft)
+  joistSpan: {
+    '2x6':  {12:{syp:9.92, dfl:9.50, hf:8.83, spf:8.67, rw:8.17},
+             16:{syp:9.00, dfl:8.67, hf:8.08, spf:7.92, rw:7.42},
+             24:{syp:7.58, dfl:7.17, hf:6.67, spf:6.50, rw:6.08}},
+    '2x8':  {12:{syp:13.08,dfl:12.50,hf:11.67,spf:11.42,rw:10.75},
+             16:{syp:11.83,dfl:11.08,hf:10.58,spf:10.42,rw:9.75},
+             24:{syp:9.67, dfl:9.08, hf:8.67, spf:8.50, rw:8.00}},
+    '2x10': {12:{syp:16.17,dfl:15.67,hf:14.92,spf:14.58,rw:13.67},
+             16:{syp:14.00,dfl:13.58,hf:12.92,spf:12.67,rw:11.83},
+             24:{syp:11.42,dfl:11.08,hf:10.58,spf:10.25,rw:9.67}},
+    '2x12': {12:{syp:18.00,dfl:18.00,hf:17.42,spf:17.08,rw:16.00},
+             16:{syp:16.50,dfl:15.75,hf:15.08,spf:14.75,rw:13.83},
+             24:{syp:13.50,dfl:12.83,hf:12.33,spf:12.00,rw:11.25}},
+  },
+  // beamSpan2[size][joistSpanBucket] = max beam span between posts (ft)
+  // joistSpanBucket = 6,8,10,12,14,16,18 (interp by floor for in-between)
+  beamSpan2: {
+    '2x6':  {6:6.67, 8:5.67, 10:5.08, 12:4.58, 14:4.25, 16:4.00, 18:3.75},
+    '2x8':  {6:8.50, 8:7.33, 10:6.58, 12:6.00, 14:5.50, 16:5.17, 18:4.83},
+    '2x10': {6:10.08,8:8.75, 10:7.83, 12:7.08, 14:6.58, 16:6.17, 18:5.83},
+    '2x12': {6:11.75,8:10.17,10:9.08, 12:8.25, 14:7.67, 16:7.17, 18:6.75},
+  },
+  // Footing (round) at 1500 psf soil. Bin = max tributary load area (sf).
+  footings: [
+    {max:20,  dia:12, thk:8},
+    {max:40,  dia:16, thk:8},
+    {max:60,  dia:20, thk:8},
+    {max:80,  dia:23, thk:8},
+    {max:100, dia:26, thk:10},
+  ],
+  // Stair stringer max spans (ft) per DCA 6 Table 8
+  stairStringer: {cut:13.25, solid:18.00},
+};
+
+// Largest joist-span bucket ≤ joist span (clamped to 6..18).
+function _dca6BeamBucket(joistSpanFt){
+  const keys = [6,8,10,12,14,16,18];
+  let last = keys[0];
+  for(const k of keys){ if(k <= joistSpanFt) last = k; else break; }
+  return last;
+}
+
+// Max joist span (ft) for a given joist size, O.C., and species code.
+function dca6JoistMaxSpan(size, oc, species){
+  size = (size||'2x10').toLowerCase();
+  species = (species||'syp').toLowerCase();
+  const ocKey = oc>=24 ? 24 : oc>=16 ? 16 : 12;
+  return DCA6.joistSpan[size]?.[ocKey]?.[species] ?? null;
+}
+
+// Max (2)-ply beam span between posts (ft) for the given beam size + joist span.
+function dca6BeamMaxSpan(size, joistSpanFt){
+  size = (size||'2x10').toLowerCase();
+  const b = _dca6BeamBucket(joistSpanFt);
+  return DCA6.beamSpan2[size]?.[b] ?? null;
+}
+
+// Smallest joist size (ft, member name) that satisfies the required span at
+// the given O.C. + species, or null if 2×12 still isn't enough.
+function dca6PickJoist(spanFt, oc, species){
+  for(const size of ['2x6','2x8','2x10','2x12']){
+    const m = dca6JoistMaxSpan(size, oc, species);
+    if(m!=null && m >= spanFt) return {size, max:m};
+  }
+  return null;
+}
+
+// Smallest (2)-ply beam that supports the post spacing at the given joist span.
+function dca6PickBeam(postSpFt, joistSpanFt){
+  for(const size of ['2x6','2x8','2x10','2x12']){
+    const m = dca6BeamMaxSpan(size, joistSpanFt);
+    if(m!=null && m >= postSpFt) return {size, max:m};
+  }
+  return null;
+}
+
+// Post size (nominal) per DCA 6 Table 7.
+function dca6PostSize(tribSf, postHtFt){
+  if(tribSf<=48 && postHtFt<=8) return '4×4';
+  return '6×6';
+}
+
+// Footing diameter & thickness per IRC R403 / DCA 6 Fig. 9 (1500 psf soil).
+function dca6FootingFor(tribSf){
+  for(const row of DCA6.footings){
+    if(tribSf <= row.max) return {dia:row.dia, thk:row.thk};
+  }
+  return null; // outside prescriptive scope — engineer
+}
+
+// Ledger lag/bolt spacing (inches) per IRC R507.9.1 by joist span (ft).
+function dca6LedgerSpacing(joistSpanFt){
+  if(joistSpanFt<=6)  return 30;
+  if(joistSpanFt<=8)  return 23;
+  if(joistSpanFt<=10) return 18;
+  if(joistSpanFt<=12) return 15;
+  if(joistSpanFt<=14) return 13;
+  if(joistSpanFt<=16) return 11;
+  if(joistSpanFt<=18) return 10;
+  return null; // outside scope
+}
+
+// Format decimal feet as 9'-11" (rounded to inches).
+function _ftDec(f){
+  if(f==null || !isFinite(f)) return '—';
+  const ft = Math.floor(f);
+  const inch = Math.round((f - ft)*12);
+  if(inch===12) return (ft+1)+"'-0\"";
+  return ft+"'-"+inch+'"';
+}
+
+// Required Drawings checklist for a deck set (per 01-decks.md).
+const DCA6_DECK_REQUIRED_DRAWINGS = [
+  {sheet:'A-201', view:'1/4" = 1\'-0"',    title:'Deck plan',             notes:'Joist layout & spacing, beam/post/ledger locations, stair & guard runs, ties to house & PL.'},
+  {sheet:'S-101', view:'1/4" = 1\'-0"',    title:'Footing plan',          notes:'Footing size & depth (below frost), distance from house & PL.'},
+  {sheet:'A-401', view:'3/4" = 1\'-0"',    title:'Framing section',       notes:'Ledger-to-house, post-to-beam, beam-to-joist, joist-to-rim, guard post anchorage, stair stringer.'},
+  {sheet:'A-501', view:'1-1/2" = 1\'-0"',  title:'Ledger detail',         notes:'Flashing, lag/bolt pattern, rim attachment, vertical + lateral connectors.'},
+  {sheet:'A-501', view:'1-1/2" = 1\'-0"',  title:'Guard detail',          notes:'Post anchorage / hold-down, baluster spacing, top rail (200 lb).'},
+  {sheet:'A-501', view:'1-1/2" = 1\'-0"',  title:'Stair detail',          notes:'Stringer-to-deck, riser/tread, handrail profile, lighting note.'},
+];
+
+// 10-item deck-specific general notes block from DCA 6 / R507.
+function dca6DeckGeneralNotes(p){
+  p = p||{};
+  const oc = p.joc||16;
+  const species = (p.species||'syp').toUpperCase();
+  return [
+    'Construction per IRC 2021 and AWC DCA 6-2015.',
+    'Design loads: 40 psf live + 10 psf dead. Snow/wind/seismic per location.',
+    `Lumber: No. 2 or better, ${species}, pressure-treated to UC4A min where in contact with weather, UC4B for direct ground contact.`,
+    'Fasteners: Hot-dipped galvanized ASTM A153 or stainless steel where in contact with PT lumber. ACQ-compatible.',
+    `Joists @ ${oc}" o.c. with double rim joist and joist hangers (Simpson LUS or equal). Toenailing not permitted in lieu of hangers.`,
+    'Ledger flashing: corrosion-resistant metal, lapped to WRB above; gap ledger from siding 1/2" for drainage.',
+    'Posts on Simpson post bases above grade; no wood-to-concrete contact.',
+    'Guard posts: hold-down hardware at all locations; verify 200 lb load per IRC R301.5.',
+    'Stair handrails graspable per IRC R311.7.8.5.',
+    'Contractor to verify footing soil bearing; report unsuitable conditions to designer before placing concrete.',
+  ];
+}
+
+// Check a deck against DCA 6 prescriptive limits. Returns array of
+// {level: 'ok'|'warn'|'fail', msg}. fail = outside DCA 6 / needs engineer.
+function dca6DeckCheck(p){
+  p = p||{};
+  const out = [];
+  const species = (p.species||'syp');
+  const oc = p.joc||16;
+  const joistSpan = +p.wid||0;          // joists run across deck depth (from house)
+  const beamSpan  = +p.postSp||8;       // post spacing along beam
+  const tribDepth = joistSpan/2 + (p.cant||0); // beam carries half of joist span
+  const ht        = +p.ht||0;
+  const sLabel    = DCA6.speciesLabel[species]||species;
+  // Joist sizing
+  const cur = '2x10';                    // current default member used elsewhere
+  const curMax = dca6JoistMaxSpan(cur, oc, species);
+  if(joistSpan>0){
+    if(curMax!=null && joistSpan <= curMax){
+      out.push({level:'ok', msg:`Joists 2×10 ${sLabel} @ ${oc}" O.C. — span ${_ftDec(joistSpan)} ≤ ${_ftDec(curMax)} max (DCA 6 Tbl 5A).`});
+    } else {
+      const need = dca6PickJoist(joistSpan, oc, species);
+      if(need) out.push({level:'warn', msg:`Joists: upsize to ${need.size.toUpperCase()} ${sLabel} @ ${oc}" O.C. (max ${_ftDec(need.max)}) — span ${_ftDec(joistSpan)} exceeds 2×10 (${_ftDec(curMax)}).`});
+      else     out.push({level:'fail', msg:`Joist span ${_ftDec(joistSpan)} exceeds 2×12 ${sLabel} @ ${oc}" O.C. — outside DCA 6 scope, engineer required.`});
+    }
+  }
+  // Beam sizing — assume (2)-ply built-up
+  if(joistSpan>0 && beamSpan>0){
+    const need = dca6PickBeam(beamSpan, joistSpan);
+    if(need) out.push({level:'ok', msg:`Beam (2)-ply ${need.size.toUpperCase()} — post spacing ${_ftDec(beamSpan)} ≤ ${_ftDec(need.max)} (DCA 6 Tbl 6, joist span ${_ftDec(joistSpan)}).`});
+    else     out.push({level:'fail', msg:`Beam: (2) 2×12 still under ${_ftDec(beamSpan)} post spacing for ${_ftDec(joistSpan)} joist span — reduce spacing or use 3-ply / engineered beam.`});
+  }
+  // Post sizing
+  const tribArea = beamSpan * tribDepth;
+  if(tribArea>0){
+    const ps = dca6PostSize(tribArea, ht);
+    out.push({level:'ok', msg:`Posts ${ps} PT — tributary area ${Math.round(tribArea)} sf @ ${_ftDec(ht)} height (DCA 6 Tbl 7).`});
+  }
+  // Footing
+  if(tribArea>0){
+    const ft = dca6FootingFor(tribArea);
+    if(ft) out.push({level:'ok', msg:`Footings ${ft.dia}" Ø round × ${ft.thk}" min, below frost depth (IRC R403 / DCA 6 Fig. 9, ${Math.round(tribArea)} sf tributary @ 1,500 psf).`});
+    else   out.push({level:'fail', msg:`Tributary load area ${Math.round(tribArea)} sf exceeds DCA 6 Fig. 9 (100 sf max) — engineered footing required.`});
+  }
+  // Ledger
+  if(joistSpan>0){
+    const sp = dca6LedgerSpacing(joistSpan);
+    if(sp) out.push({level:'ok', msg:`Ledger: 1/2" Ø lag/through-bolts @ ${sp}" O.C., staggered 2-row, flashed (IRC R507.9.1, joist span ${_ftDec(joistSpan)}).`});
+    else   out.push({level:'fail', msg:`Joist span ${_ftDec(joistSpan)} exceeds IRC R507.9.1 ledger schedule (18\' max) — engineered connection required.`});
+  }
+  // Guard threshold
+  if((p.ht||0)*12 > 30){
+    out.push({level:'ok', msg:`Guards required: walking surface > 30" above grade — 36" min height, 4" sphere rule (IRC R312).`});
+  }
+  // Out-of-scope triggers
+  if(ht > 14)       out.push({level:'fail', msg:`Deck height ${_ftDec(ht)} > 14' — outside DCA 6 prescriptive scope (engineer required).`});
+  if((p.cant||0) > Math.min(joistSpan/4, 4)) out.push({level:'fail', msg:`Cantilever ${_ftDec(p.cant)} exceeds 1/4 of backspan or 4\' max (DCA 6 Fig. 5).`});
+  if(p.supportsRoof) out.push({level:'fail', msg:`Deck supporting a roof = porch; see porch standards, not DCA 6.`});
+  return out;
 }
 
 // ── PHASE DEFINITIONS ─────────────────────────────────────────────────────
@@ -7528,6 +7809,38 @@ function pvRenderProcessDims(type, p){
     html += '<li style="margin:2px 0"><b style="color:#00e5ff">'+n.tag+'.</b> '+n.txt+'</li>';
   });
   html += '</ol></div>';
+  // DECK-SPECIFIC: DCA 6 prescriptive check + required-drawings checklist
+  // + 10-item DCA 6 notes block (see docs/drawing-standards/01-decks.md).
+  if(type==='deck'){
+    const chk = dca6DeckCheck(p||{});
+    const levelColor = {ok:'#00ff88', warn:'#ffcc00', fail:'#ff6060'};
+    const levelLabel = {ok:'OK',       warn:'WARN',    fail:'FAIL'};
+    html += '<div style="margin-top:10px;padding:10px;border:1px solid #2a4a4a;background:rgba(10,30,40,0.4);font-size:9.5px;line-height:1.55">';
+    html += '<div style="color:var(--gold);font-weight:700;margin-bottom:6px;letter-spacing:.5px">DCA 6 / IRC R507 PRESCRIPTIVE CHECK</div>';
+    if(!chk.length){
+      html += '<div style="color:var(--text3)">Enter deck dimensions to evaluate prescriptive scope.</div>';
+    } else {
+      chk.forEach(c=>{
+        const col = levelColor[c.level]||'#00e5ff';
+        html += '<div style="margin:2px 0;color:var(--text2)"><b style="color:'+col+'">['+levelLabel[c.level]+']</b> '+c.msg+'</div>';
+      });
+    }
+    html += '</div>';
+    html += '<div style="margin-top:10px;padding:10px;border:1px solid #2a4a4a;background:rgba(10,30,40,0.4);font-size:9.5px;line-height:1.55">';
+    html += '<div style="color:var(--gold);font-weight:700;margin-bottom:6px;letter-spacing:.5px">REQUIRED DRAWINGS — DECK SET</div>';
+    html += '<div style="display:grid;grid-template-columns:60px 90px 1fr;gap:4px 10px;color:var(--text2)">';
+    html += '<b style="color:var(--text3)">SHEET</b><b style="color:var(--text3)">SCALE</b><b style="color:var(--text3)">CONTENT</b>';
+    DCA6_DECK_REQUIRED_DRAWINGS.forEach(d=>{
+      html += '<span style="color:#00e5ff">'+d.sheet+'</span><span>'+d.view+'</span><span><b>'+d.title+'</b> — '+d.notes+'</span>';
+    });
+    html += '</div></div>';
+    const deckNotes = dca6DeckGeneralNotes(p||{});
+    html += '<div style="margin-top:10px;padding:10px;border:1px solid #2a4a4a;background:rgba(10,30,40,0.4);font-size:9.5px;line-height:1.55">';
+    html += '<div style="color:var(--gold);font-weight:700;margin-bottom:6px;letter-spacing:.5px">DECK NOTES (DCA 6 / IRC R507 · paste into drawings)</div>';
+    html += '<ol style="margin:0;padding-left:18px;color:var(--text2)">';
+    deckNotes.forEach(n=>{ html += '<li style="margin:2px 0">'+n+'</li>'; });
+    html += '</ol></div>';
+  }
   // Required schedules (Fastener / Lumber / Concrete / Rebar)
   const fSch = wfsFastenerSchedule(type, p||{});
   const lSch = wfsLumberSchedule(type, p||{});
