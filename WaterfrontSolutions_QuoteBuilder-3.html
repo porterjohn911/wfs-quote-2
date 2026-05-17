@@ -320,31 +320,35 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
       </div>
 
       <div class="section">
-        <div class="section-head"><span class="section-title">Labor Rates ($/hr)</span></div>
+        <div class="section-head">
+          <span class="section-title">Labor Rates ($/hr)</span>
+          <button class="btn btn-ghost btn-sm" onclick="resetLaborRates()">↺ ETN Market</button>
+        </div>
         <div class="section-body">
+          <div style="font-size:11px;color:var(--text3);margin-bottom:8px">East TN contractor billing rates (May 2026) — wage × ~2.2 (burden + overhead + margin). Edit any rate; the app saves your changes. <b style="color:var(--gold)">↺ ETN Market</b> restores the defaults.</div>
           <div class="field-row">
-            <div class="field"><label>General Labor</label><input type="number" id="r-gen" value="42" oninput="saveSettings();recalc()"/></div>
+            <div class="field"><label>General Labor</label><input type="number" id="r-gen" value="44" oninput="saveSettings();recalc()"/></div>
             <div class="field"><label>Skilled / Carpenter</label><input type="number" id="r-sk" value="62" oninput="saveSettings();recalc()"/></div>
           </div>
           <div class="field-row">
-            <div class="field"><label>Foreman</label><input type="number" id="r-fore" value="82" oninput="saveSettings();recalc()"/></div>
-            <div class="field"><label>Roofer</label><input type="number" id="r-roof" value="58" oninput="saveSettings();recalc()"/></div>
+            <div class="field"><label>Foreman</label><input type="number" id="r-fore" value="80" oninput="saveSettings();recalc()"/></div>
+            <div class="field"><label>Roofer</label><input type="number" id="r-roof" value="48" oninput="saveSettings();recalc()"/></div>
           </div>
           <div class="field-row">
-            <div class="field"><label>Mason / Block</label><input type="number" id="r-mason" value="68" oninput="saveSettings();recalc()"/></div>
-            <div class="field"><label>Painter</label><input type="number" id="r-paint" value="48" oninput="saveSettings();recalc()"/></div>
+            <div class="field"><label>Mason / Block</label><input type="number" id="r-mason" value="58" oninput="saveSettings();recalc()"/></div>
+            <div class="field"><label>Painter</label><input type="number" id="r-paint" value="44" oninput="saveSettings();recalc()"/></div>
           </div>
           <div class="field-row">
-            <div class="field"><label>Equipment Operator</label><input type="number" id="r-equip" value="78" oninput="saveSettings();recalc()"/></div>
-            <div class="field"><label>Subcontractor</label><input type="number" id="r-sub" value="98" oninput="saveSettings();recalc()"/></div>
+            <div class="field"><label>Equipment Operator</label><input type="number" id="r-equip" value="56" oninput="saveSettings();recalc()"/></div>
+            <div class="field"><label>Subcontractor</label><input type="number" id="r-sub" value="92" oninput="saveSettings();recalc()"/></div>
           </div>
           <div class="field-row">
-            <div class="field"><label>Electrician (journeyman)</label><input type="number" id="r-elec" value="88" oninput="saveSettings();recalc()"/></div>
-            <div class="field"><label>Plumber</label><input type="number" id="r-plumb" value="92" oninput="saveSettings();recalc()"/></div>
+            <div class="field"><label>Electrician (journeyman)</label><input type="number" id="r-elec" value="72" oninput="saveSettings();recalc()"/></div>
+            <div class="field"><label>Plumber</label><input type="number" id="r-plumb" value="70" oninput="saveSettings();recalc()"/></div>
           </div>
           <div class="field-row">
-            <div class="field"><label>HVAC Technician</label><input type="number" id="r-hvac" value="84" oninput="saveSettings();recalc()"/></div>
-            <div class="field"><label>Siding / Exterior</label><input type="number" id="r-side" value="58" oninput="saveSettings();recalc()"/></div>
+            <div class="field"><label>HVAC Technician</label><input type="number" id="r-hvac" value="64" oninput="saveSettings();recalc()"/></div>
+            <div class="field"><label>Siding / Exterior</label><input type="number" id="r-side" value="48" oninput="saveSettings();recalc()"/></div>
           </div>
         </div>
       </div>
@@ -1782,20 +1786,34 @@ let _elements = [], _dragging = null, _selected = null;
 let _panning = false, _panStart = null;
 
 const rates = () => ({
-  // ETN contractor billing rates (May 2026): wage + 35% burden + 25% overhead
-  // Sources: BLS OEWS 2025, ZipRecruiter TN 2026, CalculatorConstruction.com 2026
-  gen:   parseFloat(document.getElementById('r-gen')?.value)||42,
+  // ETN contractor billing rates — recalibrated May 2026 from current
+  // Knoxville/Tennessee wage data. Methodology: billing = wage × ~2.2
+  // (35% labor burden + 25% overhead + ~20% margin). Specialty licensed
+  // trades (elec/plumb/hvac) carry a small license/insurance premium.
+  // Source wages (2026):
+  //   Laborer ~$20    (BLS / ZipRecruiter TN)
+  //   Carpenter $28   (ZipRecruiter Knoxville journeyman)
+  //   Foreman $36     (Indeed TN $27 + BLS supervisor mix)
+  //   Roofer $22      (Indeed TN, ZipRecruiter Knoxville $21)
+  //   Mason $26       (Indeed TN brickmason)
+  //   Painter $20     (PayScale/ZipRecruiter Knoxville)
+  //   Equip Op $24    (ZipRecruiter TN heavy equipment)
+  //   Electrician $31 (ZipRecruiter/Salary.com Knoxville)
+  //   Plumber $30     (ZipRecruiter/Salary.com Knoxville)
+  //   HVAC $28        (ZipRecruiter/Indeed Knoxville)
+  //   Siding $22      (ZipRecruiter Knoxville)
+  gen:   parseFloat(document.getElementById('r-gen')?.value)||44,
   sk:    parseFloat(document.getElementById('r-sk')?.value)||62,
-  fore:  parseFloat(document.getElementById('r-fore')?.value)||82,
-  roof:  parseFloat(document.getElementById('r-roof')?.value)||58,
-  mason: parseFloat(document.getElementById('r-mason')?.value)||68,
-  paint: parseFloat(document.getElementById('r-paint')?.value)||48,
-  equip: parseFloat(document.getElementById('r-equip')?.value)||78,
-  sub:   parseFloat(document.getElementById('r-sub')?.value)||98,
-  elec:  parseFloat(document.getElementById('r-elec')?.value)||88,
-  plumb: parseFloat(document.getElementById('r-plumb')?.value)||92,
-  hvac:  parseFloat(document.getElementById('r-hvac')?.value)||84,
-  side:  parseFloat(document.getElementById('r-side')?.value)||58,
+  fore:  parseFloat(document.getElementById('r-fore')?.value)||80,
+  roof:  parseFloat(document.getElementById('r-roof')?.value)||48,
+  mason: parseFloat(document.getElementById('r-mason')?.value)||58,
+  paint: parseFloat(document.getElementById('r-paint')?.value)||44,
+  equip: parseFloat(document.getElementById('r-equip')?.value)||56,
+  sub:   parseFloat(document.getElementById('r-sub')?.value)||92,
+  elec:  parseFloat(document.getElementById('r-elec')?.value)||72,
+  plumb: parseFloat(document.getElementById('r-plumb')?.value)||70,
+  hvac:  parseFloat(document.getElementById('r-hvac')?.value)||64,
+  side:  parseFloat(document.getElementById('r-side')?.value)||48,
 });
 
 const fd = n => '$'+(Math.round(n*100)/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -9827,6 +9845,19 @@ function resetPrices(){
   renderLines();
   recalc();
   toast('Prices reset to market rates');
+}
+
+// Restore each Labor Rates input to its HTML `value` default (the
+// ETN May-2026 calibration baked into the DOM), then re-save.
+function resetLaborRates(){
+  const ids=['r-gen','r-sk','r-fore','r-roof','r-mason','r-paint','r-equip','r-sub','r-elec','r-plumb','r-hvac','r-side'];
+  ids.forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){ el.value = el.getAttribute('value'); }
+  });
+  saveSettings();
+  recalc();
+  toast('Labor rates reset to ETN market');
 }
 
 // Get current price for a material (user override or default)
