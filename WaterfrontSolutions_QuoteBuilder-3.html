@@ -320,31 +320,35 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
       </div>
 
       <div class="section">
-        <div class="section-head"><span class="section-title">Labor Rates ($/hr)</span></div>
+        <div class="section-head">
+          <span class="section-title">Labor Rates ($/hr)</span>
+          <button class="btn btn-ghost btn-sm" onclick="resetLaborRates()">↺ ETN Market</button>
+        </div>
         <div class="section-body">
+          <div style="font-size:11px;color:var(--text3);margin-bottom:8px">East TN contractor billing rates (May 2026) — wage × ~2.2 (burden + overhead + margin). Edit any rate; the app saves your changes. <b style="color:var(--gold)">↺ ETN Market</b> restores the defaults.</div>
           <div class="field-row">
-            <div class="field"><label>General Labor</label><input type="number" id="r-gen" value="42" oninput="saveSettings();recalc()"/></div>
+            <div class="field"><label>General Labor</label><input type="number" id="r-gen" value="44" oninput="saveSettings();recalc()"/></div>
             <div class="field"><label>Skilled / Carpenter</label><input type="number" id="r-sk" value="62" oninput="saveSettings();recalc()"/></div>
           </div>
           <div class="field-row">
-            <div class="field"><label>Foreman</label><input type="number" id="r-fore" value="82" oninput="saveSettings();recalc()"/></div>
-            <div class="field"><label>Roofer</label><input type="number" id="r-roof" value="58" oninput="saveSettings();recalc()"/></div>
+            <div class="field"><label>Foreman</label><input type="number" id="r-fore" value="80" oninput="saveSettings();recalc()"/></div>
+            <div class="field"><label>Roofer</label><input type="number" id="r-roof" value="78" oninput="saveSettings();recalc()"/></div>
           </div>
           <div class="field-row">
-            <div class="field"><label>Mason / Block</label><input type="number" id="r-mason" value="68" oninput="saveSettings();recalc()"/></div>
-            <div class="field"><label>Painter</label><input type="number" id="r-paint" value="48" oninput="saveSettings();recalc()"/></div>
+            <div class="field"><label>Mason / Block</label><input type="number" id="r-mason" value="58" oninput="saveSettings();recalc()"/></div>
+            <div class="field"><label>Painter</label><input type="number" id="r-paint" value="44" oninput="saveSettings();recalc()"/></div>
           </div>
           <div class="field-row">
-            <div class="field"><label>Equipment Operator</label><input type="number" id="r-equip" value="78" oninput="saveSettings();recalc()"/></div>
-            <div class="field"><label>Subcontractor</label><input type="number" id="r-sub" value="98" oninput="saveSettings();recalc()"/></div>
+            <div class="field"><label>Equipment Operator</label><input type="number" id="r-equip" value="56" oninput="saveSettings();recalc()"/></div>
+            <div class="field"><label>Subcontractor</label><input type="number" id="r-sub" value="92" oninput="saveSettings();recalc()"/></div>
           </div>
           <div class="field-row">
-            <div class="field"><label>Electrician (journeyman)</label><input type="number" id="r-elec" value="88" oninput="saveSettings();recalc()"/></div>
-            <div class="field"><label>Plumber</label><input type="number" id="r-plumb" value="92" oninput="saveSettings();recalc()"/></div>
+            <div class="field"><label>Electrician (journeyman)</label><input type="number" id="r-elec" value="72" oninput="saveSettings();recalc()"/></div>
+            <div class="field"><label>Plumber</label><input type="number" id="r-plumb" value="70" oninput="saveSettings();recalc()"/></div>
           </div>
           <div class="field-row">
-            <div class="field"><label>HVAC Technician</label><input type="number" id="r-hvac" value="84" oninput="saveSettings();recalc()"/></div>
-            <div class="field"><label>Siding / Exterior</label><input type="number" id="r-side" value="58" oninput="saveSettings();recalc()"/></div>
+            <div class="field"><label>HVAC Technician</label><input type="number" id="r-hvac" value="64" oninput="saveSettings();recalc()"/></div>
+            <div class="field"><label>Siding / Exterior</label><input type="number" id="r-side" value="48" oninput="saveSettings();recalc()"/></div>
           </div>
         </div>
       </div>
@@ -1490,8 +1494,8 @@ const TASKS = [
   {name:"Covered porch — columns & beam package",cat:"Covered Porch",icon:"🏡",unit:"lf",unitLabel:"lin ft of front beam",hrsPerUnit:0.7,rateKey:"sk",matPerUnit:22,notes:"6×6 posts, double beam, caps, bases, structural hardware"},
   {name:"Covered porch — roof framing package",cat:"Covered Porch",icon:"🏡",unit:"sqft",unitLabel:"sq ft roof area",hrsPerUnit:0.16,rateKey:"sk",matPerUnit:6.75,notes:"Rafters/trusses, ridge, ties, blocking, hurricane hardware"},
   {name:"Covered porch — roof sheathing & dry-in",cat:"Covered Porch",icon:"🏡",unit:"sqft",unitLabel:"sq ft roof area",hrsPerUnit:0.035,rateKey:"sk",matPerUnit:1.45,notes:"OSB, underlayment, drip edge, nails"},
-  {name:"Covered porch roofing — architectural shingles",cat:"Covered Porch",icon:"🏡",unit:"sqft",unitLabel:"sq ft roof area",hrsPerUnit:0.028,rateKey:"roof",matPerUnit:2.15,notes:"Starter, field shingles, cap, roof nails"},
-  {name:"Covered porch roofing — standing seam metal",cat:"Covered Porch",icon:"🏡",unit:"sqft",unitLabel:"sq ft roof area",hrsPerUnit:0.07,rateKey:"roof",matPerUnit:8.35,notes:"Panels, clips/screws, trim, closures"},
+  {name:"Covered porch roofing — architectural shingles",cat:"Covered Porch",icon:"🏡",unit:"sqft",unitLabel:"sq ft roof area",hrsPerUnit:0.038,rateKey:"roof",matPerUnit:2.55,notes:"GAF Timberline HDZ + starter + cap + felt + drip + nails; $5.50–$8/sf installed"},
+  {name:"Covered porch roofing — standing seam metal",cat:"Covered Porch",icon:"🏡",unit:"sqft",unitLabel:"sq ft roof area",hrsPerUnit:0.085,rateKey:"roof",matPerUnit:10.25,notes:"24-ga painted Galvalume + clips/screws + trim + closures; $15–$19/sf installed"},
   {name:"Covered porch — T&G pine ceiling",cat:"Covered Porch",icon:"🏡",unit:"sqft",unitLabel:"sq ft ceiling",hrsPerUnit:0.095,rateKey:"sk",matPerUnit:3.65,notes:"1×6 T&G pine, finish nails, trim allowance"},
   {name:"Covered porch — beadboard ceiling",cat:"Covered Porch",icon:"🏡",unit:"sqft",unitLabel:"sq ft ceiling",hrsPerUnit:0.085,rateKey:"sk",matPerUnit:4.1,notes:"Beadboard, trim, finish fasteners"},
   {name:"Covered porch — screen enclosure",cat:"Covered Porch",icon:"🏡",unit:"lf",unitLabel:"lin ft perimeter",hrsPerUnit:1.15,rateKey:"sk",matPerUnit:31,notes:"Screen frames, screen, spline, door allowance spread by perimeter"},
@@ -1506,16 +1510,25 @@ const TASKS = [
   {name:"Wall sheathing — OSB",cat:"Framing",icon:"🏠",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.004,rateKey:"sk",matPerUnit:1.05,notes:"3-person crew ~250 sqft/hr"},
   {name:"Roof sheathing — OSB",cat:"Framing",icon:"🏠",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.0038,rateKey:"sk",matPerUnit:0.9,notes:"Pitched roof"},
   {name:"Header install (door/window)",cat:"Framing",icon:"🏠",unit:"ea",unitLabel:"each",hrsPerUnit:1.2,rateKey:"sk",matPerUnit:42,notes:"Standard LVL or doubled 2×"},
-  {name:"Tear-off — asphalt shingles",cat:"Roofing",icon:"🏚️",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.012,rateKey:"roof",matPerUnit:0,notes:"1 layer; ~85 sqft/hr per roofer"},
-  {name:"Felt / synthetic underlayment",cat:"Roofing",icon:"🏚️",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.005,rateKey:"roof",matPerUnit:0.18,notes:"15# felt or synthetic"},
-  {name:"3-tab asphalt shingles",cat:"Roofing",icon:"🏚️",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.022,rateKey:"roof",matPerUnit:1.0,notes:"~45 sqft/hr; starter, field, ridge"},
-  {name:"Architectural shingles",cat:"Roofing",icon:"🏚️",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.025,rateKey:"roof",matPerUnit:1.42,notes:"Dimensional / laminate"},
-  {name:"Metal roofing — standing seam",cat:"Roofing",icon:"🏚️",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.065,rateKey:"roof",matPerUnit:7.8,notes:"Pre-fab panels; ~80 sqft/hr"},
-  {name:"Ridge cap / hip shingles",cat:"Roofing",icon:"🏚️",unit:"lf",unitLabel:"lin ft",hrsPerUnit:.08,rateKey:"roof",matPerUnit:1.5,notes:"Cut & nail cap shingles"},
-  {name:"Drip edge installation",cat:"Roofing",icon:"🏚️",unit:"lf",unitLabel:"lin ft",hrsPerUnit:0.08,rateKey:"roof",matPerUnit:0.42,notes:"Aluminum drip edge"},
-  {name:"Roof flashing (step/counter)",cat:"Roofing",icon:"🏚️",unit:"lf",unitLabel:"lin ft",hrsPerUnit:.25,rateKey:"roof",matPerUnit:3,notes:"Wall, chimney, valley"},
-  {name:"Roof vent installation",cat:"Roofing",icon:"🏚️",unit:"ea",unitLabel:"each",hrsPerUnit:.75,rateKey:"roof",matPerUnit:25,notes:"Box vent or power vent"},
-  {name:"Gutters — aluminum 5\" K-style",cat:"Roofing",icon:"🏚️",unit:"lf",unitLabel:"lin ft",hrsPerUnit:.15,rateKey:"sk",matPerUnit:4.5,notes:"Incl. end caps, hangers"},
+  {name:"Tear-off — asphalt shingles",cat:"Roofing",icon:"🏚️",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.018,rateKey:"roof",matPerUnit:0.40,notes:"1 layer + dumpster/disposal allocation; $1–$3/sf installed (2026)"},
+  {name:"Felt / synthetic underlayment",cat:"Roofing",icon:"🏚️",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.006,rateKey:"roof",matPerUnit:0.28,notes:"Synthetic (GAF FeltBuster/Tiger Paw) or 15# felt"},
+  {name:"Ice & water shield (eaves/valleys)",cat:"Roofing",icon:"🏚️",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.012,rateKey:"roof",matPerUnit:0.95,notes:"Grace Ice & Water HT; $90–$180/sq (2026)"},
+  {name:"3-tab asphalt shingles",cat:"Roofing",icon:"🏚️",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.030,rateKey:"roof",matPerUnit:1.10,notes:"GAF Royal Sovereign / CertainTeed XT-25; $3–$4.50/sf installed"},
+  {name:"Architectural shingles",cat:"Roofing",icon:"🏚️",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.035,rateKey:"roof",matPerUnit:1.65,notes:"GAF Timberline HDZ / OC Duration / CT Landmark; $4.25–$8/sf installed (TN 2026)"},
+  {name:"Architectural shingles — 50yr premium",cat:"Roofing",icon:"🏚️",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.038,rateKey:"roof",matPerUnit:2.10,notes:"GAF Timberline UHDZ / OC Duration Premium; $5.50–$9/sf installed"},
+  {name:"Designer / luxury shingles",cat:"Roofing",icon:"🏚️",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.045,rateKey:"roof",matPerUnit:3.10,notes:"GAF Camelot II / CertainTeed Presidential Shake; $8–$12/sf installed"},
+  {name:"Impact-resistant shingles (Class 4)",cat:"Roofing",icon:"🏚️",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.038,rateKey:"roof",matPerUnit:2.40,notes:"Malarkey Vista AR; insurance discount eligible"},
+  {name:"Metal roofing — exposed-fastener panel (29 ga)",cat:"Roofing",icon:"🏚️",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.055,rateKey:"roof",matPerUnit:5.20,notes:"29-ga Galvalume R-panel / 5-V crimp; $10–$14/sf installed"},
+  {name:"Metal roofing — standing seam",cat:"Roofing",icon:"🏚️",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.075,rateKey:"roof",matPerUnit:9.50,notes:"24-ga painted Galvalume snap-lock; $14–$18/sf installed (TN 2026)"},
+  {name:"Ridge cap / hip shingles",cat:"Roofing",icon:"🏚️",unit:"lf",unitLabel:"lin ft",hrsPerUnit:.085,rateKey:"roof",matPerUnit:2.10,notes:"GAF TimberTex / Z-Ridge; matches arch shingle line"},
+  {name:"Drip edge installation",cat:"Roofing",icon:"🏚️",unit:"lf",unitLabel:"lin ft",hrsPerUnit:0.030,rateKey:"roof",matPerUnit:0.85,notes:"Aluminum .019; ~10ft pcs $8-$10 each"},
+  {name:"Roof flashing (step/counter)",cat:"Roofing",icon:"🏚️",unit:"lf",unitLabel:"lin ft",hrsPerUnit:.18,rateKey:"roof",matPerUnit:4.50,notes:"Wall, chimney, valley; aluminum or coil-formed"},
+  {name:"Pipe boot / vent flashing",cat:"Roofing",icon:"🏚️",unit:"ea",unitLabel:"each",hrsPerUnit:.55,rateKey:"roof",matPerUnit:18,notes:"Oatey/Lifetime EPDM or lead boot"},
+  {name:"Roof vent installation",cat:"Roofing",icon:"🏚️",unit:"ea",unitLabel:"each",hrsPerUnit:.85,rateKey:"roof",matPerUnit:38,notes:"Box vent or static; power vent runs $125–$185"},
+  {name:"Ridge vent (continuous)",cat:"Roofing",icon:"🏚️",unit:"lf",unitLabel:"lin ft",hrsPerUnit:.10,rateKey:"roof",matPerUnit:6.50,notes:"GAF Cobra Snow Country / OC VentSure ~$58 per 4\\' stick"},
+  {name:"Gutters — aluminum 5\" K-style",cat:"Roofing",icon:"🏚️",unit:"lf",unitLabel:"lin ft",hrsPerUnit:.15,rateKey:"sk",matPerUnit:6.50,notes:"Incl. end caps, hangers, sealant; $9–$14/lf installed"},
+  {name:"Gutters — aluminum 6\" K-style",cat:"Roofing",icon:"🏚️",unit:"lf",unitLabel:"lin ft",hrsPerUnit:.18,rateKey:"sk",matPerUnit:8.50,notes:"Heavier .032 gauge; better watershed capacity"},
+  {name:"Downspouts — 3×4 aluminum",cat:"Roofing",icon:"🏚️",unit:"lf",unitLabel:"lin ft",hrsPerUnit:.12,rateKey:"sk",matPerUnit:5.50,notes:"Incl. elbows, straps, splash block"},
   {name:"Exterior painting — walls",cat:"Painting",icon:"🎨",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.012,rateKey:"paint",matPerUnit:0.38,notes:"~80 sqft/hr; 2 coats"},
   {name:"Interior painting — 1 coat",cat:"Painting",icon:"🎨",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.008,rateKey:"paint",matPerUnit:0.22,notes:"~120 sqft/hr flat walls"},
   {name:"Interior painting — 2 coats",cat:"Painting",icon:"🎨",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.014,rateKey:"paint",matPerUnit:0.38,notes:"Prime + finish"},
@@ -1782,20 +1795,40 @@ let _elements = [], _dragging = null, _selected = null;
 let _panning = false, _panStart = null;
 
 const rates = () => ({
-  // ETN contractor billing rates (May 2026): wage + 35% burden + 25% overhead
-  // Sources: BLS OEWS 2025, ZipRecruiter TN 2026, CalculatorConstruction.com 2026
-  gen:   parseFloat(document.getElementById('r-gen')?.value)||42,
+  // ETN contractor billing rates — recalibrated May 2026 from current
+  // Knoxville/Tennessee wage data. Methodology: billing = wage × ~2.2
+  // (35% labor burden + 25% overhead + ~20% margin). Specialty licensed
+  // trades (elec/plumb/hvac) carry a small license/insurance premium.
+  // Source wages (2026):
+  //   Laborer ~$20    (BLS / ZipRecruiter TN)
+  //   Carpenter $28   (ZipRecruiter Knoxville journeyman)
+  //   Foreman $36     (Indeed TN $27 + BLS supervisor mix)
+  //   Roofer $22 wage, but $78/hr billing — roofing uses a higher
+  //                   2.5–3× multiplier than other trades because of high
+  //                   workers-comp class rate, weather/fall-risk premium,
+  //                   tear-off disposal overhead, and seasonality. National
+  //                   2026 roofer billing avg = $78/hr (HouseCallPro,
+  //                   HomeHeroRoofing); ETN per-square labor $180–$300/sq
+  //                   at ~3 man-hr/sq = $60–$100/hr.
+  //   Mason $26       (Indeed TN brickmason)
+  //   Painter $20     (PayScale/ZipRecruiter Knoxville)
+  //   Equip Op $24    (ZipRecruiter TN heavy equipment)
+  //   Electrician $31 (ZipRecruiter/Salary.com Knoxville)
+  //   Plumber $30     (ZipRecruiter/Salary.com Knoxville)
+  //   HVAC $28        (ZipRecruiter/Indeed Knoxville)
+  //   Siding $22      (ZipRecruiter Knoxville)
+  gen:   parseFloat(document.getElementById('r-gen')?.value)||44,
   sk:    parseFloat(document.getElementById('r-sk')?.value)||62,
-  fore:  parseFloat(document.getElementById('r-fore')?.value)||82,
-  roof:  parseFloat(document.getElementById('r-roof')?.value)||58,
-  mason: parseFloat(document.getElementById('r-mason')?.value)||68,
-  paint: parseFloat(document.getElementById('r-paint')?.value)||48,
-  equip: parseFloat(document.getElementById('r-equip')?.value)||78,
-  sub:   parseFloat(document.getElementById('r-sub')?.value)||98,
-  elec:  parseFloat(document.getElementById('r-elec')?.value)||88,
-  plumb: parseFloat(document.getElementById('r-plumb')?.value)||92,
-  hvac:  parseFloat(document.getElementById('r-hvac')?.value)||84,
-  side:  parseFloat(document.getElementById('r-side')?.value)||58,
+  fore:  parseFloat(document.getElementById('r-fore')?.value)||80,
+  roof:  parseFloat(document.getElementById('r-roof')?.value)||78,
+  mason: parseFloat(document.getElementById('r-mason')?.value)||58,
+  paint: parseFloat(document.getElementById('r-paint')?.value)||44,
+  equip: parseFloat(document.getElementById('r-equip')?.value)||56,
+  sub:   parseFloat(document.getElementById('r-sub')?.value)||92,
+  elec:  parseFloat(document.getElementById('r-elec')?.value)||72,
+  plumb: parseFloat(document.getElementById('r-plumb')?.value)||70,
+  hvac:  parseFloat(document.getElementById('r-hvac')?.value)||64,
+  side:  parseFloat(document.getElementById('r-side')?.value)||48,
 });
 
 const fd = n => '$'+(Math.round(n*100)/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -3229,6 +3262,13 @@ function toCalcBlockwall(){
 // alternative (e.g. 2×10 joist → 2×8 joist, 5/4 PT decking → composite Trex,
 // Ø12" sonotube → Ø10"). The role is inferred from the item name. User
 // overrides persist for the session in _itemOverrides and survive recalc.
+//
+// Brand/color catalogs for shingle, decking_board, paint, insulation,
+// gutter, column, and siding refreshed May 2026 from current Home Depot /
+// Lowe's / manufacturer pricing for the East TN market (contractor /
+// supplier-yard tier). The `_perSq` flag means price is per 100 sf
+// (roofing/siding "square"); `_perFt` is per linear foot; `_perSf` is per
+// square foot; otherwise it's per piece/bundle/board.
 // ══════════════════════════════════════════════════════════════════════════
 const ALT_CATALOG = {
   joist: [
@@ -3271,12 +3311,55 @@ const ALT_CATALOG = {
     {label:'2×4 KD Doug-Fir × 8\'', matCostEach:5.40},
   ],
   decking_board: [
-    {label:'5/4×6 PT × 16\'',          matCostEach:19},
-    {label:'5/4×6 Cedar × 16\'',       matCostEach:38},
-    {label:'1×6 Composite (Trex Sel)', matCostEach:46},
-    {label:'1×6 Composite (Transcend)',matCostEach:62},
-    {label:'1×6 Ipe Hardwood × 16\'',  matCostEach:78},
-    {label:'1×6 PVC (Azek) × 16\'',    matCostEach:58},
+    // PT lumber / wood
+    {label:'5/4×6 PT × 16\'',                       matCostEach:19},
+    {label:'2×6 PT × 16\'',                         matCostEach:24},
+    {label:'5/4×6 Western Red Cedar (Knotty) × 16\'',matCostEach:38},
+    {label:'5/4×6 Clear Cedar × 16\'',              matCostEach:62},
+    // Trex composite — by line + color (16' boards, ETN supplier 2026)
+    {label:'Trex Enhance Basics — Beach Dune × 16\'',     matCostEach:26},
+    {label:'Trex Enhance Basics — Clam Shell × 16\'',     matCostEach:26},
+    {label:'Trex Enhance Basics — Saddle × 16\'',         matCostEach:26},
+    {label:'Trex Enhance Naturals — Coastal Bluff × 16\'',matCostEach:34},
+    {label:'Trex Enhance Naturals — Foggy Wharf × 16\'',  matCostEach:34},
+    {label:'Trex Enhance Naturals — Toasted Sand × 16\'', matCostEach:34},
+    {label:'Trex Select — Pebble Gray × 16\'',            matCostEach:46},
+    {label:'Trex Select — Saddle × 16\'',                 matCostEach:46},
+    {label:'Trex Select — Madeira × 16\'',                matCostEach:46},
+    {label:'Trex Transcend — Spiced Rum × 16\'',          matCostEach:62},
+    {label:'Trex Transcend — Tiki Torch × 16\'',          matCostEach:62},
+    {label:'Trex Transcend — Vintage Lantern × 16\'',     matCostEach:62},
+    {label:'Trex Transcend — Lava Rock × 16\'',           matCostEach:62},
+    {label:'Trex Transcend Lineage — Biscayne × 16\'',    matCostEach:78},
+    {label:'Trex Transcend Lineage — Rainier × 16\'',     matCostEach:78},
+    // TimberTech / AZEK
+    {label:'TimberTech EDGE Prime+ — Coconut Husk × 16\'',matCostEach:42},
+    {label:'TimberTech EDGE Prime+ — French White Oak × 16\'',matCostEach:42},
+    {label:'TimberTech AZEK Harvest — Slate Gray × 16\'', matCostEach:58},
+    {label:'TimberTech AZEK Harvest — Brownstone × 16\'', matCostEach:58},
+    {label:'TimberTech PRO Reserve — Antique Leather × 16\'',matCostEach:72},
+    {label:'TimberTech PRO Reserve — Storm Gray × 16\'',  matCostEach:72},
+    {label:'TimberTech AZEK Vintage — Dark Hickory × 16\'',matCostEach:88},
+    {label:'TimberTech AZEK Vintage — Mahogany × 16\'',   matCostEach:88},
+    // Fiberon
+    {label:'Fiberon Good Life — Cottage × 16\'',          matCostEach:36},
+    {label:'Fiberon Good Life — Cabin × 16\'',            matCostEach:36},
+    {label:'Fiberon Sanctuary — Coastline × 16\'',        matCostEach:78},
+    {label:'Fiberon Sanctuary — Latitude × 16\'',         matCostEach:78},
+    {label:'Fiberon Concordia Horizon — Castle Gray × 16\'',matCostEach:88},
+    {label:'Fiberon Concordia Horizon — Tudor Brown × 16\'',matCostEach:88},
+    {label:'Fiberon Promenade — Coastal Beach × 16\'',    matCostEach:115},
+    {label:'Fiberon Promenade — Cinder Bay × 16\'',       matCostEach:115},
+    // Deckorators / MoistureShield (post-acquisition)
+    {label:'Deckorators Voyage — Tundra × 16\'',          matCostEach:68},
+    {label:'Deckorators Voyage — Mesa × 16\'',            matCostEach:68},
+    {label:'Deckorators Vault — Mahogany × 16\'',         matCostEach:78},
+    {label:'MoistureShield Vision — Cathedral Stone × 16\'',matCostEach:78},
+    {label:'MoistureShield Vantage — Cottage Gray × 16\'',matCostEach:62},
+    // PVC / Tropical hardwood
+    {label:'AZEK Vintage PVC — English Walnut × 16\'',    matCostEach:92},
+    {label:'1×6 Ipe Hardwood × 16\'',                     matCostEach:78},
+    {label:'1×6 Cumaru Hardwood × 16\'',                  matCostEach:68},
   ],
   sonotube: [
     {label:'Sonotube 10"Ø × 48"', matCostEach:18},
@@ -3313,11 +3396,41 @@ const ALT_CATALOG = {
     {label:'Premium Synthetic (Sharkskin)',matCostEach:165},
   ],
   shingle: [
-    {label:'3-Tab Shingles (bundle)',       matCostEach:34},
-    {label:'Architectural 30-yr (bundle)',  matCostEach:42},
-    {label:'Architectural 50-yr (bundle)',  matCostEach:58},
-    {label:'Premium Designer (bundle)',     matCostEach:78},
-    {label:'Standing Seam Metal (sf)',      matCostEach:8.50, _perSf:true},
+    // 3-tab (entry tier)
+    {label:'GAF Royal Sovereign 3-Tab (bundle)',          matCostEach:32},
+    {label:'CertainTeed XT-25 3-Tab (bundle)',            matCostEach:32},
+    // GAF Timberline HDZ — architectural (HD bundle = 33.3 sf, 3 bdl/sq)
+    {label:'GAF Timberline HDZ — Charcoal (bundle)',      matCostEach:39},
+    {label:'GAF Timberline HDZ — Pewter Gray (bundle)',   matCostEach:39},
+    {label:'GAF Timberline HDZ — Weathered Wood (bundle)',matCostEach:39},
+    {label:'GAF Timberline HDZ — Barkwood (bundle)',      matCostEach:39},
+    {label:'GAF Timberline HDZ — Slate (bundle)',         matCostEach:39},
+    {label:'GAF Timberline HDZ — Shakewood (bundle)',     matCostEach:39},
+    {label:'GAF Timberline HDZ — Hickory (bundle)',       matCostEach:39},
+    {label:'GAF Timberline HDZ — Birchwood (bundle)',     matCostEach:39},
+    {label:'GAF Timberline HDZ Reflector — Stone Gray (cool roof) (bundle)',matCostEach:48},
+    {label:'GAF Timberline UHDZ — Charcoal (bundle)',     matCostEach:52},
+    // Owens Corning TruDefinition Duration
+    {label:'OC TruDefinition Duration — Onyx Black (bundle)',  matCostEach:46},
+    {label:'OC TruDefinition Duration — Driftwood (bundle)',   matCostEach:46},
+    {label:'OC TruDefinition Duration — Estate Gray (bundle)', matCostEach:46},
+    {label:'OC TruDefinition Duration — Sand Dune (bundle)',   matCostEach:46},
+    {label:'OC TruDefinition Duration — Chateau Green (bundle)',matCostEach:46},
+    {label:'OC Duration Premium Cool — Sierra Gray (bundle)',  matCostEach:58},
+    // CertainTeed Landmark
+    {label:'CertainTeed Landmark — Weathered Wood (bundle)',   matCostEach:38},
+    {label:'CertainTeed Landmark — Moire Black (bundle)',      matCostEach:38},
+    {label:'CertainTeed Landmark — Heather Blend (bundle)',    matCostEach:38},
+    {label:'CertainTeed Landmark Pro — Max Def Burnt Sienna (bundle)',matCostEach:52},
+    // Premium designer / luxury
+    {label:'GAF Camelot II — Designer (bundle)',          matCostEach:78},
+    {label:'CertainTeed Presidential Shake TL (bundle)',  matCostEach:115},
+    {label:'OC Berkshire Collection — Designer (bundle)', matCostEach:88},
+    // Impact-resistant / metal
+    {label:'Malarkey Vista AR Class-4 IR (bundle)',       matCostEach:62},
+    {label:'IKO Cambridge AR (bundle)',                   matCostEach:38},
+    {label:'29-ga Metal Panel — Galvalume (sf)',          matCostEach:3.85, _perSf:true},
+    {label:'24-ga Standing Seam — Painted (sf)',          matCostEach:8.50, _perSf:true},
   ],
   drip_edge: [
     {label:'Aluminum T-style 10\'',  matCostEach:9},
@@ -3327,35 +3440,135 @@ const ALT_CATALOG = {
     {label:'Painted aluminum 10\'',  matCostEach:14},
   ],
   gutter: [
-    {label:'5" K-Style Aluminum 10\'',  matCostEach:14},
-    {label:'6" K-Style Aluminum 10\'',  matCostEach:18},
-    {label:'5" Half-Round Aluminum 10\'',matCostEach:24},
-    {label:'5" Half-Round Copper 10\'', matCostEach:78},
-    {label:'5" K-Style Galv Steel 10\'',matCostEach:16},
+    // 5" K-style (most common residential)
+    {label:'5" K-Style Aluminum — White 10\'',         matCostEach:14},
+    {label:'5" K-Style Aluminum — Almond 10\'',        matCostEach:14},
+    {label:'5" K-Style Aluminum — Bronze 10\'',        matCostEach:16},
+    {label:'5" K-Style Aluminum — Black 10\'',         matCostEach:16},
+    {label:'5" K-Style Galv Steel 10\'',               matCostEach:16},
+    // 6" K-style (larger watershed)
+    {label:'6" K-Style Aluminum — White 10\'',         matCostEach:18},
+    {label:'6" K-Style Aluminum — Bronze 10\'',        matCostEach:20},
+    {label:'6" K-Style Galv Steel 10\'',               matCostEach:21},
+    // Half-round (premium look)
+    {label:'5" Half-Round Aluminum 10\'',              matCostEach:24},
+    {label:'6" Half-Round Aluminum 10\'',              matCostEach:30},
+    {label:'5" Half-Round Copper 10\'',                matCostEach:78},
+    {label:'6" Half-Round Copper 10\'',                matCostEach:98},
+    // Seamless (per LF, on-site rolled)
+    {label:'5" Seamless Aluminum (per lf, on-site)',   matCostEach:6.50, _perFt:true},
+    {label:'6" Seamless Aluminum (per lf, on-site)',   matCostEach:8.50, _perFt:true},
+    // Gutter guards
+    {label:'LeafFilter-style mesh guard (per lf)',     matCostEach:3.50, _perFt:true},
+    {label:'Foam gutter insert (4\' stick)',           matCostEach:6},
   ],
   insulation: [
-    {label:'R-13 Fiberglass batt (bag)', matCostEach:52},
-    {label:'R-15 Mineral Wool (bag)',    matCostEach:68},
-    {label:'R-19 Fiberglass batt (bag)', matCostEach:58},
-    {label:'R-20 Fiberglass batt (bag)', matCostEach:78},
-    {label:'R-21 Fiberglass HD (bag)',   matCostEach:88},
-    {label:'R-30 Blown-In (bag)',        matCostEach:42},
-    {label:'ccSPF kit 200 bf',           matCostEach:385},
+    // Fiberglass batts — by brand + R-value
+    {label:'Owens Corning EcoTouch R-13 unfaced (bag, 88 sf)',  matCostEach:48},
+    {label:'Owens Corning EcoTouch R-13 kraft-faced (bag)',     matCostEach:52},
+    {label:'Owens Corning EcoTouch R-15 (bag, 2×4 deep cavity)',matCostEach:68},
+    {label:'Owens Corning EcoTouch R-19 kraft (bag, 64 sf)',    matCostEach:58},
+    {label:'Owens Corning EcoTouch R-21 HD (bag, 2×6 wall)',    matCostEach:78},
+    {label:'Owens Corning R-30 Blown-In (bag)',                 matCostEach:42},
+    {label:'Johns Manville R-13 kraft-faced (bag)',             matCostEach:46},
+    {label:'Johns Manville R-15 unfaced (bag)',                 matCostEach:64},
+    {label:'Johns Manville R-19 kraft-faced (bag)',             matCostEach:54},
+    {label:'Johns Manville R-21 HD (bag, 2×6 wall)',            matCostEach:74},
+    {label:'Knauf EcoBatt R-13 (bag, 88 sf)',                   matCostEach:44},
+    {label:'Knauf EcoBatt R-19 (bag, 64 sf)',                   matCostEach:52},
+    // Mineral wool (fire / sound)
+    {label:'Rockwool Comfortbatt R-15 (bag)',                   matCostEach:72},
+    {label:'Rockwool Comfortbatt R-23 (bag, 2×6 wall)',         matCostEach:88},
+    {label:'Rockwool Safe\'n\'Sound (acoustic, bag)',           matCostEach:62},
+    // Rigid foam
+    {label:'Owens Corning Foamular 250 1" XPS (4×8)',           matCostEach:38},
+    {label:'Owens Corning Foamular 250 2" XPS (4×8)',           matCostEach:72},
+    {label:'Dow Thermax Polyiso 1" (4×8)',                      matCostEach:58},
+    {label:'Atlas EnergyShield Polyiso 1.5" (4×8)',             matCostEach:68},
+    // Spray foam kits
+    {label:'Touch\'n Seal ccSPF kit 200 bf',                    matCostEach:385},
+    {label:'Touch\'n Seal ocSPF kit 600 bf',                    matCostEach:725},
+    {label:'Great Stuff Pro window/door foam (12 oz can)',      matCostEach:9},
   ],
   column: [
-    {label:'6×6 PT Post',          matCostEach:32},
-    {label:'PVC Wrap 8" Round',    matCostEach:215},
-    {label:'PVC Wrap 10" Round',   matCostEach:265},
-    {label:'PVC Wrap 12" Square Fluted', matCostEach:325},
-    {label:'Fiberglass Round 8"',  matCostEach:195},
-    {label:'Cedar 6×6 Wrapped',    matCostEach:165},
+    // Bare wood
+    {label:'6×6 PT Post',                              matCostEach:32},
+    {label:'6×6 Cedar Post',                           matCostEach:78},
+    // PVC column wraps (HB&G / AZEK / Royal)
+    {label:'AZEK PVC Wrap 8" Round Smooth',            matCostEach:215},
+    {label:'AZEK PVC Wrap 10" Round Smooth',           matCostEach:265},
+    {label:'HB&G PermaSnap PVC 8" Square Fluted',      matCostEach:245},
+    {label:'HB&G PermaSnap PVC 10" Square Fluted',     matCostEach:295},
+    {label:'HB&G PermaSnap PVC 12" Square Fluted',     matCostEach:325},
+    {label:'Royal Builders PVC 8" Tapered Round',      matCostEach:285},
+    // Fiberglass (FRP)
+    {label:'HB&G PermaCast FRP 8" Round Tapered',      matCostEach:195},
+    {label:'HB&G PermaCast FRP 10" Round Tapered',     matCostEach:265},
+    {label:'HB&G PermaCast FRP 12" Round Tapered',     matCostEach:345},
+    // Cedar wraps
+    {label:'Cedar 6×6 Wrapped (site-built)',           matCostEach:165},
+    {label:'Cedar 8" Square Wrap (factory)',           matCostEach:225},
+    // Stone / stacked stone column wrap
+    {label:'Stone Veneer Column Wrap (per sf)',        matCostEach:18, _perSf:true},
+    // Structural steel
+    {label:'Steel Sch40 4" Round Column (8\')',        matCostEach:155},
+    {label:'Steel HSS 4×4×¼" Tube (8\')',              matCostEach:185},
+  ],
+  // ── SIDING (new role) — vinyl / fiber-cement / engineered-wood / cedar
+  // Pricing is per square (100 sf) at ETN supplier pricing, May 2026.
+  siding: [
+    // Vinyl
+    {label:'CertainTeed MainStreet Vinyl D4 — Almond (sq)',       matCostEach:185, _perSq:true},
+    {label:'CertainTeed MainStreet Vinyl D4 — Granite Gray (sq)', matCostEach:195, _perSq:true},
+    {label:'CertainTeed Monogram Vinyl D5 — Premium (sq)',        matCostEach:265, _perSq:true},
+    {label:'Mastic Carvedwood 44 D4.5 (sq)',                       matCostEach:225, _perSq:true},
+    {label:'Royal Crest D5 Vinyl (sq)',                            matCostEach:210, _perSq:true},
+    // Fiber cement (James Hardie)
+    {label:'James Hardie HardiePlank Select Cedarmill — primed (sq, ColorPlus add)',matCostEach:285, _perSq:true},
+    {label:'James Hardie HardiePlank ColorPlus — Arctic White (sq)',matCostEach:380, _perSq:true},
+    {label:'James Hardie HardiePlank ColorPlus — Iron Gray (sq)',  matCostEach:380, _perSq:true},
+    {label:'James Hardie HardiePlank ColorPlus — Aged Pewter (sq)',matCostEach:380, _perSq:true},
+    {label:'James Hardie HardiePlank ColorPlus — Khaki Brown (sq)',matCostEach:380, _perSq:true},
+    {label:'James Hardie Statement Collection — Boothbay Blue (sq)',matCostEach:415, _perSq:true},
+    {label:'James Hardie Aspyre Artisan V-Groove (sq)',            matCostEach:585, _perSq:true},
+    // Engineered wood (LP SmartSide)
+    {label:'LP SmartSide 76-Series Lap 3/8"×8" — primed (sq)',     matCostEach:235, _perSq:true},
+    {label:'LP SmartSide ExpertFinish Lap — Snowscape White (sq)', matCostEach:345, _perSq:true},
+    {label:'LP SmartSide ExpertFinish Lap — Cavern Steel (sq)',    matCostEach:345, _perSq:true},
+    {label:'LP SmartSide ExpertFinish Lap — Rapids Blue (sq)',     matCostEach:345, _perSq:true},
+    {label:'LP SmartSide Board-and-Batten Panel (sq)',             matCostEach:215, _perSq:true},
+    // Cedar / real wood
+    {label:'Western Red Cedar Bevel 1×6 — clear (sq)',             matCostEach:485, _perSq:true},
+    {label:'Western Red Cedar Bevel 1×6 — knotty (sq)',            matCostEach:325, _perSq:true},
+    {label:'Cedar Shingle Sidewall — #1 Perfections (sq)',         matCostEach:425, _perSq:true},
+    // Metal
+    {label:'29-ga Steel Board-and-Batten (Galvalume, sq)',         matCostEach:285, _perSq:true},
+    {label:'24-ga Steel Standing-Seam Sidewall — Painted (sq)',    matCostEach:485, _perSq:true},
   ],
   paint: [
-    {label:'Sherwin Multipurpose Primer 1 gal',  matCostEach:52},
-    {label:'Sherwin SuperPaint Ext 1 gal',       matCostEach:78},
-    {label:'Sherwin Duration Ext 1 gal',         matCostEach:115},
-    {label:'Behr Premium Ext 1 gal',             matCostEach:48},
-    {label:'Benjamin Moore Aura 1 gal',          matCostEach:88},
+    // Sherwin-Williams (contractor pricing ~30-40% off retail with PSP)
+    {label:'Sherwin Multi-Purpose Primer 1 gal',         matCostEach:52},
+    {label:'Sherwin ProMar 200 Interior 1 gal (contractor)',matCostEach:42},
+    {label:'Sherwin Cashmere Interior 1 gal',            matCostEach:62},
+    {label:'Sherwin SuperPaint Exterior 1 gal',          matCostEach:72},
+    {label:'Sherwin Duration Exterior 1 gal',            matCostEach:88},
+    {label:'Sherwin Emerald Exterior 1 gal',             matCostEach:115},
+    {label:'Sherwin Emerald Urethane Trim Enamel 1 gal', matCostEach:98},
+    // Benjamin Moore
+    {label:'Benjamin Moore Ben Interior 1 gal',          matCostEach:48},
+    {label:'Benjamin Moore Regal Select Interior 1 gal', matCostEach:62},
+    {label:'Benjamin Moore Aura Interior 1 gal',         matCostEach:88},
+    {label:'Benjamin Moore Aura Exterior 1 gal',         matCostEach:92},
+    {label:'Benjamin Moore Advance Cabinet Enamel 1 gal',matCostEach:78},
+    // Behr (Home Depot)
+    {label:'Behr Premium Plus Interior 1 gal',           matCostEach:32},
+    {label:'Behr Ultra Interior 1 gal',                  matCostEach:42},
+    {label:'Behr Marquee Interior 1 gal',                matCostEach:52},
+    {label:'Behr Premium Plus Exterior 1 gal',           matCostEach:42},
+    {label:'Behr Marquee Exterior 1 gal',                matCostEach:58},
+    // PPG / Valspar
+    {label:'PPG Diamond Exterior 1 gal',                 matCostEach:54},
+    {label:'Valspar Reserve Interior 1 gal (Lowe\'s)',   matCostEach:46},
   ],
   caulk: [
     {label:'Big Stretch Acrylic 10 oz', matCostEach:11},
@@ -3418,6 +3631,7 @@ function inferItemRole(name){
   if(/k[- ]style|gutter\s+(\d|al|gal|copper|half)/.test(s)) return 'gutter';
   if(/fiberglass batt|mineral wool|spray foam|ccspf|insulation/.test(s)) return 'insulation';
   if(/column(?! (cap|base))|pvc wrap/.test(s)) return 'column';
+  if(/(vinyl|hardie|hardiplank|lp smartside|smartside|cedar bevel|cedar shingle sidewall|board[- ]and[- ]batten|sidewall)/.test(s)) return 'siding';
   if(/(exterior|primer|sherwin|behr|benjamin) (paint|primer|wall|exterior)/.test(s) || /\bpaint 1 gal/.test(s)) return 'paint';
   if(/caulk|sealant\s+(10 oz|tube)/.test(s)) return 'caulk';
   if(/deck(ing)? screw/.test(s)) return 'deck_screw';
@@ -3572,9 +3786,9 @@ function extendTakeoffWithCompleteList(type, items, c){
     const {blen=0,bwid=0,eaveExt=0,roofSqFt=0,eavePerim=0,rakePerim=0,ridge=0,valley=0,shingle='arch',sheetsNeeded=0,tearoff=0,gutterLF=0,penetr=0}=c;
     if(tearoff>0){
       P(items, 'Tear-Off',
-        _i('30-yd Dumpster (tear-off haul)', Math.ceil(roofSqFt/1500), 'ea', 'ea', 425),
-        _i('Magnetic Nail Sweeper Rental (day)', 1, 'day', 'day', 18),
-        _i('Roof Safety Harness Kit', 1, 'ea', 'ea', 185),
+        _i('30-yd Dumpster (tear-off haul)', Math.ceil(roofSqFt/1500), 'ea', 'ea', 575),
+        _i('Magnetic Nail Sweeper Rental (day)', 1, 'day', 'day', 28),
+        _i('Roof Safety Harness Kit', 1, 'ea', 'ea', 225),
       );
     }
     P(items, 'Sheathing',
@@ -3585,7 +3799,7 @@ function extendTakeoffWithCompleteList(type, items, c){
       _i('Kick-out Flashing (Quick-Flash QSC-1)', 2, 'ea', 'ea', 14),
       _i('Apron Flashing 10\' (chimney/dormer)', penetr>0?2:0, 'ea', 'ea', 22),
       _i('Counter Flashing 10\' (saw-kerf reglet)', penetr>0?2:0, 'ea', 'ea', 26),
-      _i('Cobra Ridge Vent 20\' Roll', ridge>0?Math.ceil(ridge/20):0, 'roll', 'roll', 48),
+      _i('Cobra Ridge Vent 20\' Roll', ridge>0?Math.ceil(ridge/20):0, 'roll', 'roll', 62),
       _i('Soffit Vent Strip 8\'×3"', Math.ceil((blen+eaveExt*2)*2/8), 'ea', 'ea', 14),
     );
     if(shingle!=='metal'){
@@ -3976,9 +4190,13 @@ function toRenderResults(items, summary, type){
       let swapHtml = '';
       if(altsInfo && altsInfo.alts && altsInfo.alts.length){
         const currentLabel = item.name;
+        // Pricing-page edits land in `qb_prices` keyed by label; read here
+        // so any user-edited price overrides the ALT_CATALOG default.
+        const _userPx = (function(){ try{return JSON.parse(localStorage.getItem('qb_prices')||'{}');}catch(e){return {};} })();
         const optsArr = altsInfo.alts.map(a=>{
           const lab=(a.label||'').replace(/"/g,'&quot;');
-          return `<option value="${lab}||${a.matCostEach}" ${currentLabel===a.label?'selected':''}>${a.label} — $${a.matCostEach.toFixed(2)}</option>`;
+          const px = (_userPx[a.label]!=null) ? _userPx[a.label] : a.matCostEach;
+          return `<option value="${lab}||${px}" ${currentLabel===a.label?'selected':''}>${a.label} — $${(+px).toFixed(2)}</option>`;
         });
         // Insert a "current/keep" option if the current label isn't in the alts list
         const inAlts = altsInfo.alts.some(a=>a.label===currentLabel);
@@ -4205,6 +4423,78 @@ function toRenderResults(items, summary, type){
     +'<div style="display:flex;justify-content:space-between;font-weight:700;color:var(--gold);border-top:0.5px solid var(--border);padding-top:5px;margin-top:4px"><span>TOTAL</span><span>'+fmt(grandTotal)+'</span></div>';
   od.appendChild(osCost);
 
+  // ── DRAWING STANDARDS — sheet header, required notes, schedules ────────
+  // Per WFS general drawing standards (docs/drawing-standards/00-general.md).
+  const sheetNum = wfsSheetNumber(type, 'plan');
+  const stdScale = wfsStdScale('plan');
+  const stdHdr = document.createElement('div');
+  stdHdr.style.cssText = 'margin-top:14px;padding:8px 10px;background:var(--surface2);border:0.5px solid var(--border);border-radius:8px;font-size:10.5px;color:var(--text2);display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between';
+  stdHdr.innerHTML = '<span><b style="color:var(--gold)">SHEET</b> '+sheetNum+'</span>'
+    +'<span><b style="color:var(--gold)">SCALE</b> '+stdScale.label+' ('+stdScale.metric+')</span>'
+    +'<span><b style="color:var(--gold)">REV</b> 0 — INITIAL ISSUE</span>'
+    +'<span><b style="color:var(--gold)">CODE</b> IRC 2021</span>';
+  od.appendChild(stdHdr);
+
+  const notesBox = document.createElement('div');
+  notesBox.style.cssText = 'margin-top:8px;padding:10px;border:0.5px solid var(--border);border-radius:8px;font-size:10px;line-height:1.5;color:var(--text2)';
+  let notesHtml = '<div style="color:var(--gold);font-weight:700;margin-bottom:5px;letter-spacing:.4px">GENERAL NOTES</div><ol style="margin:0;padding-left:18px">';
+  WFS_REQUIRED_NOTES.forEach(n=>{ notesHtml += '<li style="margin:2px 0"><b>'+n.tag+'.</b> '+n.txt+'</li>'; });
+  notesHtml += '</ol>';
+  notesBox.innerHTML = notesHtml;
+  od.appendChild(notesBox);
+
+  const _params = _processParams || {};
+  const _schedules = [
+    ['FASTENER / CONNECTOR SCHEDULE', wfsFastenerSchedule(type, _params), 'loc'],
+    ['LUMBER SCHEDULE',              wfsLumberSchedule(type, _params),    'use'],
+    ['CONCRETE SCHEDULE',            wfsConcreteSchedule(type, _params),  'use'],
+    ['REBAR SCHEDULE',               wfsRebarSchedule(type, _params),     'loc'],
+  ].filter(s => s[1] && s[1].length);
+  _schedules.forEach(([title, rows, col2])=>{
+    const sBox = document.createElement('div');
+    sBox.style.cssText = 'margin-top:8px;padding:8px 10px;border:0.5px solid var(--border);border-radius:8px;font-size:10px;line-height:1.45;color:var(--text2)';
+    let inner = '<div style="color:var(--gold);font-weight:700;margin-bottom:4px;letter-spacing:.4px">'+title+'</div>';
+    rows.forEach(r=>{
+      inner += '<div style="display:grid;grid-template-columns:30px 1fr;gap:6px;padding:1px 0"><b>'+r.tag+'</b><span>'+r.spec+' <span style="color:var(--text3)">— '+(r[col2]||'')+'</span></span></div>';
+    });
+    sBox.innerHTML = inner;
+    od.appendChild(sBox);
+  });
+
+  // DECK-SPECIFIC ADDENDA (per docs/drawing-standards/01-decks.md)
+  let _deckCheck = null, _deckNotes = null, _deckDwg = null;
+  if(type==='deck'){
+    _deckCheck = dca6DeckCheck(_params);
+    _deckNotes = dca6DeckGeneralNotes(_params);
+    _deckDwg   = DCA6_DECK_REQUIRED_DRAWINGS;
+    const dwgBox = document.createElement('div');
+    dwgBox.style.cssText = 'margin-top:8px;padding:8px 10px;border:0.5px solid var(--border);border-radius:8px;font-size:10px;line-height:1.45;color:var(--text2)';
+    let dwgHtml = '<div style="color:var(--gold);font-weight:700;margin-bottom:4px;letter-spacing:.4px">REQUIRED DRAWINGS — DECK SET</div>';
+    _deckDwg.forEach(d=>{
+      dwgHtml += '<div style="display:grid;grid-template-columns:55px 90px 1fr;gap:6px;padding:1px 0"><b>'+d.sheet+'</b><span>'+d.view+'</span><span><b>'+d.title+'</b> <span style="color:var(--text3)">— '+d.notes+'</span></span></div>';
+    });
+    dwgBox.innerHTML = dwgHtml;
+    od.appendChild(dwgBox);
+    if(_deckCheck.length){
+      const lvlCol = {ok:'#1a9b6c', warn:'#c08020', fail:'#b13030'};
+      const chkBox = document.createElement('div');
+      chkBox.style.cssText = 'margin-top:8px;padding:8px 10px;border:0.5px solid var(--border);border-radius:8px;font-size:10px;line-height:1.45;color:var(--text2)';
+      let chkHtml = '<div style="color:var(--gold);font-weight:700;margin-bottom:4px;letter-spacing:.4px">DCA 6 / IRC R507 PRESCRIPTIVE CHECK</div>';
+      _deckCheck.forEach(c=>{
+        chkHtml += '<div style="margin:2px 0"><b style="color:'+(lvlCol[c.level]||'#888')+'">['+c.level.toUpperCase()+']</b> '+c.msg+'</div>';
+      });
+      chkBox.innerHTML = chkHtml;
+      od.appendChild(chkBox);
+    }
+    const notesBox2 = document.createElement('div');
+    notesBox2.style.cssText = 'margin-top:8px;padding:8px 10px;border:0.5px solid var(--border);border-radius:8px;font-size:10px;line-height:1.45;color:var(--text2)';
+    let n2 = '<div style="color:var(--gold);font-weight:700;margin-bottom:4px;letter-spacing:.4px">DECK NOTES (DCA 6 / IRC R507 — paste into drawings)</div><ol style="margin:0;padding-left:18px">';
+    _deckNotes.forEach(t=>{ n2 += '<li style="margin:1px 0">'+t+'</li>'; });
+    n2 += '</ol>';
+    notesBox2.innerHTML = n2;
+    od.appendChild(notesBox2);
+  }
+
   // Store for copy/quote
   window._lastOrder = {
     name,
@@ -4217,7 +4507,14 @@ function toRenderResults(items, summary, type){
     grandTotal,
     markupAmt,
     taxAmt,
-    blueprint: blueprintSpecs(type, _processParams || {})
+    blueprint: blueprintSpecs(type, _processParams || {}),
+    sheet:    sheetNum,
+    scale:    stdScale.label,
+    notes:    WFS_REQUIRED_NOTES,
+    schedules: _schedules.map(s => ({title:s[0], rows:s[1], col2:s[2]})),
+    deckCheck:           _deckCheck,
+    deckNotes:           _deckNotes,
+    deckRequiredDrawings:_deckDwg,
   };
 }
 
@@ -4268,9 +4565,10 @@ function blueprintSpecs(type, params){
 
 function toCopyOrder(){
   if(!window._lastOrder){toast('No takeoff calculated yet');return;}
-  const {name,items,summary}=window._lastOrder;
+  const {name,items,summary,sheet,scale,notes,schedules,deckCheck,deckNotes,deckRequiredDrawings}=window._lastOrder;
   let txt='MATERIAL ORDER — '+name+'\n';
   txt+='Waterfront Solutions · '+new Date().toLocaleDateString()+'\n';
+  if(sheet) txt+='Sheet '+sheet+' · Scale '+scale+' · REV 0 · CODE: IRC 2021\n';
   txt+='='.repeat(40)+'\n\n';
   Object.entries(summary).forEach(([k,v])=>{txt+=k+': '+v+'\n';});
   txt+='\n'+'='.repeat(40)+'\n';
@@ -4284,6 +4582,28 @@ function toCopyOrder(){
   txt+='\nBLUEPRINT DETAILS:\n';
   if(window._lastOrder?.blueprint){
     window._lastOrder.blueprint.forEach(line=>{ txt+='• '+line+'\n'; });
+  }
+  if(notes && notes.length){
+    txt+='\nGENERAL NOTES (WFS DRAWING STANDARDS):\n';
+    notes.forEach((n,i)=>{ txt+=(i+1)+'. '+n.tag+'. '+n.txt+'\n'; });
+  }
+  if(schedules && schedules.length){
+    schedules.forEach(s=>{
+      txt+='\n'+s.title+'\n'+'-'.repeat(30)+'\n';
+      s.rows.forEach(r=>{ txt+='  '+r.tag+'  '+r.spec+' — '+(r[s.col2]||'')+'\n'; });
+    });
+  }
+  if(deckRequiredDrawings && deckRequiredDrawings.length){
+    txt+='\nREQUIRED DRAWINGS — DECK SET\n'+'-'.repeat(30)+'\n';
+    deckRequiredDrawings.forEach(d=>{ txt+='  '+d.sheet+'  '+d.view+'  — '+d.title+': '+d.notes+'\n'; });
+  }
+  if(deckCheck && deckCheck.length){
+    txt+='\nDCA 6 / IRC R507 PRESCRIPTIVE CHECK\n'+'-'.repeat(30)+'\n';
+    deckCheck.forEach(c=>{ txt+='  ['+c.level.toUpperCase()+'] '+c.msg+'\n'; });
+  }
+  if(deckNotes && deckNotes.length){
+    txt+='\nDECK NOTES (DCA 6 / IRC R507):\n';
+    deckNotes.forEach((n,i)=>{ txt+=(i+1)+'. '+n+'\n'; });
   }
   txt+='\nNOTE: Verify structural sizes, footing depth, railing height and all load-bearing connections with local building code and site-specific conditions.\n';
   txt+='\n★ Quantities include waste factors. Verify before ordering.';
@@ -6045,6 +6365,411 @@ const CAD = {
   earth:    '#443322',
 };
 
+// ── WFS DRAWING STANDARDS (see docs/drawing-standards/00-general.md) ──────
+// Named line weights (printed mm), per the firm's general drawing standards.
+// Canvas px equivalents are tuned so on-screen weight reads similarly.
+const LW = {
+  fine:      {mm:0.13, px:0.5,  use:'Hatching, dim/leader lines'},
+  thin:      {mm:0.18, px:0.7,  use:'Hidden lines, centerlines'},
+  medium:    {mm:0.25, px:1.0,  use:'Object lines (most building elements)'},
+  heavy:     {mm:0.35, px:1.5,  use:'Section cuts, profile of cut elements'},
+  xheavy:    {mm:0.60, px:2.4,  use:'Border, title block, building outline'},
+};
+
+// Sheet number per IRC/AIA convention. Keyed by [type][orient].
+// Prefix G=General, A=Architectural, S=Structural, C=Civil, M/P/E=MEP.
+const WFS_SHEET_NUMBER = {
+  deck:     {plan:'A-201', front:'A-301', side:'A-301', section:'A-401'},
+  porch:    {plan:'A-201', front:'A-301', side:'A-301', section:'A-401'},
+  roof:     {plan:'A-202', front:'A-301', side:'A-301', section:'A-401'},
+  framing:  {plan:'S-201', front:'A-301', side:'A-301', section:'A-501'},
+  concrete: {plan:'S-101', front:'A-301', side:'A-301', section:'S-501'},
+  carport:  {plan:'A-201', front:'A-301', side:'A-301', section:'A-401'},
+  blockwall:{plan:'S-101', front:'A-301', side:'A-301', section:'S-501'},
+};
+
+// Standard architectural scales by view per WFS drawing standards.
+const WFS_STD_SCALE = {
+  plan:    {label:'1/4" = 1\'-0"',  ratio:48,  metric:'1:50'},  // floor / framing / foundation
+  front:   {label:'1/4" = 1\'-0"',  ratio:48,  metric:'1:50'},  // elevation
+  side:    {label:'1/4" = 1\'-0"',  ratio:48,  metric:'1:50'},  // elevation
+  section: {label:'3/4" = 1\'-0"',  ratio:16,  metric:'1:20'},  // wall section
+  detail:  {label:'1-1/2" = 1\'-0"',ratio:8,   metric:'1:10'},  // detail
+  site:    {label:'1" = 10\'',       ratio:120, metric:'1:100'}, // site plan
+};
+
+function wfsSheetNumber(type, orient){
+  const row = WFS_SHEET_NUMBER[type];
+  if(!row) return 'A-101';
+  return row[orient] || row.plan || 'A-101';
+}
+function wfsStdScale(orient){
+  return WFS_STD_SCALE[orient] || WFS_STD_SCALE.plan;
+}
+
+// 7-item required notes block for residential drawing sets.
+const WFS_REQUIRED_NOTES = [
+  {tag:'CODE',     txt:'Construction shall conform to IRC 2021 as amended by local jurisdiction.'},
+  {tag:'LOADS',    txt:'Design loads — Live, Dead, Snow, Wind speed, Seismic design category, Frost depth — verify with AHJ.'},
+  {tag:'SOILS',    txt:'Assumed allowable soil bearing 1,500 psf per IRC Table R401.4.1; verify by contractor at footing excavation.'},
+  {tag:'MATERIAL', txt:"Concrete f'c = 3,000 psi (28-day); rebar Grade 60; lumber SPF #2 unless noted; fasteners per schedule."},
+  {tag:'CORROSION',txt:'All fasteners and connectors in contact with preservative-treated lumber shall be hot-dipped galvanized (ASTM A153) or stainless steel.'},
+  {tag:'FIELD',    txt:'Contractor shall verify field conditions, locate utilities prior to excavation, and comply with OSHA safety standards.'},
+  {tag:'AHJ',      txt:'Final design subject to review and approval by the Authority Having Jurisdiction.'},
+];
+
+// Schedule templates — populated with project params at render time.
+// Returns array of {tag, model/spec, location} rows per drawing standards.
+function wfsFastenerSchedule(type, p){
+  p = p||{};
+  const rows = [];
+  if(type==='deck'){
+    const jSpan = +p.wid||0;
+    const lag = dca6LedgerSpacing(jSpan);
+    const lagTxt = lag ? lag+'" O.C., 2-row staggered' : 'per engineered detail (span > 18\')';
+    rows.push({tag:'F1', spec:'Simpson LUS hanger (size to joist)', loc:'each joist-to-ledger / joist-to-beam — no toenail substitute'});
+    rows.push({tag:'F2', spec:'Simpson DTT2Z lateral hold-down (4 ea.)', loc:'tie joists to interior floor framing — IRC R507.9.2 / DCA 6 Fig. 16-17'});
+    rows.push({tag:'F3', spec:'1/2" Ø HDG lag screws or through-bolts', loc:`ledger to 2× band/LVL rim @ ${lagTxt} (IRC R507.9.1, joist span ${_ftDec(jSpan)})`});
+    rows.push({tag:'F4', spec:'Simpson ABU/PB post base (HDG), stand-off', loc:'each post-to-pier — no direct embed in concrete'});
+    rows.push({tag:'F5', spec:'Simpson DTT2Z or HD7B guard-post hold-down', loc:'each guard post — verify 200 lb top-rail load (IRC R312 / R301.5)'});
+    rows.push({tag:'F6', spec:'10d HDG common nails (ACQ-compatible)', loc:'rim-to-joist, blocking, general framing'});
+    rows.push({tag:'F7', spec:'#8 stainless or coated deck screws (2 per joist)', loc:'decking to joist, ~1/8" gap for drainage'});
+    if(p.stairs>0) rows.push({tag:'F8', spec:'Simpson LSC stair-stringer connector', loc:'each stringer-to-rim (stringer max span 13\'-3" cut / 18\' solid, DCA 6 Tbl 8)'});
+  } else if(type==='roof'){
+    rows.push({tag:'F1', spec:'Simpson H2.5A hurricane tie', loc:'each rafter-to-top-plate — R301.2.1'});
+    rows.push({tag:'F2', spec:'8d common ring-shank, 1-3/4"', loc:'7/16" OSB sheathing — 6" edge / 12" field'});
+    rows.push({tag:'F3', spec:'1-1/4" galv. roofing nails (4 per shingle, 6 high-wind)', loc:'asphalt shingle field'});
+    rows.push({tag:'F4', spec:'16d common', loc:'rafter-to-ridge, rafter-to-collar tie'});
+  } else if(type==='framing'){
+    rows.push({tag:'F1', spec:'1/2" Ø × 10" anchor bolt, 7" embed', loc:'bottom plate to slab, 6\'-0" O.C., 12" of corners — R403.1.6'});
+    rows.push({tag:'F2', spec:'16d common nails', loc:'top/bottom plate to stud (2 per), top plate splice (8 per side)'});
+    rows.push({tag:'F3', spec:'Simpson SP4 or LSTA strap', loc:'wall-to-wall continuity at corners and Ts'});
+    rows.push({tag:'F4', spec:'8d common', loc:'7/16" OSB wall sheathing — 6" edge / 12" field, all panel edges blocked'});
+    rows.push({tag:'F5', spec:'Simpson H1 hurricane tie or equiv.', loc:'rafter/truss to top plate where uplift governs'});
+  } else if(type==='concrete'){
+    rows.push({tag:'F1', spec:'1/2" Ø × 10" galv. anchor bolt, 7" embed', loc:'6\'-0" O.C., 12" of each corner & joint — R403.1.6'});
+    rows.push({tag:'F2', spec:'#4 Grade-60 rebar, 18" O.C. each way', loc:'slab mat, 3" clear from earth'});
+    rows.push({tag:'F3', spec:'#4 rebar, lap 20" min (40 × bar dia)', loc:'all splices — ACI 318 §25.5'});
+    rows.push({tag:'F4', spec:'Tie wire, 16-ga annealed', loc:'all rebar intersections'});
+  } else if(type==='porch' || type==='carport'){
+    rows.push({tag:'F1', spec:'Simpson PB66 or ABU66 post base, HDG', loc:'each column-to-pier'});
+    rows.push({tag:'F2', spec:'Simpson AC6 or LCE post cap', loc:'each column-to-beam'});
+    rows.push({tag:'F3', spec:'Simpson H2.5A hurricane tie', loc:'each rafter-to-plate — R301.2.1'});
+    rows.push({tag:'F4', spec:'1/2" Ø HDG through-bolts', loc:'beam splices, ledger to dwelling'});
+  } else if(type==='blockwall'){
+    rows.push({tag:'F1', spec:'#5 Grade-60 vertical rebar', loc:'grouted cells per spacing schedule'});
+    rows.push({tag:'F2', spec:'#4 horizontal bond-beam rebar', loc:'top course + every 4\' of height'});
+    rows.push({tag:'F3', spec:'Ladder/truss wire reinforcement', loc:'every other bed-joint course'});
+  }
+  return rows;
+}
+
+function wfsLumberSchedule(type, p){
+  p = p||{};
+  const rows = [];
+  const pt = '(PT, ground-contact AC2 where applicable)';
+  if(type==='deck'){
+    const sp     = (p.species||'syp').toLowerCase();
+    const spLbl  = DCA6.speciesLabel[sp]||'SYP';
+    const oc     = p.joc||16;
+    const jSpan  = +p.wid||0;
+    const beamSp = +p.postSp||8;
+    const j      = jSpan>0 ? (dca6PickJoist(jSpan, oc, sp) || {size:'2x12', max:dca6JoistMaxSpan('2x12',oc,sp)})
+                            : {size:'2x10', max:null};
+    const b      = jSpan>0 ? (dca6PickBeam(beamSp, jSpan) || {size:'2x12', max:dca6BeamMaxSpan('2x12',jSpan)})
+                            : {size:'2x10', max:null};
+    const jStr   = j.size.replace('x','×').toUpperCase();
+    const bStr   = b.size.replace('x','×').toUpperCase();
+    const jMaxT  = j.max!=null ? ` (DCA 6 max ${_ftDec(j.max)})` : '';
+    const bMaxT  = b.max!=null ? ` (DCA 6 max ${_ftDec(b.max)})` : '';
+    const tribSf = jSpan*beamSp/2;
+    const post   = dca6PostSize(tribSf, +p.ht||0);
+    rows.push({tag:'L1', spec:`${jStr} ${spLbl} #2 PT`, use:`joists @ ${oc}" O.C., span ${_ftDec(jSpan)||'—'}${jMaxT} ${pt}`});
+    rows.push({tag:'L2', spec:`(2) ${bStr} ${spLbl} #2 PT`, use:`built-up beam between posts @ ${_ftDec(beamSp)} O.C.${bMaxT}`});
+    rows.push({tag:'L3', spec:`${jStr} ${spLbl} #2 PT`, use:'ledger (match joist depth), Z-flashed, lateral hold-downs per F2'});
+    rows.push({tag:'L4', spec:`${post} ${spLbl} PT`, use:`posts ≤${_ftDec(beamSp)} O.C., tributary ${Math.round(tribSf)} sf (DCA 6 Tbl 7)`});
+    const deckMin = oc<=16 ? '5/4×6 or 2× lumber' : '2× lumber (5/4 not permitted @ 24" O.C.)';
+    rows.push({tag:'L5', spec:`${deckMin} ${spLbl} PT or composite`, use:'decking, ~1/8" gap for drainage'});
+    if(p.stairs>0) rows.push({tag:'L6', spec:'2×12 SYP #2 PT cut stringer', use:'stair stringers — max cut span 13\'-3" (solid 18\', DCA 6 Tbl 8)'});
+  } else if(type==='roof'){
+    rows.push({tag:'L1', spec:'2×8 SPF #2', use:'rafters @ 16" O.C., span per Table R802.4.1'});
+    rows.push({tag:'L2', spec:'(1) 2×10 SPF #2', use:'ridge board — depth ≥ rafter cut'});
+    rows.push({tag:'L3', spec:'7/16" OSB (Exposure 1)', use:'roof sheathing, H-clips at unsupported edges'});
+  } else if(type==='framing'){
+    const stud = (p.stud||'2x4').replace('x','×').toUpperCase();
+    rows.push({tag:'L1', spec:`${stud} SPF #2`, use:`studs @ ${p.oc||16}" O.C.`});
+    rows.push({tag:'L2', spec:`${stud} SPF #2 PT`, use:'bottom plate (in contact w/ concrete)'});
+    rows.push({tag:'L3', spec:`(2) ${stud} SPF #2`, use:'doubled top plate, 24" min lap'});
+    rows.push({tag:'L4', spec:p.stud==='2x6'?'(2) 2×8 SPF #2':'(2) 2×6 SPF #2', use:'headers for openings ≤4\'-0"'});
+    rows.push({tag:'L5', spec:'7/16" OSB (Exposure 1)', use:'wall sheathing, all panel edges blocked'});
+  } else if(type==='porch'){
+    rows.push({tag:'L1', spec:`${(p.colStyle||'6×6')} SYP PT`, use:`columns @ ${p.colSp||8}\' O.C.`});
+    rows.push({tag:'L2', spec:'(2) 2×10 SYP #2 PT', use:'header beam, 1/2"Ø through-bolts'});
+    rows.push({tag:'L3', spec:'2×6 SPF #2', use:'rafters @ 16" O.C.'});
+    rows.push({tag:'L4', spec:'5/4×6 SYP PT', use:'porch decking, 1/8" gap'});
+  } else if(type==='carport'){
+    rows.push({tag:'L1', spec:`${(p.colType||'6×6')} SYP PT`, use:`posts @ ${p.postSp||10}\' O.C.`});
+    rows.push({tag:'L2', spec:'(2) 2×10 SYP #2 PT', use:'beam, 3-row 16d, post caps at each column'});
+    rows.push({tag:'L3', spec:'2×6 SPF #2', use:'rafters @ 16" O.C., hurricane tie each'});
+    if(p.roofMat==='metal') rows.push({tag:'L4', spec:'2×4 SPF #2', use:'purlins @ 24" O.C. for metal roofing'});
+  }
+  return rows;
+}
+
+function wfsConcreteSchedule(type, p){
+  p = p||{};
+  const rows = [];
+  if(type==='deck' && (p.ht||0)>=2){
+    const tribSf = (+p.wid||0)*(+p.postSp||8)/2;
+    const f = tribSf>0 ? dca6FootingFor(tribSf) : null;
+    const fStr = f ? `${f.dia}" Ø round × ${f.thk}" min thickness` : 'engineered (tributary > 100 sf)';
+    rows.push({tag:'C1', spec:"f'c 3,000 psi @ 28 days", use:'sonotube pier footings — exterior exposure, below frost depth'});
+    rows.push({tag:'C2', spec:`Pier size: ${fStr}`, use:`tributary ${Math.round(tribSf)||'—'} sf @ 1,500 psf (DCA 6 Fig. 9)`});
+    rows.push({tag:'C3', spec:'Slump 4"–6"', use:'workability for hand placement in sonotube'});
+    rows.push({tag:'C4', spec:'Air entrainment 5–7%', use:'all exterior exposure (freeze-thaw)'});
+  } else if(type==='concrete'){
+    rows.push({tag:'C1', spec:"f'c 3,000 psi @ 28 days", use:'slab + continuous footer'});
+    rows.push({tag:'C2', spec:'Slump 4"–6"', use:'flat work — verify with pump if required'});
+    rows.push({tag:'C3', spec:'Air entrainment 5–7%', use:'required for exterior / freeze-thaw exposure'});
+    rows.push({tag:'C4', spec:'Control joint 1/4 slab depth', use:'sawcut @ 10\'–12\' O.C. within 24 hrs'});
+  } else if(type==='porch' || type==='carport'){
+    rows.push({tag:'C1', spec:"f'c 3,000 psi @ 28 days", use:'pier footings, below frost line'});
+    rows.push({tag:'C2', spec:'Air entrainment 5–7%', use:'exterior exposure'});
+  } else if(type==='blockwall'){
+    rows.push({tag:'C1', spec:"f'c 3,000 psi @ 28 days", use:'footer pour'});
+    rows.push({tag:'C2', spec:"Grout f'c 2,000 psi (fine, ASTM C476)", use:'cell grout — slump 8"–11"'});
+    rows.push({tag:'C3', spec:"Mortar Type S (ASTM C270)", use:'bed and head joints'});
+  }
+  return rows;
+}
+
+function wfsRebarSchedule(type, p){
+  p = p||{};
+  const rows = [];
+  if(type==='deck' && (p.ht||0)>=2){
+    rows.push({tag:'R1', spec:`#4 vertical bars × ${Math.max((p.ht||3)+1,4)}'`, loc:'each sonotube pier, 3" cover'});
+  } else if(type==='concrete'){
+    const bar = `#${p.rebar||4}`;
+    rows.push({tag:'R1', spec:`${bar} Grade-60`, loc:`slab mat 18" O.C. each way, 3" clear of earth`});
+    rows.push({tag:'R2', spec:`(2) ${bar} Grade-60 continuous`, loc:'top + bottom of continuous footer'});
+    rows.push({tag:'R3', spec:`${bar} dowels`, loc:'slab-to-footer, lap 40 × bar dia'});
+    if(p.piers>0) rows.push({tag:'R4', spec:`(4) #4 vertical + #3 ties @ 12"`, loc:'each pier'});
+  } else if(type==='porch' || type==='carport'){
+    rows.push({tag:'R1', spec:'(4) #4 vertical + #3 ties @ 12"', loc:'each pier footing'});
+  } else if(type==='blockwall'){
+    rows.push({tag:'R1', spec:'#5 Grade-60', loc:`vertical, grouted cells @ ${p.vspc||32}" O.C.`});
+    rows.push({tag:'R2', spec:'#4 Grade-60', loc:'horizontal bond beam — top course + every 4\' of height'});
+    rows.push({tag:'R3', spec:'(2) #5 continuous', loc:'top + bottom of footer'});
+  }
+  return rows;
+}
+
+// ── DCA 6 PRESCRIPTIVE TABLES (Decks) ─────────────────────────────────────
+// AWC DCA 6-2015 + IRC 2021 R507. See docs/drawing-standards/01-decks.md.
+// Spans in DECIMAL FEET. Species: SYP, DF-L, Hem-Fir, SPF, Redwood.
+// (Maximum joist span, center-to-center of supports, No. 2 or better.)
+const DCA6 = {
+  speciesLabel: {syp:'SYP', dfl:'DF-L', hf:'Hem-Fir', spf:'SPF', rw:'Redwood'},
+  // joistSpan[size][oc][species] = max span (ft)
+  joistSpan: {
+    '2x6':  {12:{syp:9.92, dfl:9.50, hf:8.83, spf:8.67, rw:8.17},
+             16:{syp:9.00, dfl:8.67, hf:8.08, spf:7.92, rw:7.42},
+             24:{syp:7.58, dfl:7.17, hf:6.67, spf:6.50, rw:6.08}},
+    '2x8':  {12:{syp:13.08,dfl:12.50,hf:11.67,spf:11.42,rw:10.75},
+             16:{syp:11.83,dfl:11.08,hf:10.58,spf:10.42,rw:9.75},
+             24:{syp:9.67, dfl:9.08, hf:8.67, spf:8.50, rw:8.00}},
+    '2x10': {12:{syp:16.17,dfl:15.67,hf:14.92,spf:14.58,rw:13.67},
+             16:{syp:14.00,dfl:13.58,hf:12.92,spf:12.67,rw:11.83},
+             24:{syp:11.42,dfl:11.08,hf:10.58,spf:10.25,rw:9.67}},
+    '2x12': {12:{syp:18.00,dfl:18.00,hf:17.42,spf:17.08,rw:16.00},
+             16:{syp:16.50,dfl:15.75,hf:15.08,spf:14.75,rw:13.83},
+             24:{syp:13.50,dfl:12.83,hf:12.33,spf:12.00,rw:11.25}},
+  },
+  // beamSpan2[size][joistSpanBucket] = max beam span between posts (ft)
+  // joistSpanBucket = 6,8,10,12,14,16,18 (interp by floor for in-between)
+  beamSpan2: {
+    '2x6':  {6:6.67, 8:5.67, 10:5.08, 12:4.58, 14:4.25, 16:4.00, 18:3.75},
+    '2x8':  {6:8.50, 8:7.33, 10:6.58, 12:6.00, 14:5.50, 16:5.17, 18:4.83},
+    '2x10': {6:10.08,8:8.75, 10:7.83, 12:7.08, 14:6.58, 16:6.17, 18:5.83},
+    '2x12': {6:11.75,8:10.17,10:9.08, 12:8.25, 14:7.67, 16:7.17, 18:6.75},
+  },
+  // Footing (round) at 1500 psf soil. Bin = max tributary load area (sf).
+  footings: [
+    {max:20,  dia:12, thk:8},
+    {max:40,  dia:16, thk:8},
+    {max:60,  dia:20, thk:8},
+    {max:80,  dia:23, thk:8},
+    {max:100, dia:26, thk:10},
+  ],
+  // Stair stringer max spans (ft) per DCA 6 Table 8
+  stairStringer: {cut:13.25, solid:18.00},
+};
+
+// Largest joist-span bucket ≤ joist span (clamped to 6..18).
+function _dca6BeamBucket(joistSpanFt){
+  const keys = [6,8,10,12,14,16,18];
+  let last = keys[0];
+  for(const k of keys){ if(k <= joistSpanFt) last = k; else break; }
+  return last;
+}
+
+// Max joist span (ft) for a given joist size, O.C., and species code.
+function dca6JoistMaxSpan(size, oc, species){
+  size = (size||'2x10').toLowerCase();
+  species = (species||'syp').toLowerCase();
+  const ocKey = oc>=24 ? 24 : oc>=16 ? 16 : 12;
+  return DCA6.joistSpan[size]?.[ocKey]?.[species] ?? null;
+}
+
+// Max (2)-ply beam span between posts (ft) for the given beam size + joist span.
+function dca6BeamMaxSpan(size, joistSpanFt){
+  size = (size||'2x10').toLowerCase();
+  const b = _dca6BeamBucket(joistSpanFt);
+  return DCA6.beamSpan2[size]?.[b] ?? null;
+}
+
+// Smallest joist size (ft, member name) that satisfies the required span at
+// the given O.C. + species, or null if 2×12 still isn't enough.
+function dca6PickJoist(spanFt, oc, species){
+  for(const size of ['2x6','2x8','2x10','2x12']){
+    const m = dca6JoistMaxSpan(size, oc, species);
+    if(m!=null && m >= spanFt) return {size, max:m};
+  }
+  return null;
+}
+
+// Smallest (2)-ply beam that supports the post spacing at the given joist span.
+function dca6PickBeam(postSpFt, joistSpanFt){
+  for(const size of ['2x6','2x8','2x10','2x12']){
+    const m = dca6BeamMaxSpan(size, joistSpanFt);
+    if(m!=null && m >= postSpFt) return {size, max:m};
+  }
+  return null;
+}
+
+// Post size (nominal) per DCA 6 Table 7.
+function dca6PostSize(tribSf, postHtFt){
+  if(tribSf<=48 && postHtFt<=8) return '4×4';
+  return '6×6';
+}
+
+// Footing diameter & thickness per IRC R403 / DCA 6 Fig. 9 (1500 psf soil).
+function dca6FootingFor(tribSf){
+  for(const row of DCA6.footings){
+    if(tribSf <= row.max) return {dia:row.dia, thk:row.thk};
+  }
+  return null; // outside prescriptive scope — engineer
+}
+
+// Ledger lag/bolt spacing (inches) per IRC R507.9.1 by joist span (ft).
+function dca6LedgerSpacing(joistSpanFt){
+  if(joistSpanFt<=6)  return 30;
+  if(joistSpanFt<=8)  return 23;
+  if(joistSpanFt<=10) return 18;
+  if(joistSpanFt<=12) return 15;
+  if(joistSpanFt<=14) return 13;
+  if(joistSpanFt<=16) return 11;
+  if(joistSpanFt<=18) return 10;
+  return null; // outside scope
+}
+
+// Format decimal feet as 9'-11" (rounded to inches).
+function _ftDec(f){
+  if(f==null || !isFinite(f)) return '—';
+  const ft = Math.floor(f);
+  const inch = Math.round((f - ft)*12);
+  if(inch===12) return (ft+1)+"'-0\"";
+  return ft+"'-"+inch+'"';
+}
+
+// Required Drawings checklist for a deck set (per 01-decks.md).
+const DCA6_DECK_REQUIRED_DRAWINGS = [
+  {sheet:'A-201', view:'1/4" = 1\'-0"',    title:'Deck plan',             notes:'Joist layout & spacing, beam/post/ledger locations, stair & guard runs, ties to house & PL.'},
+  {sheet:'S-101', view:'1/4" = 1\'-0"',    title:'Footing plan',          notes:'Footing size & depth (below frost), distance from house & PL.'},
+  {sheet:'A-401', view:'3/4" = 1\'-0"',    title:'Framing section',       notes:'Ledger-to-house, post-to-beam, beam-to-joist, joist-to-rim, guard post anchorage, stair stringer.'},
+  {sheet:'A-501', view:'1-1/2" = 1\'-0"',  title:'Ledger detail',         notes:'Flashing, lag/bolt pattern, rim attachment, vertical + lateral connectors.'},
+  {sheet:'A-501', view:'1-1/2" = 1\'-0"',  title:'Guard detail',          notes:'Post anchorage / hold-down, baluster spacing, top rail (200 lb).'},
+  {sheet:'A-501', view:'1-1/2" = 1\'-0"',  title:'Stair detail',          notes:'Stringer-to-deck, riser/tread, handrail profile, lighting note.'},
+];
+
+// 10-item deck-specific general notes block from DCA 6 / R507.
+function dca6DeckGeneralNotes(p){
+  p = p||{};
+  const oc = p.joc||16;
+  const species = (p.species||'syp').toUpperCase();
+  return [
+    'Construction per IRC 2021 and AWC DCA 6-2015.',
+    'Design loads: 40 psf live + 10 psf dead. Snow/wind/seismic per location.',
+    `Lumber: No. 2 or better, ${species}, pressure-treated to UC4A min where in contact with weather, UC4B for direct ground contact.`,
+    'Fasteners: Hot-dipped galvanized ASTM A153 or stainless steel where in contact with PT lumber. ACQ-compatible.',
+    `Joists @ ${oc}" o.c. with double rim joist and joist hangers (Simpson LUS or equal). Toenailing not permitted in lieu of hangers.`,
+    'Ledger flashing: corrosion-resistant metal, lapped to WRB above; gap ledger from siding 1/2" for drainage.',
+    'Posts on Simpson post bases above grade; no wood-to-concrete contact.',
+    'Guard posts: hold-down hardware at all locations; verify 200 lb load per IRC R301.5.',
+    'Stair handrails graspable per IRC R311.7.8.5.',
+    'Contractor to verify footing soil bearing; report unsuitable conditions to designer before placing concrete.',
+  ];
+}
+
+// Check a deck against DCA 6 prescriptive limits. Returns array of
+// {level: 'ok'|'warn'|'fail', msg}. fail = outside DCA 6 / needs engineer.
+function dca6DeckCheck(p){
+  p = p||{};
+  const out = [];
+  const species = (p.species||'syp');
+  const oc = p.joc||16;
+  const joistSpan = +p.wid||0;          // joists run across deck depth (from house)
+  const beamSpan  = +p.postSp||8;       // post spacing along beam
+  const tribDepth = joistSpan/2 + (p.cant||0); // beam carries half of joist span
+  const ht        = +p.ht||0;
+  const sLabel    = DCA6.speciesLabel[species]||species;
+  // Joist sizing
+  const cur = '2x10';                    // current default member used elsewhere
+  const curMax = dca6JoistMaxSpan(cur, oc, species);
+  if(joistSpan>0){
+    if(curMax!=null && joistSpan <= curMax){
+      out.push({level:'ok', msg:`Joists 2×10 ${sLabel} @ ${oc}" O.C. — span ${_ftDec(joistSpan)} ≤ ${_ftDec(curMax)} max (DCA 6 Tbl 5A).`});
+    } else {
+      const need = dca6PickJoist(joistSpan, oc, species);
+      if(need) out.push({level:'warn', msg:`Joists: upsize to ${need.size.toUpperCase()} ${sLabel} @ ${oc}" O.C. (max ${_ftDec(need.max)}) — span ${_ftDec(joistSpan)} exceeds 2×10 (${_ftDec(curMax)}).`});
+      else     out.push({level:'fail', msg:`Joist span ${_ftDec(joistSpan)} exceeds 2×12 ${sLabel} @ ${oc}" O.C. — outside DCA 6 scope, engineer required.`});
+    }
+  }
+  // Beam sizing — assume (2)-ply built-up
+  if(joistSpan>0 && beamSpan>0){
+    const need = dca6PickBeam(beamSpan, joistSpan);
+    if(need) out.push({level:'ok', msg:`Beam (2)-ply ${need.size.toUpperCase()} — post spacing ${_ftDec(beamSpan)} ≤ ${_ftDec(need.max)} (DCA 6 Tbl 6, joist span ${_ftDec(joistSpan)}).`});
+    else     out.push({level:'fail', msg:`Beam: (2) 2×12 still under ${_ftDec(beamSpan)} post spacing for ${_ftDec(joistSpan)} joist span — reduce spacing or use 3-ply / engineered beam.`});
+  }
+  // Post sizing
+  const tribArea = beamSpan * tribDepth;
+  if(tribArea>0){
+    const ps = dca6PostSize(tribArea, ht);
+    out.push({level:'ok', msg:`Posts ${ps} PT — tributary area ${Math.round(tribArea)} sf @ ${_ftDec(ht)} height (DCA 6 Tbl 7).`});
+  }
+  // Footing
+  if(tribArea>0){
+    const ft = dca6FootingFor(tribArea);
+    if(ft) out.push({level:'ok', msg:`Footings ${ft.dia}" Ø round × ${ft.thk}" min, below frost depth (IRC R403 / DCA 6 Fig. 9, ${Math.round(tribArea)} sf tributary @ 1,500 psf).`});
+    else   out.push({level:'fail', msg:`Tributary load area ${Math.round(tribArea)} sf exceeds DCA 6 Fig. 9 (100 sf max) — engineered footing required.`});
+  }
+  // Ledger
+  if(joistSpan>0){
+    const sp = dca6LedgerSpacing(joistSpan);
+    if(sp) out.push({level:'ok', msg:`Ledger: 1/2" Ø lag/through-bolts @ ${sp}" O.C., staggered 2-row, flashed (IRC R507.9.1, joist span ${_ftDec(joistSpan)}).`});
+    else   out.push({level:'fail', msg:`Joist span ${_ftDec(joistSpan)} exceeds IRC R507.9.1 ledger schedule (18\' max) — engineered connection required.`});
+  }
+  // Guard threshold
+  if((p.ht||0)*12 > 30){
+    out.push({level:'ok', msg:`Guards required: walking surface > 30" above grade — 36" min height, 4" sphere rule (IRC R312).`});
+  }
+  // Out-of-scope triggers
+  if(ht > 14)       out.push({level:'fail', msg:`Deck height ${_ftDec(ht)} > 14' — outside DCA 6 prescriptive scope (engineer required).`});
+  if((p.cant||0) > Math.min(joistSpan/4, 4)) out.push({level:'fail', msg:`Cantilever ${_ftDec(p.cant)} exceeds 1/4 of backspan or 4\' max (DCA 6 Fig. 5).`});
+  if(p.supportsRoof) out.push({level:'fail', msg:`Deck supporting a roof = porch; see porch standards, not DCA 6.`});
+  return out;
+}
+
 // ── PHASE DEFINITIONS ─────────────────────────────────────────────────────
 // Each phase builds on the last. Elements tagged with phase 0..N
 const PHASE_NAMES = {
@@ -7021,14 +7746,17 @@ function _pvTitleSub(type, p){
 }
 
 function pvDrawTitleBlock(ctx, W, H, type, p){
-  const h=46, y=H-h-2, x=2, w=W-4;
+  // Title block per WFS drawing standards (00-general.md):
+  // 3-column layout: left=project, mid=drawing meta, right=sheet number.
+  // Border uses extra-heavy (LW.xheavy); inner divisions use thin (LW.thin).
+  const h=52, y=H-h-2, x=2, w=W-4;
   ctx.save();
   ctx.fillStyle='rgba(15,22,32,0.94)';
   ctx.fillRect(x,y,w,h);
-  ctx.strokeStyle=CAD.visible; ctx.lineWidth=0.9; ctx.setLineDash([]);
+  ctx.strokeStyle=CAD.visible; ctx.lineWidth=LW.xheavy.px; ctx.setLineDash([]);
   ctx.strokeRect(x,y,w,h);
-  const c1=Math.round(w*0.58), c2=Math.round(w*0.82);
-  ctx.strokeStyle='rgba(208,208,208,0.4)'; ctx.lineWidth=0.5;
+  const c1=Math.round(w*0.56), c2=Math.round(w*0.80);
+  ctx.strokeStyle='rgba(208,208,208,0.45)'; ctx.lineWidth=LW.thin.px;
   ctx.beginPath(); ctx.moveTo(x+c1,y); ctx.lineTo(x+c1,y+h); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(x+c2,y); ctx.lineTo(x+c2,y+h); ctx.stroke();
   // Left column — project + sub
@@ -7039,22 +7767,29 @@ function pvDrawTitleBlock(ctx, W, H, type, p){
   ctx.fillText('WATERFRONT SOLUTIONS · CONSTRUCTION BLUEPRINT', x+6, y+18);
   ctx.fillStyle=CAD.dimText; ctx.font='bold 8.5px monospace';
   ctx.fillText(_pvTitleSub(type, p), x+6, y+30);
-  // Mid column — drawing meta
+  ctx.fillStyle='rgba(208,208,208,0.7)'; ctx.font='7px monospace';
+  ctx.fillText('REV 0 — INITIAL ISSUE', x+6, y+42);
+  // Mid column — drawing meta (view, phase, scale, code)
+  const orient = _pvOrient||'plan';
+  const std = wfsStdScale(orient);
   ctx.fillStyle=CAD.annotate; ctx.font='bold 9px monospace';
-  ctx.fillText('VIEW: '+(_pvOrient||'plan').toUpperCase(), x+c1+6, y+4);
+  ctx.fillText('VIEW: '+orient.toUpperCase(), x+c1+6, y+4);
   const ph=(PHASE_NAMES[type]||[])[_pvPhase]||'';
   ctx.fillStyle='rgba(208,208,208,0.95)'; ctx.font='7.5px monospace';
   ctx.fillText('PHASE '+(+_pvPhase+1)+': '+ph.toUpperCase().slice(0,28), x+c1+6, y+16);
-  const scaleTxt = _pvFrame ? _pvFrame.scale.toFixed(1)+' PX/FT' : 'NTS';
-  ctx.fillText('SCALE: '+scaleTxt+' · NTS', x+c1+6, y+26);
-  ctx.fillText('CODE: IRC 2021 / IBC 2021', x+c1+6, y+36);
-  // Right column — sheet
+  ctx.fillText('SCALE: '+std.label+' ('+std.metric+')', x+c1+6, y+26);
+  const pxFt = _pvFrame ? _pvFrame.scale.toFixed(1)+' PX/FT' : 'NTS';
+  ctx.fillStyle='rgba(208,208,208,0.6)';
+  ctx.fillText('('+pxFt+' on screen)', x+c1+6, y+36);
+  ctx.fillStyle='rgba(208,208,208,0.95)';
+  ctx.fillText('CODE: IRC 2021 / IBC 2021', x+c1+6, y+44);
+  // Right column — sheet number (per WFS prefix table)
   ctx.textAlign='center';
-  ctx.fillStyle=CAD.annotate; ctx.font='bold 16px monospace';
-  ctx.fillText('A-1', x+c2+(w-c2)/2, y+10);
+  ctx.fillStyle=CAD.annotate; ctx.font='bold 18px monospace';
+  ctx.fillText(wfsSheetNumber(type, orient), x+c2+(w-c2)/2, y+10);
   ctx.fillStyle='rgba(208,208,208,0.85)'; ctx.font='7px monospace';
-  ctx.fillText('SHEET 1 OF 1', x+c2+(w-c2)/2, y+30);
-  ctx.fillText(new Date().toLocaleDateString(), x+c2+(w-c2)/2, y+38);
+  ctx.fillText('SHEET 1 OF 1', x+c2+(w-c2)/2, y+32);
+  ctx.fillText(new Date().toLocaleDateString(), x+c2+(w-c2)/2, y+42);
   ctx.restore();
 }
 
@@ -7283,6 +8018,70 @@ function pvRenderProcessDims(type, p){
   html += 'Frost-line depth, soil bearing capacity, wind exposure category, and snow load are site-specific — adjust footing widths/depths and uplift connections accordingly. ';
   html += 'This drawing is generated for estimating and permit-prep purposes; a stamped set from a licensed design professional is required for permit-issued construction.';
   html += '</div>';
+  // Standard Notes Block — the 7 required residential drawing notes
+  // per WFS general drawing standards.
+  html += '<div style="margin-top:10px;padding:10px;border:1px solid #2a4a4a;background:rgba(10,30,40,0.4);font-size:9.5px;line-height:1.55">';
+  html += '<div style="color:var(--gold);font-weight:700;margin-bottom:6px;letter-spacing:.5px">GENERAL NOTES (WFS DWG STANDARDS)</div>';
+  html += '<ol style="margin:0;padding-left:18px;color:var(--text2)">';
+  WFS_REQUIRED_NOTES.forEach(n=>{
+    html += '<li style="margin:2px 0"><b style="color:#00e5ff">'+n.tag+'.</b> '+n.txt+'</li>';
+  });
+  html += '</ol></div>';
+  // DECK-SPECIFIC: DCA 6 prescriptive check + required-drawings checklist
+  // + 10-item DCA 6 notes block (see docs/drawing-standards/01-decks.md).
+  if(type==='deck'){
+    const chk = dca6DeckCheck(p||{});
+    const levelColor = {ok:'#00ff88', warn:'#ffcc00', fail:'#ff6060'};
+    const levelLabel = {ok:'OK',       warn:'WARN',    fail:'FAIL'};
+    html += '<div style="margin-top:10px;padding:10px;border:1px solid #2a4a4a;background:rgba(10,30,40,0.4);font-size:9.5px;line-height:1.55">';
+    html += '<div style="color:var(--gold);font-weight:700;margin-bottom:6px;letter-spacing:.5px">DCA 6 / IRC R507 PRESCRIPTIVE CHECK</div>';
+    if(!chk.length){
+      html += '<div style="color:var(--text3)">Enter deck dimensions to evaluate prescriptive scope.</div>';
+    } else {
+      chk.forEach(c=>{
+        const col = levelColor[c.level]||'#00e5ff';
+        html += '<div style="margin:2px 0;color:var(--text2)"><b style="color:'+col+'">['+levelLabel[c.level]+']</b> '+c.msg+'</div>';
+      });
+    }
+    html += '</div>';
+    html += '<div style="margin-top:10px;padding:10px;border:1px solid #2a4a4a;background:rgba(10,30,40,0.4);font-size:9.5px;line-height:1.55">';
+    html += '<div style="color:var(--gold);font-weight:700;margin-bottom:6px;letter-spacing:.5px">REQUIRED DRAWINGS — DECK SET</div>';
+    html += '<div style="display:grid;grid-template-columns:60px 90px 1fr;gap:4px 10px;color:var(--text2)">';
+    html += '<b style="color:var(--text3)">SHEET</b><b style="color:var(--text3)">SCALE</b><b style="color:var(--text3)">CONTENT</b>';
+    DCA6_DECK_REQUIRED_DRAWINGS.forEach(d=>{
+      html += '<span style="color:#00e5ff">'+d.sheet+'</span><span>'+d.view+'</span><span><b>'+d.title+'</b> — '+d.notes+'</span>';
+    });
+    html += '</div></div>';
+    const deckNotes = dca6DeckGeneralNotes(p||{});
+    html += '<div style="margin-top:10px;padding:10px;border:1px solid #2a4a4a;background:rgba(10,30,40,0.4);font-size:9.5px;line-height:1.55">';
+    html += '<div style="color:var(--gold);font-weight:700;margin-bottom:6px;letter-spacing:.5px">DECK NOTES (DCA 6 / IRC R507 · paste into drawings)</div>';
+    html += '<ol style="margin:0;padding-left:18px;color:var(--text2)">';
+    deckNotes.forEach(n=>{ html += '<li style="margin:2px 0">'+n+'</li>'; });
+    html += '</ol></div>';
+  }
+  // Required schedules (Fastener / Lumber / Concrete / Rebar)
+  const fSch = wfsFastenerSchedule(type, p||{});
+  const lSch = wfsLumberSchedule(type, p||{});
+  const cSch = wfsConcreteSchedule(type, p||{});
+  const rSch = wfsRebarSchedule(type, p||{});
+  const schBlocks = [
+    ['FASTENER / CONNECTOR SCHEDULE', fSch, 'loc'],
+    ['LUMBER SCHEDULE',              lSch, 'use'],
+    ['CONCRETE SCHEDULE',            cSch, 'use'],
+    ['REBAR SCHEDULE',               rSch, 'loc'],
+  ].filter(b => b[1] && b[1].length);
+  if(schBlocks.length){
+    html += '<div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:10px">';
+    schBlocks.forEach(([title, rows, secondCol])=>{
+      html += '<div style="padding:8px;border:1px solid #2a4a4a;background:rgba(10,30,40,0.3);font-size:9px;line-height:1.45">';
+      html += '<div style="color:var(--gold);font-weight:700;margin-bottom:4px;letter-spacing:.4px">'+title+'</div>';
+      rows.forEach(r=>{
+        html += '<div style="margin:2px 0;color:var(--text2)"><b style="color:#00e5ff">'+r.tag+'</b> '+r.spec+' <span style="color:var(--text3)">— '+(r[secondCol]||'')+'</span></div>';
+      });
+      html += '</div>';
+    });
+    html += '</div>';
+  }
   el.innerHTML = html;
 }
 
@@ -8573,19 +9372,29 @@ const DEFAULT_PRICES = {
   '#3 Rebar 20ft stick':       {price:6.65, unit:'ea',   cat:'Concrete',   note:'~$0.32/lf'},
   '6x6 Wire Mesh 5x10 sheet':  {price:12.2,unit:'ea',  cat:'Concrete',   note:'W1.4 welded wire'},
   'Fiber Mesh (per bag)':       {price:9.50, unit:'bag', cat:'Concrete',   note:'Add to ready-mix order'},
-  // ROOFING
-  '3-Tab Shingles (sq)':        {price:98,  unit:'sq',   cat:'Roofing',    note:'Per roofing square (100sqft). HD/Lowes'},
-  'Arch Shingles 30yr (sq)':    {price:138, unit:'sq',   cat:'Roofing',    note:'GAF Timberline HDZ or equiv'},
-  'Arch Shingles 50yr (sq)':    {price:192, unit:'sq',   cat:'Roofing',    note:'Premium architectural'},
-  'Metal Roofing Panel (sqft)': {price:4.4, unit:'sqft',cat:'Roofing',    note:'29ga steel panel. Installed ~$8-12'},
-  'Standing Seam Metal (sqft)': {price:8.1, unit:'sqft',cat:'Roofing',    note:'24ga Galvalume. Installed ~$14-18'},
-  'Synthetic Underlayment (sq)':{price:19,  unit:'sq',   cat:'Roofing',    note:'Grace/GAF or equiv, 10sq roll ~$180'},
-  '15# Felt (sq)':              {price:8.8, unit:'sq',  cat:'Roofing',    note:'2sq per roll at ~$17'},
-  'Ice & Water Shield (sq)':    {price:74,  unit:'sq',   cat:'Roofing',    note:'Grace Ice & Water ~$72/sq'},
-  'Drip Edge 10ft aluminum':    {price:4.4, unit:'ea',  cat:'Roofing',    note:'Standard .019 aluminum'},
-  'Ridge Cap Bundle (35lf)':    {price:44,  unit:'bundle',cat:'Roofing',   note:'Matches arch shingle'},
-  '5" K-Style Gutter 10ft':     {price:8.8, unit:'ea',  cat:'Roofing',    note:'Aluminum'},
-  '6" K-Style Gutter 10ft':     {price:11.6,unit:'ea',  cat:'Roofing',    note:'Heavy gauge'},
+  // ROOFING — re-sourced May 2026 (HD/Lowes ETN, GAF/OC/CertainTeed listings)
+  '3-Tab Shingles (sq)':         {price:108,  unit:'sq',   cat:'Roofing',   note:'GAF Royal Sovereign / CT XT-25 — ~$32/bundle × 3'},
+  'Arch Shingles 30yr (sq)':     {price:165,  unit:'sq',   cat:'Roofing',   note:'GAF Timberline HDZ ~$39/bundle (HD May 2026) × 3 + waste'},
+  'Arch Shingles 50yr (sq)':     {price:220,  unit:'sq',   cat:'Roofing',   note:'GAF Timberline UHDZ / OC Duration Premium ~$52/bundle × 3'},
+  'Designer Shingles (sq)':      {price:325,  unit:'sq',   cat:'Roofing',   note:'GAF Camelot II / OC Berkshire ~$78–88/bundle × 3'},
+  'Impact-Resistant Cl-4 (sq)':  {price:265,  unit:'sq',   cat:'Roofing',   note:'Malarkey Vista AR ~$62/bundle × 3 + waste'},
+  'Metal Roofing Panel (sqft)':  {price:5.20, unit:'sqft', cat:'Roofing',   note:'29-ga Galvalume R-panel/5-V crimp. Installed ~$10–14/sf (TN 2026)'},
+  'Standing Seam Metal (sqft)':  {price:9.50, unit:'sqft', cat:'Roofing',   note:'24-ga painted Galvalume snap-lock. Installed ~$14–18/sf (TN 2026)'},
+  'Synthetic Underlayment (sq)': {price:24,   unit:'sq',   cat:'Roofing',   note:'GAF FeltBuster / OC Deck Defense — 10-sq roll ~$215'},
+  '15# Felt (sq)':               {price:11,   unit:'sq',   cat:'Roofing',   note:'2-sq roll ~$22 (HD May 2026)'},
+  'Ice & Water Shield (sq)':     {price:98,   unit:'sq',   cat:'Roofing',   note:'Grace Ice & Water HT ~$95–$105/sq (Lowes May 2026)'},
+  'Drip Edge 10ft aluminum':     {price:8.50, unit:'ea',   cat:'Roofing',   note:'Standard .019 aluminum, 10ft length'},
+  'Ridge Cap Bundle (35lf)':     {price:62,   unit:'bundle',cat:'Roofing',  note:'GAF TimberTex / OC ProEdge ridge cap'},
+  '5" K-Style Gutter 10ft':      {price:14,   unit:'ea',   cat:'Roofing',   note:'Aluminum .032 — color match adds $2'},
+  '6" K-Style Gutter 10ft':      {price:18,   unit:'ea',   cat:'Roofing',   note:'Heavy .032 gauge'},
+  '3×4 Aluminum Downspout 10ft': {price:14,   unit:'ea',   cat:'Roofing',   note:'Matches K-style gutters; elbows ~$6 each'},
+  'Pipe Boot Flashing (each)':   {price:18,   unit:'ea',   cat:'Roofing',   note:'Oatey / Lifetime EPDM 1.5"-3" pipe'},
+  'Ridge Vent 4ft stick':        {price:26,   unit:'ea',   cat:'Roofing',   note:'GAF Cobra Snow Country / OC VentSure'},
+  'Box Vent (each)':             {price:38,   unit:'ea',   cat:'Roofing',   note:'Static aluminum / plastic'},
+  'Power Vent (each)':           {price:165,  unit:'ea',   cat:'Roofing',   note:'Thermostat / humidistat ~$125–185'},
+  'Step Flashing 5×7 (100 pcs)': {price:78,   unit:'box',  cat:'Roofing',   note:'Aluminum step flashing'},
+  'Roofing Nails 1-1/4" (50 lb)':{price:78,   unit:'box',  cat:'Roofing',   note:'Galvanized ring-shank'},
+  'Plastic Cap Nails (5000 ct)': {price:62,   unit:'box',  cat:'Roofing',   note:'For synthetic underlayment'},
   // SIDING
   'Vinyl Siding D4 (sq)':       {price:91,  unit:'sq',   cat:'Siding',     note:'Per 100sqft. Mid-grade'},
   'Vinyl Siding D5 (sq)':       {price:98,  unit:'sq',   cat:'Siding',     note:''},
@@ -9186,8 +9995,56 @@ function getPricingItems(){
       });
     });
   }
+  // ALT_CATALOG — brand/color alternates exposed via the per-line "swap"
+  // dropdown in the takeoff. Surfacing them here lets the user view and
+  // edit every branded option from one place. Category is a friendly
+  // label per role; unit is inferred from the entry's _per* flag.
+  if(typeof ALT_CATALOG !== 'undefined'){
+    Object.entries(ALT_CATALOG).forEach(([role, alts])=>{
+      const catLabel = ALT_ROLE_CATEGORY[role] || ('Alternates — '+role);
+      alts.forEach(a=>{
+        if(!a || !a.label || seen.has(a.label)) return;
+        seen.add(a.label);
+        const unit = a._perFt ? 'lf' : a._perSf ? 'sf' : a._perSq ? 'sq (100 sf)' : 'ea';
+        items.push({
+          name: a.label,
+          price: a.matCostEach,
+          unit,
+          cat: catLabel,
+          note: 'Brand/color alternate selectable from the per-line "swap" dropdown in any takeoff.'
+        });
+      });
+    });
+  }
   return items.sort((a,b)=>a.cat.localeCompare(b.cat)||a.name.localeCompare(b.name));
 }
+
+// Friendly category label per ALT_CATALOG role, used on the Pricing page.
+const ALT_ROLE_CATEGORY = {
+  joist:           'Framing — Joists',
+  beam:            'Framing — Beams',
+  ledger:          'Framing — Ledgers',
+  post:            'Framing — Posts',
+  stud:            'Framing — Studs',
+  sheathing_panel: 'Sheathing & Subfloor',
+  anchor_bolt:     'Fasteners — Anchor Bolts',
+  rebar:           'Concrete — Rebar',
+  sonotube:        'Concrete — Sonotubes',
+  vapor_barrier:   'Concrete — Vapor Barrier',
+  decking_board:   'Decking — Boards (Brands & Colors)',
+  deck_screw:      'Decking — Fasteners',
+  underlayment:    'Roofing — Underlayment',
+  shingle:         'Roofing — Shingles (Brands & Colors)',
+  shingle_starter: 'Roofing — Starter Strip',
+  ridge_cap:       'Roofing — Ridge Cap',
+  drip_edge:       'Roofing — Drip Edge',
+  gutter:          'Roofing — Gutters',
+  siding:          'Siding (Brands & Colors)',
+  insulation:      'Insulation (Brands)',
+  column:          'Columns & Wraps',
+  paint:           'Paint (Brands & Lines)',
+  caulk:           'Sealants & Caulk',
+};
 
 function renderPriceEditor(){
   buildPriceCatPills();
@@ -9246,6 +10103,19 @@ function resetPrices(){
   renderLines();
   recalc();
   toast('Prices reset to market rates');
+}
+
+// Restore each Labor Rates input to its HTML `value` default (the
+// ETN May-2026 calibration baked into the DOM), then re-save.
+function resetLaborRates(){
+  const ids=['r-gen','r-sk','r-fore','r-roof','r-mason','r-paint','r-equip','r-sub','r-elec','r-plumb','r-hvac','r-side'];
+  ids.forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){ el.value = el.getAttribute('value'); }
+  });
+  saveSettings();
+  recalc();
+  toast('Labor rates reset to ETN market');
 }
 
 // Get current price for a material (user override or default)
