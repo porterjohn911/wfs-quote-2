@@ -1488,10 +1488,10 @@ const TASKS = [
   {name:"Covered porch over deck — reinforce existing deck framing",cat:"Covered Porch",icon:"🏡",unit:"sqft",unitLabel:"sq ft of deck",hrsPerUnit:0.11,rateKey:"sk",matPerUnit:4.85,notes:"Sister joists, blocking, connectors, beam/post upgrades as needed"},
   {name:"Covered porch — ledger / house roof tie-in",cat:"Covered Porch",icon:"🏡",unit:"lf",unitLabel:"lin ft",hrsPerUnit:0.85,rateKey:"sk",matPerUnit:18.5,notes:"Ledger, flashing, house attachment, water management"},
   {name:"Covered porch — columns & beam package",cat:"Covered Porch",icon:"🏡",unit:"lf",unitLabel:"lin ft of front beam",hrsPerUnit:0.7,rateKey:"sk",matPerUnit:22,notes:"6×6 posts, double beam, caps, bases, structural hardware"},
-  {name:"Covered porch — roof framing package",cat:"Covered Porch",icon:"🏡",unit:"sqft",unitLabel:"sq ft roof area",hrsPerUnit:0.16,rateKey:"sk",matPerUnit:6.75,notes:"Rafters/trusses, ridge, ties, blocking, hurricane hardware"},
-  {name:"Covered porch — roof sheathing & dry-in",cat:"Covered Porch",icon:"🏡",unit:"sqft",unitLabel:"sq ft roof area",hrsPerUnit:0.035,rateKey:"sk",matPerUnit:1.45,notes:"OSB, underlayment, drip edge, nails"},
-  {name:"Covered porch roofing — architectural shingles",cat:"Covered Porch",icon:"🏡",unit:"sqft",unitLabel:"sq ft roof area",hrsPerUnit:0.028,rateKey:"roof",matPerUnit:2.15,notes:"Starter, field shingles, cap, roof nails"},
-  {name:"Covered porch roofing — standing seam metal",cat:"Covered Porch",icon:"🏡",unit:"sqft",unitLabel:"sq ft roof area",hrsPerUnit:0.07,rateKey:"roof",matPerUnit:8.35,notes:"Panels, clips/screws, trim, closures"},
+  {name:"Covered porch — roof framing package",cat:"Covered Porch",icon:"🏡",unit:"sqft",unitLabel:"sq ft roof area",hrsPerUnit:0.18,rateKey:"sk",matPerUnit:8.50,notes:"Rafters/trusses, ridge, ties, blocking, hurricane hardware — lumber up ~25% since 2024"},
+  {name:"Covered porch — roof sheathing & dry-in",cat:"Covered Porch",icon:"🏡",unit:"sqft",unitLabel:"sq ft roof area",hrsPerUnit:0.040,rateKey:"sk",matPerUnit:2.10,notes:"OSB (7/16\" $22-26/sheet), synthetic underlayment, drip edge, nails"},
+  {name:"Covered porch roofing — architectural shingles",cat:"Covered Porch",icon:"🏡",unit:"sqft",unitLabel:"sq ft roof area",hrsPerUnit:0.032,rateKey:"roof",matPerUnit:2.85,notes:"Starter, field shingles, cap, roof nails — small-roof premium"},
+  {name:"Covered porch roofing — standing seam metal",cat:"Covered Porch",icon:"🏡",unit:"sqft",unitLabel:"sq ft roof area",hrsPerUnit:0.078,rateKey:"roof",matPerUnit:11.50,notes:"Panels, clips/screws, trim, closures — 24ga 2026 pricing"},
   {name:"Covered porch — T&G pine ceiling",cat:"Covered Porch",icon:"🏡",unit:"sqft",unitLabel:"sq ft ceiling",hrsPerUnit:0.095,rateKey:"sk",matPerUnit:3.65,notes:"1×6 T&G pine, finish nails, trim allowance"},
   {name:"Covered porch — beadboard ceiling",cat:"Covered Porch",icon:"🏡",unit:"sqft",unitLabel:"sq ft ceiling",hrsPerUnit:0.085,rateKey:"sk",matPerUnit:4.1,notes:"Beadboard, trim, finish fasteners"},
   {name:"Covered porch — screen enclosure",cat:"Covered Porch",icon:"🏡",unit:"lf",unitLabel:"lin ft perimeter",hrsPerUnit:1.15,rateKey:"sk",matPerUnit:31,notes:"Screen frames, screen, spline, door allowance spread by perimeter"},
@@ -1506,16 +1506,16 @@ const TASKS = [
   {name:"Wall sheathing — OSB",cat:"Framing",icon:"🏠",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.004,rateKey:"sk",matPerUnit:1.05,notes:"3-person crew ~250 sqft/hr"},
   {name:"Roof sheathing — OSB",cat:"Framing",icon:"🏠",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.0038,rateKey:"sk",matPerUnit:0.9,notes:"Pitched roof"},
   {name:"Header install (door/window)",cat:"Framing",icon:"🏠",unit:"ea",unitLabel:"each",hrsPerUnit:1.2,rateKey:"sk",matPerUnit:42,notes:"Standard LVL or doubled 2×"},
-  {name:"Tear-off — asphalt shingles",cat:"Roofing",icon:"🏚️",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.012,rateKey:"roof",matPerUnit:0,notes:"1 layer; ~85 sqft/hr per roofer"},
-  {name:"Felt / synthetic underlayment",cat:"Roofing",icon:"🏚️",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.005,rateKey:"roof",matPerUnit:0.18,notes:"15# felt or synthetic"},
-  {name:"3-tab asphalt shingles",cat:"Roofing",icon:"🏚️",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.022,rateKey:"roof",matPerUnit:1.0,notes:"~45 sqft/hr; starter, field, ridge"},
-  {name:"Architectural shingles",cat:"Roofing",icon:"🏚️",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.025,rateKey:"roof",matPerUnit:1.42,notes:"Dimensional / laminate"},
-  {name:"Metal roofing — standing seam",cat:"Roofing",icon:"🏚️",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.065,rateKey:"roof",matPerUnit:7.8,notes:"Pre-fab panels; ~80 sqft/hr"},
-  {name:"Ridge cap / hip shingles",cat:"Roofing",icon:"🏚️",unit:"lf",unitLabel:"lin ft",hrsPerUnit:.08,rateKey:"roof",matPerUnit:1.5,notes:"Cut & nail cap shingles"},
-  {name:"Drip edge installation",cat:"Roofing",icon:"🏚️",unit:"lf",unitLabel:"lin ft",hrsPerUnit:0.08,rateKey:"roof",matPerUnit:0.42,notes:"Aluminum drip edge"},
-  {name:"Roof flashing (step/counter)",cat:"Roofing",icon:"🏚️",unit:"lf",unitLabel:"lin ft",hrsPerUnit:.25,rateKey:"roof",matPerUnit:3,notes:"Wall, chimney, valley"},
-  {name:"Roof vent installation",cat:"Roofing",icon:"🏚️",unit:"ea",unitLabel:"each",hrsPerUnit:.75,rateKey:"roof",matPerUnit:25,notes:"Box vent or power vent"},
-  {name:"Gutters — aluminum 5\" K-style",cat:"Roofing",icon:"🏚️",unit:"lf",unitLabel:"lin ft",hrsPerUnit:.15,rateKey:"sk",matPerUnit:4.5,notes:"Incl. end caps, hangers"},
+  {name:"Tear-off — asphalt shingles",cat:"Roofing",icon:"🏚️",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.014,rateKey:"roof",matPerUnit:0.18,notes:"1 layer; ~70 sqft/hr per roofer (incl haul, tarp, sweep)"},
+  {name:"Felt / synthetic underlayment",cat:"Roofing",icon:"🏚️",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.005,rateKey:"roof",matPerUnit:0.26,notes:"Synthetic ($24-28/sq) — 15# felt now rare"},
+  {name:"3-tab asphalt shingles",cat:"Roofing",icon:"🏚️",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.024,rateKey:"roof",matPerUnit:1.40,notes:"~42 sqft/hr; starter, field, ridge"},
+  {name:"Architectural shingles",cat:"Roofing",icon:"🏚️",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.028,rateKey:"roof",matPerUnit:1.95,notes:"GAF Timberline HDZ / Owens Duration — Knoxville HD/Lowes 2026"},
+  {name:"Metal roofing — standing seam",cat:"Roofing",icon:"🏚️",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.070,rateKey:"roof",matPerUnit:10.50,notes:"24ga Galvalume pre-fab panels; ~70 sqft/hr"},
+  {name:"Ridge cap / hip shingles",cat:"Roofing",icon:"🏚️",unit:"lf",unitLabel:"lin ft",hrsPerUnit:.09,rateKey:"roof",matPerUnit:2.20,notes:"Timbertex/Seal-A-Ridge"},
+  {name:"Drip edge installation",cat:"Roofing",icon:"🏚️",unit:"lf",unitLabel:"lin ft",hrsPerUnit:0.09,rateKey:"roof",matPerUnit:0.75,notes:"Aluminum drip edge — $7-9/10ft stick"},
+  {name:"Roof flashing (step/counter)",cat:"Roofing",icon:"🏚️",unit:"lf",unitLabel:"lin ft",hrsPerUnit:.28,rateKey:"roof",matPerUnit:4.50,notes:"Wall, chimney, valley"},
+  {name:"Roof vent installation",cat:"Roofing",icon:"🏚️",unit:"ea",unitLabel:"each",hrsPerUnit:.85,rateKey:"roof",matPerUnit:42,notes:"Box vent or power vent"},
+  {name:"Gutters — aluminum 5\" K-style",cat:"Roofing",icon:"🏚️",unit:"lf",unitLabel:"lin ft",hrsPerUnit:.17,rateKey:"sk",matPerUnit:7,notes:"Incl. end caps, hangers — seamless run-on-site"},
   {name:"Exterior painting — walls",cat:"Painting",icon:"🎨",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.012,rateKey:"paint",matPerUnit:0.38,notes:"~80 sqft/hr; 2 coats"},
   {name:"Interior painting — 1 coat",cat:"Painting",icon:"🎨",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.008,rateKey:"paint",matPerUnit:0.22,notes:"~120 sqft/hr flat walls"},
   {name:"Interior painting — 2 coats",cat:"Painting",icon:"🎨",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.014,rateKey:"paint",matPerUnit:0.38,notes:"Prime + finish"},
@@ -1784,10 +1784,13 @@ let _panning = false, _panStart = null;
 const rates = () => ({
   // ETN contractor billing rates (May 2026): wage + 35% burden + 25% overhead
   // Sources: BLS OEWS 2025, ZipRecruiter TN 2026, CalculatorConstruction.com 2026
+  // Roofing crew rate updated to reflect East TN reality — most roofers in
+  // Knox/Blount/Sevier are sub'd at $300-475/sq installed, which back-solves
+  // to ~$78-92/hr loaded (insurance, fall-protection, comp, profit).
   gen:   parseFloat(document.getElementById('r-gen')?.value)||42,
   sk:    parseFloat(document.getElementById('r-sk')?.value)||62,
   fore:  parseFloat(document.getElementById('r-fore')?.value)||82,
-  roof:  parseFloat(document.getElementById('r-roof')?.value)||58,
+  roof:  parseFloat(document.getElementById('r-roof')?.value)||82,
   mason: parseFloat(document.getElementById('r-mason')?.value)||68,
   paint: parseFloat(document.getElementById('r-paint')?.value)||48,
   equip: parseFloat(document.getElementById('r-equip')?.value)||78,
@@ -3606,64 +3609,64 @@ function extendTakeoffWithCompleteList(type, items, c){
     const {blen=0,bwid=0,eaveExt=0,roofSqFt=0,eavePerim=0,rakePerim=0,ridge=0,valley=0,shingle='arch',sheetsNeeded=0,tearoff=0,gutterLF=0,penetr=0}=c;
     if(tearoff>0){
       P(items, 'Tear-Off',
-        _i('30-yd Dumpster (tear-off haul)', Math.ceil(roofSqFt/1500), 'ea', 'ea', 425),
-        _i('Magnetic Nail Sweeper Rental (day)', 1, 'day', 'day', 18),
-        _i('Roof Safety Harness Kit', 1, 'ea', 'ea', 185),
+        _i('30-yd Dumpster (tear-off haul)', Math.ceil(roofSqFt/1500), 'ea', 'ea', 525),
+        _i('Magnetic Nail Sweeper Rental (day)', 1, 'day', 'day', 24),
+        _i('Roof Safety Harness Kit', 1, 'ea', 'ea', 225),
       );
     }
     P(items, 'Sheathing',
       _i('H2.5A Hurricane Tie (truss-to-plate)', Math.ceil((blen+bwid)*2/2), 'ea', 'box(100)', 0.95),
-      _i('Plastic Cap Nail 1" 3000 ct Pail (underlayment)', Math.ceil(roofSqFt/1500), 'pail', 'pail', 58),
+      _i('Plastic Cap Nail 1" 3000 ct Pail (underlayment)', Math.ceil(roofSqFt/1500), 'pail', 'pail', 85),
     );
     P(items, 'Flashing & Trim',
-      _i('Kick-out Flashing (Quick-Flash QSC-1)', 2, 'ea', 'ea', 14),
-      _i('Apron Flashing 10\' (chimney/dormer)', penetr>0?2:0, 'ea', 'ea', 22),
-      _i('Counter Flashing 10\' (saw-kerf reglet)', penetr>0?2:0, 'ea', 'ea', 26),
-      _i('Cobra Ridge Vent 20\' Roll', ridge>0?Math.ceil(ridge/20):0, 'roll', 'roll', 48),
-      _i('Soffit Vent Strip 8\'×3"', Math.ceil((blen+eaveExt*2)*2/8), 'ea', 'ea', 14),
+      _i('Kick-out Flashing (Quick-Flash QSC-1)', 2, 'ea', 'ea', 22),
+      _i('Apron Flashing 10\' (chimney/dormer)', penetr>0?2:0, 'ea', 'ea', 32),
+      _i('Counter Flashing 10\' (saw-kerf reglet)', penetr>0?2:0, 'ea', 'ea', 38),
+      _i('Cobra Ridge Vent 20\' Roll', ridge>0?Math.ceil(ridge/20):0, 'roll', 'roll', 72),
+      _i('Soffit Vent Strip 8\'×3"', Math.ceil((blen+eaveExt*2)*2/8), 'ea', 'ea', 22),
     );
     if(shingle!=='metal'){
       P(items, 'Roofing Material',
-        _i('Roof Cement 10.1 oz Tube', Math.ceil(roofSqFt/400), 'tube', 'tube', 7),
-        _i('Roof Cement 1 gal (flashing bed)', 1, 'gal', 'gal', 28),
-        _i('Starter Strip Bundle', Math.ceil((eavePerim+rakePerim)/100), 'bundle', 'bundle', 58),
+        _i('Roof Cement 10.1 oz Tube', Math.ceil(roofSqFt/400), 'tube', 'tube', 11),
+        _i('Roof Cement 1 gal (flashing bed)', 1, 'gal', 'gal', 42),
+        _i('Starter Strip Bundle', Math.ceil((eavePerim+rakePerim)/100), 'bundle', 'bundle', 78),
       );
     }
     if(gutterLF>0){
       P(items, 'Gutters & Drainage',
-        _i('Gutter Sealant 10 oz Tube', Math.ceil(gutterLF/50), 'tube', 'tube', 9),
-        _i('Splash Block (per downspout)', Math.max(2, Math.ceil(gutterLF/50)*2), 'ea', 'ea', 7),
-        _i('1¼" Zip Screw 100 ct Box', 1, 'box', 'box', 14),
-        _i('1×6 PVC Fascia 18\' (new const)', Math.ceil(gutterLF/18*1.10), 'ea', 'ea', 52),
-        _i('Vented Aluminum Soffit 12\'×12"', Math.ceil(gutterLF*1.5/12), 'ea', 'ea', 18),
-        _i('F-Channel + J-Channel 12\'', Math.ceil(gutterLF/12)*2, 'ea', 'ea', 9),
+        _i('Gutter Sealant 10 oz Tube', Math.ceil(gutterLF/50), 'tube', 'tube', 13),
+        _i('Splash Block (per downspout)', Math.max(2, Math.ceil(gutterLF/50)*2), 'ea', 'ea', 12),
+        _i('1¼" Zip Screw 100 ct Box', 1, 'box', 'box', 22),
+        _i('1×6 PVC Fascia 18\' (new const)', Math.ceil(gutterLF/18*1.10), 'ea', 'ea', 72),
+        _i('Vented Aluminum Soffit 12\'×12"', Math.ceil(gutterLF*1.5/12), 'ea', 'ea', 26),
+        _i('F-Channel + J-Channel 12\'', Math.ceil(gutterLF/12)*2, 'ea', 'ea', 14),
       );
     }
     // Additional penetration flashing (skylights/chimneys/lead boots)
     if(penetr>0){
       P(items, 'Flashing & Trim',
-        _i('Chimney Cricket Saddle Kit', 1, 'ea', 'ea', 145),
-        _i('Lead Pipe Boot 1.5"-3" (replaces EPDM, 50-yr)', penetr, 'ea', 'ea', 32),
-        _i('Storm Collar (around vent stack)', penetr, 'ea', 'ea', 8),
+        _i('Chimney Cricket Saddle Kit', 1, 'ea', 'ea', 225),
+        _i('Lead Pipe Boot 1.5"-3" (replaces EPDM, 50-yr)', penetr, 'ea', 'ea', 48),
+        _i('Storm Collar (around vent stack)', penetr, 'ea', 'ea', 14),
       );
     }
     // Finish / touch-up paint — fascia + soffit + trim
     P(items, 'Finish & Paint',
-      _i('Fascia/Soffit Touch-up Paint qt (Sherwin Exterior)', 1, 'qt', 'qt', 24),
-      _i('Angle Sash Brush 2.5"', 1, 'ea', 'ea', 11),
-      _i('Drop Cloth 9×12', 1, 'ea', 'ea', 18),
+      _i('Fascia/Soffit Touch-up Paint qt (Sherwin Exterior)', 1, 'qt', 'qt', 32),
+      _i('Angle Sash Brush 2.5"', 1, 'ea', 'ea', 14),
+      _i('Drop Cloth 9×12', 1, 'ea', 'ea', 22),
     );
     // Cleanup & Disposal — always needed even on new construction
     P(items, 'Cleanup & Disposal',
-      _i('30-yd Dumpster (debris haul, new const)', tearoff>0?0:1, 'ea', 'ea', 425),
-      _i('Magnetic Nail Sweep Rental (day)', 1, 'day', 'day', 18),
-      _i('Push Broom 24"', 1, 'ea', 'ea', 22),
-      _i('Ground Tarp 20×30 (catch debris)', 2, 'ea', 'ea', 28),
-      _i('Final Cleanup Labor Allowance', 1, 'ea', 'ea', 165),
+      _i('30-yd Dumpster (debris haul, new const)', tearoff>0?0:1, 'ea', 'ea', 525),
+      _i('Magnetic Nail Sweep Rental (day)', 1, 'day', 'day', 24),
+      _i('Push Broom 24"', 1, 'ea', 'ea', 28),
+      _i('Ground Tarp 20×30 (catch debris)', 2, 'ea', 'ea', 38),
+      _i('Final Cleanup Labor Allowance', 1, 'ea', 'ea', 245),
     );
     P(items, 'Summary',
-      _i('Building Permit Fee (allowance)', 1, 'ea', 'ea', 150),
-      _i('Roofing Inspection Fee', 1, 'ea', 'ea', 75),
+      _i('Building Permit Fee (allowance)', 1, 'ea', 'ea', 185),
+      _i('Roofing Inspection Fee', 1, 'ea', 'ea', 95),
     );
   }
   else if(type==='framing'){
@@ -3811,15 +3814,15 @@ function extendTakeoffWithCompleteList(type, items, c){
       _i('Marking Paint (utility orange)', 2, 'can', 'can', 7),
     );
     P(items, 'Drip Edge & Flashing',
-      _i('Apron Flashing 10\' (porch-to-wall)', attached?Math.ceil(len/10*1.10):0, 'ea', 'ea', 22),
-      _i('Counter Flashing 10\' (kerf into siding)', attached?Math.ceil(len/10*1.10):0, 'ea', 'ea', 26),
-      _i('Step Flashing 4×4×8" 50/box', attached?1:0, 'box', 'box', 42),
-      _i('Kick-out Flashing', attached?2:0, 'ea', 'ea', 14),
-      _i('Pipe Boot Flashing EPDM', 1, 'ea', 'ea', 14),
-      _i('Cobra Ridge Vent 20\' Roll', ridgeLF>0?Math.ceil(ridgeLF/20):0, 'roll', 'roll', 48),
-      _i('1×6 PVC Fascia 18\'', Math.ceil((len+dep*2)/18*1.10), 'ea', 'ea', 52),
-      _i('Vented Aluminum Soffit 12\'×12"', Math.ceil((len+dep*2)*1.5/12), 'ea', 'ea', 18),
-      _i('F + J Channel 12\'', Math.ceil((len+dep*2)/12)*2, 'ea', 'ea', 9),
+      _i('Apron Flashing 10\' (porch-to-wall)', attached?Math.ceil(len/10*1.10):0, 'ea', 'ea', 32),
+      _i('Counter Flashing 10\' (kerf into siding)', attached?Math.ceil(len/10*1.10):0, 'ea', 'ea', 38),
+      _i('Step Flashing 4×4×8" 50/box', attached?1:0, 'box', 'box', 62),
+      _i('Kick-out Flashing', attached?2:0, 'ea', 'ea', 22),
+      _i('Pipe Boot Flashing EPDM', 1, 'ea', 'ea', 22),
+      _i('Cobra Ridge Vent 20\' Roll', ridgeLF>0?Math.ceil(ridgeLF/20):0, 'roll', 'roll', 72),
+      _i('1×6 PVC Fascia 18\'', Math.ceil((len+dep*2)/18*1.10), 'ea', 'ea', 72),
+      _i('Vented Aluminum Soffit 12\'×12"', Math.ceil((len+dep*2)*1.5/12), 'ea', 'ea', 26),
+      _i('F + J Channel 12\'', Math.ceil((len+dep*2)/12)*2, 'ea', 'ea', 14),
     );
     if(fans>0 || lights>0){
       P(items, 'Electrical (Rough-In)',
@@ -3907,9 +3910,9 @@ function extendTakeoffWithCompleteList(type, items, c){
     );
     if(roofMat==='metal'||roofMat==='tin'){
       P(items, 'Roofing Material',
-        _i('Z-closure Foam 3\' (eave/ridge)', Math.ceil(((len*2)+(ridgeLF||0))/3), 'ea', 'ea', 4.80),
-        _i('Eave/Rake Trim 10\'6"', Math.ceil((len+wid)*2/10.5), 'ea', 'ea', 36),
-        _i('Butyl Seam Sealant Tape ⅛"×½"×30\'', Math.ceil(len/30), 'roll', 'roll', 14),
+        _i('Z-closure Foam 3\' (eave/ridge)', Math.ceil(((len*2)+(ridgeLF||0))/3), 'ea', 'ea', 7.20),
+        _i('Eave/Rake Trim 10\'6"', Math.ceil((len+wid)*2/10.5), 'ea', 'ea', 52),
+        _i('Butyl Seam Sealant Tape ⅛"×½"×30\'', Math.ceil(len/30), 'roll', 'roll', 22),
       );
     }
     if(sides && sides!=='none'){
@@ -8757,18 +8760,18 @@ const DEFAULT_PRICES = {
   '6x6 Wire Mesh 5x10 sheet':  {price:12.2,unit:'ea',  cat:'Concrete',   note:'W1.4 welded wire'},
   'Fiber Mesh (per bag)':       {price:9.50, unit:'bag', cat:'Concrete',   note:'Add to ready-mix order'},
   // ROOFING
-  '3-Tab Shingles (sq)':        {price:98,  unit:'sq',   cat:'Roofing',    note:'Per roofing square (100sqft). HD/Lowes'},
-  'Arch Shingles 30yr (sq)':    {price:138, unit:'sq',   cat:'Roofing',    note:'GAF Timberline HDZ or equiv'},
-  'Arch Shingles 50yr (sq)':    {price:192, unit:'sq',   cat:'Roofing',    note:'Premium architectural'},
-  'Metal Roofing Panel (sqft)': {price:4.4, unit:'sqft',cat:'Roofing',    note:'29ga steel panel. Installed ~$8-12'},
-  'Standing Seam Metal (sqft)': {price:8.1, unit:'sqft',cat:'Roofing',    note:'24ga Galvalume. Installed ~$14-18'},
-  'Synthetic Underlayment (sq)':{price:19,  unit:'sq',   cat:'Roofing',    note:'Grace/GAF or equiv, 10sq roll ~$180'},
-  '15# Felt (sq)':              {price:8.8, unit:'sq',  cat:'Roofing',    note:'2sq per roll at ~$17'},
-  'Ice & Water Shield (sq)':    {price:74,  unit:'sq',   cat:'Roofing',    note:'Grace Ice & Water ~$72/sq'},
-  'Drip Edge 10ft aluminum':    {price:4.4, unit:'ea',  cat:'Roofing',    note:'Standard .019 aluminum'},
-  'Ridge Cap Bundle (35lf)':    {price:44,  unit:'bundle',cat:'Roofing',   note:'Matches arch shingle'},
-  '5" K-Style Gutter 10ft':     {price:8.8, unit:'ea',  cat:'Roofing',    note:'Aluminum'},
-  '6" K-Style Gutter 10ft':     {price:11.6,unit:'ea',  cat:'Roofing',    note:'Heavy gauge'},
+  '3-Tab Shingles (sq)':        {price:132, unit:'sq',   cat:'Roofing',    note:'Per roofing square (100sqft). Knoxville HD/Lowes May 2026'},
+  'Arch Shingles 30yr (sq)':    {price:186, unit:'sq',   cat:'Roofing',    note:'GAF Timberline HDZ or equiv — was $138 in 2024, up ~35%'},
+  'Arch Shingles 50yr (sq)':    {price:258, unit:'sq',   cat:'Roofing',    note:'Premium architectural (GAF Camelot, Owens TruDef)'},
+  'Metal Roofing Panel (sqft)': {price:5.80,unit:'sqft', cat:'Roofing',    note:'29ga exposed-fastener panel. Installed ~$11-14 ETN'},
+  'Standing Seam Metal (sqft)': {price:10.80,unit:'sqft',cat:'Roofing',    note:'24ga Galvalume. Installed ~$16-20 ETN'},
+  'Synthetic Underlayment (sq)':{price:26,  unit:'sq',   cat:'Roofing',    note:'GAF FeltBuster/Sharkskin — 10sq roll ~$245'},
+  '15# Felt (sq)':              {price:12.50,unit:'sq',  cat:'Roofing',    note:'2sq per roll at ~$25 — rarely used now'},
+  'Ice & Water Shield (sq)':    {price:98,  unit:'sq',   cat:'Roofing',    note:'Grace Ice & Water ~$95-105/sq Knoxville'},
+  'Drip Edge 10ft aluminum':    {price:7.50,unit:'ea',   cat:'Roofing',    note:'Standard .019 aluminum — $7-9/stick 2026'},
+  'Ridge Cap Bundle (35lf)':    {price:64,  unit:'bundle',cat:'Roofing',   note:'Matches arch shingle (Timbertex)'},
+  '5" K-Style Gutter 10ft':     {price:13,  unit:'ea',   cat:'Roofing',    note:'Aluminum — seamless run on-site preferred'},
+  '6" K-Style Gutter 10ft':     {price:16.50,unit:'ea',  cat:'Roofing',    note:'Heavy gauge — recommended for 1500+ sf roofs'},
   // SIDING
   'Vinyl Siding D4 (sq)':       {price:91,  unit:'sq',   cat:'Siding',     note:'Per 100sqft. Mid-grade'},
   'Vinyl Siding D5 (sq)':       {price:98,  unit:'sq',   cat:'Siding',     note:''},
@@ -8992,34 +8995,38 @@ const PRICE_MAP = (()=>{
   add('Stair Angle Hardware',          8.50, 0.20,'sk');
 
   // ── ROOFING ────────────────────────────────────────────────────────────
-  add('Ice & Water Shield (200sqft rolls)', 74, 0.15,'roof');
-  add('Synthetic Underlayment',        19,  0.1,'roof');
-  add('Starter Strip Shingles',        45,  0.08,'roof');
-  add('Architectural Shingles',        46,  0.8,'roof');
-  add('3-Tab Shingles',                32,  0.65,'roof');
-  add('Ridge Cap Shingles',            44,  0.2,'roof');
-  add('Drip Edge Aluminum 10\' sticks', 4.20, 0.08,'sk');
-  add('Roofing Nails 1-3/4" (5lb)',    14,  0.01,'roof');
-  add('Sheathing Nails (1-3/4")',       8,  0.01,'sk');
-  add('7/16" OSB Sheathing (4×8)',     14.50, 0.18,'sk');
+  // East TN 2026: material costs reset to Knoxville HD/Lowes / supplier pricing.
+  // Labor bumped to reflect actual sub-contractor productivity after fall-
+  // protection setup, tarping, magnetic sweep, and disposal.
+  add('Ice & Water Shield (200sqft rolls)', 98, 0.18,'roof');
+  add('Synthetic Underlayment',        26,  0.12,'roof');
+  add('Starter Strip Shingles',        62,  0.10,'roof');
+  add('Architectural Shingles',        62,  0.95,'roof');
+  add('3-Tab Shingles',                42,  0.80,'roof');
+  add('Ridge Cap Shingles',            64,  0.25,'roof');
+  add('Drip Edge Aluminum 10\' sticks', 7.50,0.10,'roof');
+  add('Roofing Nails 1-3/4" (5lb)',    22,  0.01,'roof');
+  add('Sheathing Nails (1-3/4")',      14,  0.01,'sk');
+  add('7/16" OSB Sheathing (4×8)',     24,  0.20,'sk');
   // Exposed-fastener metal panels: 2-man crew runs ~50 sqft/hr per person.
   // Standing seam is slower due to clip layout + snap engagement.
-  add('Metal Roofing Panel (sqft)',     4.20, 0.025,'roof');
-  add('Standing Seam Metal Panels',    7.80, 0.045,'roof');
-  add('Metal Roofing Screws w/EPDM',   0.08, 0.005,'sk');
-  add('Metal Roofing Screws w/EPDM washer', 0.08, 0.005,'sk');
-  add('Metal Ridge Cap',               8.50, 0.12,'sk');
-  add('Butyl Tape Closure Strip',      12,  0.08,'sk');
-  add('Metal Touch-Up Paint',          12,  0.05,'paint');
+  add('Metal Roofing Panel (sqft)',     5.80,0.030,'roof');
+  add('Standing Seam Metal Panels',    10.50,0.055,'roof');
+  add('Metal Roofing Screws w/EPDM',    0.14,0.005,'roof');
+  add('Metal Roofing Screws w/EPDM washer', 0.14,0.005,'roof');
+  add('Metal Ridge Cap',               12.50,0.15,'roof');
+  add('Butyl Tape Closure Strip',      18,  0.08,'roof');
+  add('Metal Touch-Up Paint',          18,  0.05,'paint');
 
   // ── GUTTERS ────────────────────────────────────────────────────────────
-  add('5" K-Style Aluminum Gutter (10\')', 8.50, 0.15,'sk');
-  add('5" K-Style Gutter (10\' sticks)', 8.50, 0.15,'sk');
-  add('6" K-Style Gutter 10ft',       11.20, 0.18,'sk');
-  add('Gutter End Caps',               2.50, 0.05,'sk');
-  add('Gutter Hangers',                1.20, 0.05,'sk');
-  add('Downspout (2×3 — 10\' sticks)', 7.50, 0.12,'sk');
-  add('Downspout Elbows',              3.50, 0.05,'sk');
+  // Seamless gutter sub rate in ETN runs $7-9/lf installed for 5" K-style.
+  add('5" K-Style Aluminum Gutter (10\')', 13.00,0.17,'sk');
+  add('5" K-Style Gutter (10\' sticks)',   13.00,0.17,'sk');
+  add('6" K-Style Gutter 10ft',           16.50,0.20,'sk');
+  add('Gutter End Caps',                   4.00,0.07,'sk');
+  add('Gutter Hangers',                    2.20,0.05,'sk');
+  add('Downspout (2×3 — 10\' sticks)',    11.50,0.15,'sk');
+  add('Downspout Elbows',                  5.50,0.08,'sk');
 
   // ── CONCRETE SLAB / FOUNDATION ─────────────────────────────────────────
   // Labor is placement + screed + finish; assumes ready-mix delivered by
@@ -9111,12 +9118,13 @@ const PRICE_MAP = (()=>{
   add('Ridge Board 2×10',             19.20, 0.22,'sk');
   add('Hurricane Ties H2.5A',          0.85, 0.04,'sk');
   add('Framing Nails 16d (25lb)',     72,   0.05,'sk');
-  // Metal roof panels — carport name variants, same labor as roofing block
-  add('29ga Steel Metal Panels',       4.20, 0.025,'roof');
-  add('Corrugated Tin Panels',         3.80, 0.025,'roof');
-  add('29ga Steel Wall Panels',        3.80, 0.022,'sk');
-  add('Wall Panel Screws',             0.10, 0.005,'sk');
-  add('Polycarbonate Panels 26"×12\'', 45,  0.18,'sk');
+  // Metal roof panels — carport name variants, same labor as roofing block.
+  // 2026: 29ga panels at Mueller/Knox metal yards run $5.50-6.20/sqft.
+  add('29ga Steel Metal Panels',       5.80, 0.030,'roof');
+  add('Corrugated Tin Panels',         5.20, 0.030,'roof');
+  add('29ga Steel Wall Panels',        5.20, 0.028,'sk');
+  add('Wall Panel Screws',             0.14, 0.005,'sk');
+  add('Polycarbonate Panels 26"×12\'', 62,  0.20,'sk');
   add('Polycarbonate Closure Strips', 12,  0.05,'sk');
   add('Stainless Self-Drill Screws',   0.12, 0.005,'sk');
   add('Foam Closure Strips',           8.50, 0.05,'sk');
