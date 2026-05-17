@@ -4205,6 +4205,44 @@ function toRenderResults(items, summary, type){
     +'<div style="display:flex;justify-content:space-between;font-weight:700;color:var(--gold);border-top:0.5px solid var(--border);padding-top:5px;margin-top:4px"><span>TOTAL</span><span>'+fmt(grandTotal)+'</span></div>';
   od.appendChild(osCost);
 
+  // ── DRAWING STANDARDS — sheet header, required notes, schedules ────────
+  // Per WFS general drawing standards (docs/drawing-standards/00-general.md).
+  const sheetNum = wfsSheetNumber(type, 'plan');
+  const stdScale = wfsStdScale('plan');
+  const stdHdr = document.createElement('div');
+  stdHdr.style.cssText = 'margin-top:14px;padding:8px 10px;background:var(--surface2);border:0.5px solid var(--border);border-radius:8px;font-size:10.5px;color:var(--text2);display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between';
+  stdHdr.innerHTML = '<span><b style="color:var(--gold)">SHEET</b> '+sheetNum+'</span>'
+    +'<span><b style="color:var(--gold)">SCALE</b> '+stdScale.label+' ('+stdScale.metric+')</span>'
+    +'<span><b style="color:var(--gold)">REV</b> 0 — INITIAL ISSUE</span>'
+    +'<span><b style="color:var(--gold)">CODE</b> IRC 2021</span>';
+  od.appendChild(stdHdr);
+
+  const notesBox = document.createElement('div');
+  notesBox.style.cssText = 'margin-top:8px;padding:10px;border:0.5px solid var(--border);border-radius:8px;font-size:10px;line-height:1.5;color:var(--text2)';
+  let notesHtml = '<div style="color:var(--gold);font-weight:700;margin-bottom:5px;letter-spacing:.4px">GENERAL NOTES</div><ol style="margin:0;padding-left:18px">';
+  WFS_REQUIRED_NOTES.forEach(n=>{ notesHtml += '<li style="margin:2px 0"><b>'+n.tag+'.</b> '+n.txt+'</li>'; });
+  notesHtml += '</ol>';
+  notesBox.innerHTML = notesHtml;
+  od.appendChild(notesBox);
+
+  const _params = _processParams || {};
+  const _schedules = [
+    ['FASTENER / CONNECTOR SCHEDULE', wfsFastenerSchedule(type, _params), 'loc'],
+    ['LUMBER SCHEDULE',              wfsLumberSchedule(type, _params),    'use'],
+    ['CONCRETE SCHEDULE',            wfsConcreteSchedule(type, _params),  'use'],
+    ['REBAR SCHEDULE',               wfsRebarSchedule(type, _params),     'loc'],
+  ].filter(s => s[1] && s[1].length);
+  _schedules.forEach(([title, rows, col2])=>{
+    const sBox = document.createElement('div');
+    sBox.style.cssText = 'margin-top:8px;padding:8px 10px;border:0.5px solid var(--border);border-radius:8px;font-size:10px;line-height:1.45;color:var(--text2)';
+    let inner = '<div style="color:var(--gold);font-weight:700;margin-bottom:4px;letter-spacing:.4px">'+title+'</div>';
+    rows.forEach(r=>{
+      inner += '<div style="display:grid;grid-template-columns:30px 1fr;gap:6px;padding:1px 0"><b>'+r.tag+'</b><span>'+r.spec+' <span style="color:var(--text3)">— '+(r[col2]||'')+'</span></span></div>';
+    });
+    sBox.innerHTML = inner;
+    od.appendChild(sBox);
+  });
+
   // Store for copy/quote
   window._lastOrder = {
     name,
@@ -4217,7 +4255,11 @@ function toRenderResults(items, summary, type){
     grandTotal,
     markupAmt,
     taxAmt,
-    blueprint: blueprintSpecs(type, _processParams || {})
+    blueprint: blueprintSpecs(type, _processParams || {}),
+    sheet:    sheetNum,
+    scale:    stdScale.label,
+    notes:    WFS_REQUIRED_NOTES,
+    schedules: _schedules.map(s => ({title:s[0], rows:s[1], col2:s[2]})),
   };
 }
 
@@ -4268,9 +4310,10 @@ function blueprintSpecs(type, params){
 
 function toCopyOrder(){
   if(!window._lastOrder){toast('No takeoff calculated yet');return;}
-  const {name,items,summary}=window._lastOrder;
+  const {name,items,summary,sheet,scale,notes,schedules}=window._lastOrder;
   let txt='MATERIAL ORDER — '+name+'\n';
   txt+='Waterfront Solutions · '+new Date().toLocaleDateString()+'\n';
+  if(sheet) txt+='Sheet '+sheet+' · Scale '+scale+' · REV 0 · CODE: IRC 2021\n';
   txt+='='.repeat(40)+'\n\n';
   Object.entries(summary).forEach(([k,v])=>{txt+=k+': '+v+'\n';});
   txt+='\n'+'='.repeat(40)+'\n';
@@ -4284,6 +4327,16 @@ function toCopyOrder(){
   txt+='\nBLUEPRINT DETAILS:\n';
   if(window._lastOrder?.blueprint){
     window._lastOrder.blueprint.forEach(line=>{ txt+='• '+line+'\n'; });
+  }
+  if(notes && notes.length){
+    txt+='\nGENERAL NOTES (WFS DRAWING STANDARDS):\n';
+    notes.forEach((n,i)=>{ txt+=(i+1)+'. '+n.tag+'. '+n.txt+'\n'; });
+  }
+  if(schedules && schedules.length){
+    schedules.forEach(s=>{
+      txt+='\n'+s.title+'\n'+'-'.repeat(30)+'\n';
+      s.rows.forEach(r=>{ txt+='  '+r.tag+'  '+r.spec+' — '+(r[s.col2]||'')+'\n'; });
+    });
   }
   txt+='\nNOTE: Verify structural sizes, footing depth, railing height and all load-bearing connections with local building code and site-specific conditions.\n';
   txt+='\n★ Quantities include waste factors. Verify before ordering.';
@@ -6045,6 +6098,179 @@ const CAD = {
   earth:    '#443322',
 };
 
+// ── WFS DRAWING STANDARDS (see docs/drawing-standards/00-general.md) ──────
+// Named line weights (printed mm), per the firm's general drawing standards.
+// Canvas px equivalents are tuned so on-screen weight reads similarly.
+const LW = {
+  fine:      {mm:0.13, px:0.5,  use:'Hatching, dim/leader lines'},
+  thin:      {mm:0.18, px:0.7,  use:'Hidden lines, centerlines'},
+  medium:    {mm:0.25, px:1.0,  use:'Object lines (most building elements)'},
+  heavy:     {mm:0.35, px:1.5,  use:'Section cuts, profile of cut elements'},
+  xheavy:    {mm:0.60, px:2.4,  use:'Border, title block, building outline'},
+};
+
+// Sheet number per IRC/AIA convention. Keyed by [type][orient].
+// Prefix G=General, A=Architectural, S=Structural, C=Civil, M/P/E=MEP.
+const WFS_SHEET_NUMBER = {
+  deck:     {plan:'A-201', front:'A-301', side:'A-301', section:'A-401'},
+  porch:    {plan:'A-201', front:'A-301', side:'A-301', section:'A-401'},
+  roof:     {plan:'A-202', front:'A-301', side:'A-301', section:'A-401'},
+  framing:  {plan:'S-201', front:'A-301', side:'A-301', section:'A-501'},
+  concrete: {plan:'S-101', front:'A-301', side:'A-301', section:'S-501'},
+  carport:  {plan:'A-201', front:'A-301', side:'A-301', section:'A-401'},
+  blockwall:{plan:'S-101', front:'A-301', side:'A-301', section:'S-501'},
+};
+
+// Standard architectural scales by view per WFS drawing standards.
+const WFS_STD_SCALE = {
+  plan:    {label:'1/4" = 1\'-0"',  ratio:48,  metric:'1:50'},  // floor / framing / foundation
+  front:   {label:'1/4" = 1\'-0"',  ratio:48,  metric:'1:50'},  // elevation
+  side:    {label:'1/4" = 1\'-0"',  ratio:48,  metric:'1:50'},  // elevation
+  section: {label:'3/4" = 1\'-0"',  ratio:16,  metric:'1:20'},  // wall section
+  detail:  {label:'1-1/2" = 1\'-0"',ratio:8,   metric:'1:10'},  // detail
+  site:    {label:'1" = 10\'',       ratio:120, metric:'1:100'}, // site plan
+};
+
+function wfsSheetNumber(type, orient){
+  const row = WFS_SHEET_NUMBER[type];
+  if(!row) return 'A-101';
+  return row[orient] || row.plan || 'A-101';
+}
+function wfsStdScale(orient){
+  return WFS_STD_SCALE[orient] || WFS_STD_SCALE.plan;
+}
+
+// 7-item required notes block for residential drawing sets.
+const WFS_REQUIRED_NOTES = [
+  {tag:'CODE',     txt:'Construction shall conform to IRC 2021 as amended by local jurisdiction.'},
+  {tag:'LOADS',    txt:'Design loads — Live, Dead, Snow, Wind speed, Seismic design category, Frost depth — verify with AHJ.'},
+  {tag:'SOILS',    txt:'Assumed allowable soil bearing 1,500 psf per IRC Table R401.4.1; verify by contractor at footing excavation.'},
+  {tag:'MATERIAL', txt:"Concrete f'c = 3,000 psi (28-day); rebar Grade 60; lumber SPF #2 unless noted; fasteners per schedule."},
+  {tag:'CORROSION',txt:'All fasteners and connectors in contact with preservative-treated lumber shall be hot-dipped galvanized (ASTM A153) or stainless steel.'},
+  {tag:'FIELD',    txt:'Contractor shall verify field conditions, locate utilities prior to excavation, and comply with OSHA safety standards.'},
+  {tag:'AHJ',      txt:'Final design subject to review and approval by the Authority Having Jurisdiction.'},
+];
+
+// Schedule templates — populated with project params at render time.
+// Returns array of {tag, model/spec, location} rows per drawing standards.
+function wfsFastenerSchedule(type, p){
+  p = p||{};
+  const rows = [];
+  if(type==='deck'){
+    rows.push({tag:'F1', spec:'Simpson LUS210 joist hanger', loc:'each joist-to-ledger / joist-to-beam'});
+    rows.push({tag:'F2', spec:'Simpson DTT2Z lateral tension tie (or equiv.)', loc:'2 per deck min, opposite corners — R507.9.2'});
+    rows.push({tag:'F3', spec:'1/2" Ø hot-dip galv. lag bolts, 5" min', loc:'ledger to band joist, per Table R507.9.1.3(1)'});
+    rows.push({tag:'F4', spec:'10d HDG common nails', loc:'rim-to-joist, blocking, general framing'});
+    rows.push({tag:'F5', spec:'2-1/2" stainless or coated deck screws', loc:'decking to joist, 2 per intersection'});
+    if(p.stairs>0) rows.push({tag:'F6', spec:'Simpson LSC stair-stringer connector', loc:'each stringer-to-rim'});
+  } else if(type==='roof'){
+    rows.push({tag:'F1', spec:'Simpson H2.5A hurricane tie', loc:'each rafter-to-top-plate — R301.2.1'});
+    rows.push({tag:'F2', spec:'8d common ring-shank, 1-3/4"', loc:'7/16" OSB sheathing — 6" edge / 12" field'});
+    rows.push({tag:'F3', spec:'1-1/4" galv. roofing nails (4 per shingle, 6 high-wind)', loc:'asphalt shingle field'});
+    rows.push({tag:'F4', spec:'16d common', loc:'rafter-to-ridge, rafter-to-collar tie'});
+  } else if(type==='framing'){
+    rows.push({tag:'F1', spec:'1/2" Ø × 10" anchor bolt, 7" embed', loc:'bottom plate to slab, 6\'-0" O.C., 12" of corners — R403.1.6'});
+    rows.push({tag:'F2', spec:'16d common nails', loc:'top/bottom plate to stud (2 per), top plate splice (8 per side)'});
+    rows.push({tag:'F3', spec:'Simpson SP4 or LSTA strap', loc:'wall-to-wall continuity at corners and Ts'});
+    rows.push({tag:'F4', spec:'8d common', loc:'7/16" OSB wall sheathing — 6" edge / 12" field, all panel edges blocked'});
+    rows.push({tag:'F5', spec:'Simpson H1 hurricane tie or equiv.', loc:'rafter/truss to top plate where uplift governs'});
+  } else if(type==='concrete'){
+    rows.push({tag:'F1', spec:'1/2" Ø × 10" galv. anchor bolt, 7" embed', loc:'6\'-0" O.C., 12" of each corner & joint — R403.1.6'});
+    rows.push({tag:'F2', spec:'#4 Grade-60 rebar, 18" O.C. each way', loc:'slab mat, 3" clear from earth'});
+    rows.push({tag:'F3', spec:'#4 rebar, lap 20" min (40 × bar dia)', loc:'all splices — ACI 318 §25.5'});
+    rows.push({tag:'F4', spec:'Tie wire, 16-ga annealed', loc:'all rebar intersections'});
+  } else if(type==='porch' || type==='carport'){
+    rows.push({tag:'F1', spec:'Simpson PB66 or ABU66 post base, HDG', loc:'each column-to-pier'});
+    rows.push({tag:'F2', spec:'Simpson AC6 or LCE post cap', loc:'each column-to-beam'});
+    rows.push({tag:'F3', spec:'Simpson H2.5A hurricane tie', loc:'each rafter-to-plate — R301.2.1'});
+    rows.push({tag:'F4', spec:'1/2" Ø HDG through-bolts', loc:'beam splices, ledger to dwelling'});
+  } else if(type==='blockwall'){
+    rows.push({tag:'F1', spec:'#5 Grade-60 vertical rebar', loc:'grouted cells per spacing schedule'});
+    rows.push({tag:'F2', spec:'#4 horizontal bond-beam rebar', loc:'top course + every 4\' of height'});
+    rows.push({tag:'F3', spec:'Ladder/truss wire reinforcement', loc:'every other bed-joint course'});
+  }
+  return rows;
+}
+
+function wfsLumberSchedule(type, p){
+  p = p||{};
+  const rows = [];
+  const pt = '(PT, ground-contact AC2 where applicable)';
+  if(type==='deck'){
+    rows.push({tag:'L1', spec:'2×10 SYP #2 PT', use:`joists @ ${p.joc||16}" O.C. ${pt}`});
+    rows.push({tag:'L2', spec:'(2) 2×10 SYP #2 PT', use:'beams, fastened 3-row 16d'});
+    rows.push({tag:'L3', spec:'2×10 SYP #2 PT', use:'ledger, Z-flashed'});
+    rows.push({tag:'L4', spec:`${(p.postSz||'6×6').replace('x','×')} SYP PT`, use:'posts, ≤8\'-0" O.C.'});
+    rows.push({tag:'L5', spec:'5/4×6 SYP PT or composite', use:'decking, 1/8" gap'});
+  } else if(type==='roof'){
+    rows.push({tag:'L1', spec:'2×8 SPF #2', use:'rafters @ 16" O.C., span per Table R802.4.1'});
+    rows.push({tag:'L2', spec:'(1) 2×10 SPF #2', use:'ridge board — depth ≥ rafter cut'});
+    rows.push({tag:'L3', spec:'7/16" OSB (Exposure 1)', use:'roof sheathing, H-clips at unsupported edges'});
+  } else if(type==='framing'){
+    const stud = (p.stud||'2x4').replace('x','×').toUpperCase();
+    rows.push({tag:'L1', spec:`${stud} SPF #2`, use:`studs @ ${p.oc||16}" O.C.`});
+    rows.push({tag:'L2', spec:`${stud} SPF #2 PT`, use:'bottom plate (in contact w/ concrete)'});
+    rows.push({tag:'L3', spec:`(2) ${stud} SPF #2`, use:'doubled top plate, 24" min lap'});
+    rows.push({tag:'L4', spec:p.stud==='2x6'?'(2) 2×8 SPF #2':'(2) 2×6 SPF #2', use:'headers for openings ≤4\'-0"'});
+    rows.push({tag:'L5', spec:'7/16" OSB (Exposure 1)', use:'wall sheathing, all panel edges blocked'});
+  } else if(type==='porch'){
+    rows.push({tag:'L1', spec:`${(p.colStyle||'6×6')} SYP PT`, use:`columns @ ${p.colSp||8}\' O.C.`});
+    rows.push({tag:'L2', spec:'(2) 2×10 SYP #2 PT', use:'header beam, 1/2"Ø through-bolts'});
+    rows.push({tag:'L3', spec:'2×6 SPF #2', use:'rafters @ 16" O.C.'});
+    rows.push({tag:'L4', spec:'5/4×6 SYP PT', use:'porch decking, 1/8" gap'});
+  } else if(type==='carport'){
+    rows.push({tag:'L1', spec:`${(p.colType||'6×6')} SYP PT`, use:`posts @ ${p.postSp||10}\' O.C.`});
+    rows.push({tag:'L2', spec:'(2) 2×10 SYP #2 PT', use:'beam, 3-row 16d, post caps at each column'});
+    rows.push({tag:'L3', spec:'2×6 SPF #2', use:'rafters @ 16" O.C., hurricane tie each'});
+    if(p.roofMat==='metal') rows.push({tag:'L4', spec:'2×4 SPF #2', use:'purlins @ 24" O.C. for metal roofing'});
+  }
+  return rows;
+}
+
+function wfsConcreteSchedule(type, p){
+  p = p||{};
+  const rows = [];
+  if(type==='deck' && (p.ht||0)>=2){
+    rows.push({tag:'C1', spec:"f'c 3,000 psi @ 28 days", use:'sonotube pier footings — exterior exposure'});
+    rows.push({tag:'C2', spec:'Slump 4"–6"', use:'workability for hand placement'});
+    rows.push({tag:'C3', spec:'Air entrainment 5–7%', use:'all exterior exposure (freeze-thaw)'});
+  } else if(type==='concrete'){
+    rows.push({tag:'C1', spec:"f'c 3,000 psi @ 28 days", use:'slab + continuous footer'});
+    rows.push({tag:'C2', spec:'Slump 4"–6"', use:'flat work — verify with pump if required'});
+    rows.push({tag:'C3', spec:'Air entrainment 5–7%', use:'required for exterior / freeze-thaw exposure'});
+    rows.push({tag:'C4', spec:'Control joint 1/4 slab depth', use:'sawcut @ 10\'–12\' O.C. within 24 hrs'});
+  } else if(type==='porch' || type==='carport'){
+    rows.push({tag:'C1', spec:"f'c 3,000 psi @ 28 days", use:'pier footings, below frost line'});
+    rows.push({tag:'C2', spec:'Air entrainment 5–7%', use:'exterior exposure'});
+  } else if(type==='blockwall'){
+    rows.push({tag:'C1', spec:"f'c 3,000 psi @ 28 days", use:'footer pour'});
+    rows.push({tag:'C2', spec:"Grout f'c 2,000 psi (fine, ASTM C476)", use:'cell grout — slump 8"–11"'});
+    rows.push({tag:'C3', spec:"Mortar Type S (ASTM C270)", use:'bed and head joints'});
+  }
+  return rows;
+}
+
+function wfsRebarSchedule(type, p){
+  p = p||{};
+  const rows = [];
+  if(type==='deck' && (p.ht||0)>=2){
+    rows.push({tag:'R1', spec:`#4 vertical bars × ${Math.max((p.ht||3)+1,4)}'`, loc:'each sonotube pier, 3" cover'});
+  } else if(type==='concrete'){
+    const bar = `#${p.rebar||4}`;
+    rows.push({tag:'R1', spec:`${bar} Grade-60`, loc:`slab mat 18" O.C. each way, 3" clear of earth`});
+    rows.push({tag:'R2', spec:`(2) ${bar} Grade-60 continuous`, loc:'top + bottom of continuous footer'});
+    rows.push({tag:'R3', spec:`${bar} dowels`, loc:'slab-to-footer, lap 40 × bar dia'});
+    if(p.piers>0) rows.push({tag:'R4', spec:`(4) #4 vertical + #3 ties @ 12"`, loc:'each pier'});
+  } else if(type==='porch' || type==='carport'){
+    rows.push({tag:'R1', spec:'(4) #4 vertical + #3 ties @ 12"', loc:'each pier footing'});
+  } else if(type==='blockwall'){
+    rows.push({tag:'R1', spec:'#5 Grade-60', loc:`vertical, grouted cells @ ${p.vspc||32}" O.C.`});
+    rows.push({tag:'R2', spec:'#4 Grade-60', loc:'horizontal bond beam — top course + every 4\' of height'});
+    rows.push({tag:'R3', spec:'(2) #5 continuous', loc:'top + bottom of footer'});
+  }
+  return rows;
+}
+
 // ── PHASE DEFINITIONS ─────────────────────────────────────────────────────
 // Each phase builds on the last. Elements tagged with phase 0..N
 const PHASE_NAMES = {
@@ -7021,14 +7247,17 @@ function _pvTitleSub(type, p){
 }
 
 function pvDrawTitleBlock(ctx, W, H, type, p){
-  const h=46, y=H-h-2, x=2, w=W-4;
+  // Title block per WFS drawing standards (00-general.md):
+  // 3-column layout: left=project, mid=drawing meta, right=sheet number.
+  // Border uses extra-heavy (LW.xheavy); inner divisions use thin (LW.thin).
+  const h=52, y=H-h-2, x=2, w=W-4;
   ctx.save();
   ctx.fillStyle='rgba(15,22,32,0.94)';
   ctx.fillRect(x,y,w,h);
-  ctx.strokeStyle=CAD.visible; ctx.lineWidth=0.9; ctx.setLineDash([]);
+  ctx.strokeStyle=CAD.visible; ctx.lineWidth=LW.xheavy.px; ctx.setLineDash([]);
   ctx.strokeRect(x,y,w,h);
-  const c1=Math.round(w*0.58), c2=Math.round(w*0.82);
-  ctx.strokeStyle='rgba(208,208,208,0.4)'; ctx.lineWidth=0.5;
+  const c1=Math.round(w*0.56), c2=Math.round(w*0.80);
+  ctx.strokeStyle='rgba(208,208,208,0.45)'; ctx.lineWidth=LW.thin.px;
   ctx.beginPath(); ctx.moveTo(x+c1,y); ctx.lineTo(x+c1,y+h); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(x+c2,y); ctx.lineTo(x+c2,y+h); ctx.stroke();
   // Left column — project + sub
@@ -7039,22 +7268,29 @@ function pvDrawTitleBlock(ctx, W, H, type, p){
   ctx.fillText('WATERFRONT SOLUTIONS · CONSTRUCTION BLUEPRINT', x+6, y+18);
   ctx.fillStyle=CAD.dimText; ctx.font='bold 8.5px monospace';
   ctx.fillText(_pvTitleSub(type, p), x+6, y+30);
-  // Mid column — drawing meta
+  ctx.fillStyle='rgba(208,208,208,0.7)'; ctx.font='7px monospace';
+  ctx.fillText('REV 0 — INITIAL ISSUE', x+6, y+42);
+  // Mid column — drawing meta (view, phase, scale, code)
+  const orient = _pvOrient||'plan';
+  const std = wfsStdScale(orient);
   ctx.fillStyle=CAD.annotate; ctx.font='bold 9px monospace';
-  ctx.fillText('VIEW: '+(_pvOrient||'plan').toUpperCase(), x+c1+6, y+4);
+  ctx.fillText('VIEW: '+orient.toUpperCase(), x+c1+6, y+4);
   const ph=(PHASE_NAMES[type]||[])[_pvPhase]||'';
   ctx.fillStyle='rgba(208,208,208,0.95)'; ctx.font='7.5px monospace';
   ctx.fillText('PHASE '+(+_pvPhase+1)+': '+ph.toUpperCase().slice(0,28), x+c1+6, y+16);
-  const scaleTxt = _pvFrame ? _pvFrame.scale.toFixed(1)+' PX/FT' : 'NTS';
-  ctx.fillText('SCALE: '+scaleTxt+' · NTS', x+c1+6, y+26);
-  ctx.fillText('CODE: IRC 2021 / IBC 2021', x+c1+6, y+36);
-  // Right column — sheet
+  ctx.fillText('SCALE: '+std.label+' ('+std.metric+')', x+c1+6, y+26);
+  const pxFt = _pvFrame ? _pvFrame.scale.toFixed(1)+' PX/FT' : 'NTS';
+  ctx.fillStyle='rgba(208,208,208,0.6)';
+  ctx.fillText('('+pxFt+' on screen)', x+c1+6, y+36);
+  ctx.fillStyle='rgba(208,208,208,0.95)';
+  ctx.fillText('CODE: IRC 2021 / IBC 2021', x+c1+6, y+44);
+  // Right column — sheet number (per WFS prefix table)
   ctx.textAlign='center';
-  ctx.fillStyle=CAD.annotate; ctx.font='bold 16px monospace';
-  ctx.fillText('A-1', x+c2+(w-c2)/2, y+10);
+  ctx.fillStyle=CAD.annotate; ctx.font='bold 18px monospace';
+  ctx.fillText(wfsSheetNumber(type, orient), x+c2+(w-c2)/2, y+10);
   ctx.fillStyle='rgba(208,208,208,0.85)'; ctx.font='7px monospace';
-  ctx.fillText('SHEET 1 OF 1', x+c2+(w-c2)/2, y+30);
-  ctx.fillText(new Date().toLocaleDateString(), x+c2+(w-c2)/2, y+38);
+  ctx.fillText('SHEET 1 OF 1', x+c2+(w-c2)/2, y+32);
+  ctx.fillText(new Date().toLocaleDateString(), x+c2+(w-c2)/2, y+42);
   ctx.restore();
 }
 
@@ -7283,6 +7519,38 @@ function pvRenderProcessDims(type, p){
   html += 'Frost-line depth, soil bearing capacity, wind exposure category, and snow load are site-specific — adjust footing widths/depths and uplift connections accordingly. ';
   html += 'This drawing is generated for estimating and permit-prep purposes; a stamped set from a licensed design professional is required for permit-issued construction.';
   html += '</div>';
+  // Standard Notes Block — the 7 required residential drawing notes
+  // per WFS general drawing standards.
+  html += '<div style="margin-top:10px;padding:10px;border:1px solid #2a4a4a;background:rgba(10,30,40,0.4);font-size:9.5px;line-height:1.55">';
+  html += '<div style="color:var(--gold);font-weight:700;margin-bottom:6px;letter-spacing:.5px">GENERAL NOTES (WFS DWG STANDARDS)</div>';
+  html += '<ol style="margin:0;padding-left:18px;color:var(--text2)">';
+  WFS_REQUIRED_NOTES.forEach(n=>{
+    html += '<li style="margin:2px 0"><b style="color:#00e5ff">'+n.tag+'.</b> '+n.txt+'</li>';
+  });
+  html += '</ol></div>';
+  // Required schedules (Fastener / Lumber / Concrete / Rebar)
+  const fSch = wfsFastenerSchedule(type, p||{});
+  const lSch = wfsLumberSchedule(type, p||{});
+  const cSch = wfsConcreteSchedule(type, p||{});
+  const rSch = wfsRebarSchedule(type, p||{});
+  const schBlocks = [
+    ['FASTENER / CONNECTOR SCHEDULE', fSch, 'loc'],
+    ['LUMBER SCHEDULE',              lSch, 'use'],
+    ['CONCRETE SCHEDULE',            cSch, 'use'],
+    ['REBAR SCHEDULE',               rSch, 'loc'],
+  ].filter(b => b[1] && b[1].length);
+  if(schBlocks.length){
+    html += '<div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:10px">';
+    schBlocks.forEach(([title, rows, secondCol])=>{
+      html += '<div style="padding:8px;border:1px solid #2a4a4a;background:rgba(10,30,40,0.3);font-size:9px;line-height:1.45">';
+      html += '<div style="color:var(--gold);font-weight:700;margin-bottom:4px;letter-spacing:.4px">'+title+'</div>';
+      rows.forEach(r=>{
+        html += '<div style="margin:2px 0;color:var(--text2)"><b style="color:#00e5ff">'+r.tag+'</b> '+r.spec+' <span style="color:var(--text3)">— '+(r[secondCol]||'')+'</span></div>';
+      });
+      html += '</div>';
+    });
+    html += '</div>';
+  }
   el.innerHTML = html;
 }
 
