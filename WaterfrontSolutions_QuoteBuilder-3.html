@@ -3247,6 +3247,13 @@ function toCalcBlockwall(){
 // alternative (e.g. 2×10 joist → 2×8 joist, 5/4 PT decking → composite Trex,
 // Ø12" sonotube → Ø10"). The role is inferred from the item name. User
 // overrides persist for the session in _itemOverrides and survive recalc.
+//
+// Brand/color catalogs for shingle, decking_board, paint, insulation,
+// gutter, column, and siding refreshed May 2026 from current Home Depot /
+// Lowe's / manufacturer pricing for the East TN market (contractor /
+// supplier-yard tier). The `_perSq` flag means price is per 100 sf
+// (roofing/siding "square"); `_perFt` is per linear foot; `_perSf` is per
+// square foot; otherwise it's per piece/bundle/board.
 // ══════════════════════════════════════════════════════════════════════════
 const ALT_CATALOG = {
   joist: [
@@ -3289,12 +3296,55 @@ const ALT_CATALOG = {
     {label:'2×4 KD Doug-Fir × 8\'', matCostEach:5.40},
   ],
   decking_board: [
-    {label:'5/4×6 PT × 16\'',          matCostEach:19},
-    {label:'5/4×6 Cedar × 16\'',       matCostEach:38},
-    {label:'1×6 Composite (Trex Sel)', matCostEach:46},
-    {label:'1×6 Composite (Transcend)',matCostEach:62},
-    {label:'1×6 Ipe Hardwood × 16\'',  matCostEach:78},
-    {label:'1×6 PVC (Azek) × 16\'',    matCostEach:58},
+    // PT lumber / wood
+    {label:'5/4×6 PT × 16\'',                       matCostEach:19},
+    {label:'2×6 PT × 16\'',                         matCostEach:24},
+    {label:'5/4×6 Western Red Cedar (Knotty) × 16\'',matCostEach:38},
+    {label:'5/4×6 Clear Cedar × 16\'',              matCostEach:62},
+    // Trex composite — by line + color (16' boards, ETN supplier 2026)
+    {label:'Trex Enhance Basics — Beach Dune × 16\'',     matCostEach:26},
+    {label:'Trex Enhance Basics — Clam Shell × 16\'',     matCostEach:26},
+    {label:'Trex Enhance Basics — Saddle × 16\'',         matCostEach:26},
+    {label:'Trex Enhance Naturals — Coastal Bluff × 16\'',matCostEach:34},
+    {label:'Trex Enhance Naturals — Foggy Wharf × 16\'',  matCostEach:34},
+    {label:'Trex Enhance Naturals — Toasted Sand × 16\'', matCostEach:34},
+    {label:'Trex Select — Pebble Gray × 16\'',            matCostEach:46},
+    {label:'Trex Select — Saddle × 16\'',                 matCostEach:46},
+    {label:'Trex Select — Madeira × 16\'',                matCostEach:46},
+    {label:'Trex Transcend — Spiced Rum × 16\'',          matCostEach:62},
+    {label:'Trex Transcend — Tiki Torch × 16\'',          matCostEach:62},
+    {label:'Trex Transcend — Vintage Lantern × 16\'',     matCostEach:62},
+    {label:'Trex Transcend — Lava Rock × 16\'',           matCostEach:62},
+    {label:'Trex Transcend Lineage — Biscayne × 16\'',    matCostEach:78},
+    {label:'Trex Transcend Lineage — Rainier × 16\'',     matCostEach:78},
+    // TimberTech / AZEK
+    {label:'TimberTech EDGE Prime+ — Coconut Husk × 16\'',matCostEach:42},
+    {label:'TimberTech EDGE Prime+ — French White Oak × 16\'',matCostEach:42},
+    {label:'TimberTech AZEK Harvest — Slate Gray × 16\'', matCostEach:58},
+    {label:'TimberTech AZEK Harvest — Brownstone × 16\'', matCostEach:58},
+    {label:'TimberTech PRO Reserve — Antique Leather × 16\'',matCostEach:72},
+    {label:'TimberTech PRO Reserve — Storm Gray × 16\'',  matCostEach:72},
+    {label:'TimberTech AZEK Vintage — Dark Hickory × 16\'',matCostEach:88},
+    {label:'TimberTech AZEK Vintage — Mahogany × 16\'',   matCostEach:88},
+    // Fiberon
+    {label:'Fiberon Good Life — Cottage × 16\'',          matCostEach:36},
+    {label:'Fiberon Good Life — Cabin × 16\'',            matCostEach:36},
+    {label:'Fiberon Sanctuary — Coastline × 16\'',        matCostEach:78},
+    {label:'Fiberon Sanctuary — Latitude × 16\'',         matCostEach:78},
+    {label:'Fiberon Concordia Horizon — Castle Gray × 16\'',matCostEach:88},
+    {label:'Fiberon Concordia Horizon — Tudor Brown × 16\'',matCostEach:88},
+    {label:'Fiberon Promenade — Coastal Beach × 16\'',    matCostEach:115},
+    {label:'Fiberon Promenade — Cinder Bay × 16\'',       matCostEach:115},
+    // Deckorators / MoistureShield (post-acquisition)
+    {label:'Deckorators Voyage — Tundra × 16\'',          matCostEach:68},
+    {label:'Deckorators Voyage — Mesa × 16\'',            matCostEach:68},
+    {label:'Deckorators Vault — Mahogany × 16\'',         matCostEach:78},
+    {label:'MoistureShield Vision — Cathedral Stone × 16\'',matCostEach:78},
+    {label:'MoistureShield Vantage — Cottage Gray × 16\'',matCostEach:62},
+    // PVC / Tropical hardwood
+    {label:'AZEK Vintage PVC — English Walnut × 16\'',    matCostEach:92},
+    {label:'1×6 Ipe Hardwood × 16\'',                     matCostEach:78},
+    {label:'1×6 Cumaru Hardwood × 16\'',                  matCostEach:68},
   ],
   sonotube: [
     {label:'Sonotube 10"Ø × 48"', matCostEach:18},
@@ -3331,11 +3381,41 @@ const ALT_CATALOG = {
     {label:'Premium Synthetic (Sharkskin)',matCostEach:165},
   ],
   shingle: [
-    {label:'3-Tab Shingles (bundle)',       matCostEach:34},
-    {label:'Architectural 30-yr (bundle)',  matCostEach:42},
-    {label:'Architectural 50-yr (bundle)',  matCostEach:58},
-    {label:'Premium Designer (bundle)',     matCostEach:78},
-    {label:'Standing Seam Metal (sf)',      matCostEach:8.50, _perSf:true},
+    // 3-tab (entry tier)
+    {label:'GAF Royal Sovereign 3-Tab (bundle)',          matCostEach:32},
+    {label:'CertainTeed XT-25 3-Tab (bundle)',            matCostEach:32},
+    // GAF Timberline HDZ — architectural (HD bundle = 33.3 sf, 3 bdl/sq)
+    {label:'GAF Timberline HDZ — Charcoal (bundle)',      matCostEach:39},
+    {label:'GAF Timberline HDZ — Pewter Gray (bundle)',   matCostEach:39},
+    {label:'GAF Timberline HDZ — Weathered Wood (bundle)',matCostEach:39},
+    {label:'GAF Timberline HDZ — Barkwood (bundle)',      matCostEach:39},
+    {label:'GAF Timberline HDZ — Slate (bundle)',         matCostEach:39},
+    {label:'GAF Timberline HDZ — Shakewood (bundle)',     matCostEach:39},
+    {label:'GAF Timberline HDZ — Hickory (bundle)',       matCostEach:39},
+    {label:'GAF Timberline HDZ — Birchwood (bundle)',     matCostEach:39},
+    {label:'GAF Timberline HDZ Reflector — Stone Gray (cool roof) (bundle)',matCostEach:48},
+    {label:'GAF Timberline UHDZ — Charcoal (bundle)',     matCostEach:52},
+    // Owens Corning TruDefinition Duration
+    {label:'OC TruDefinition Duration — Onyx Black (bundle)',  matCostEach:46},
+    {label:'OC TruDefinition Duration — Driftwood (bundle)',   matCostEach:46},
+    {label:'OC TruDefinition Duration — Estate Gray (bundle)', matCostEach:46},
+    {label:'OC TruDefinition Duration — Sand Dune (bundle)',   matCostEach:46},
+    {label:'OC TruDefinition Duration — Chateau Green (bundle)',matCostEach:46},
+    {label:'OC Duration Premium Cool — Sierra Gray (bundle)',  matCostEach:58},
+    // CertainTeed Landmark
+    {label:'CertainTeed Landmark — Weathered Wood (bundle)',   matCostEach:38},
+    {label:'CertainTeed Landmark — Moire Black (bundle)',      matCostEach:38},
+    {label:'CertainTeed Landmark — Heather Blend (bundle)',    matCostEach:38},
+    {label:'CertainTeed Landmark Pro — Max Def Burnt Sienna (bundle)',matCostEach:52},
+    // Premium designer / luxury
+    {label:'GAF Camelot II — Designer (bundle)',          matCostEach:78},
+    {label:'CertainTeed Presidential Shake TL (bundle)',  matCostEach:115},
+    {label:'OC Berkshire Collection — Designer (bundle)', matCostEach:88},
+    // Impact-resistant / metal
+    {label:'Malarkey Vista AR Class-4 IR (bundle)',       matCostEach:62},
+    {label:'IKO Cambridge AR (bundle)',                   matCostEach:38},
+    {label:'29-ga Metal Panel — Galvalume (sf)',          matCostEach:3.85, _perSf:true},
+    {label:'24-ga Standing Seam — Painted (sf)',          matCostEach:8.50, _perSf:true},
   ],
   drip_edge: [
     {label:'Aluminum T-style 10\'',  matCostEach:9},
@@ -3345,35 +3425,135 @@ const ALT_CATALOG = {
     {label:'Painted aluminum 10\'',  matCostEach:14},
   ],
   gutter: [
-    {label:'5" K-Style Aluminum 10\'',  matCostEach:14},
-    {label:'6" K-Style Aluminum 10\'',  matCostEach:18},
-    {label:'5" Half-Round Aluminum 10\'',matCostEach:24},
-    {label:'5" Half-Round Copper 10\'', matCostEach:78},
-    {label:'5" K-Style Galv Steel 10\'',matCostEach:16},
+    // 5" K-style (most common residential)
+    {label:'5" K-Style Aluminum — White 10\'',         matCostEach:14},
+    {label:'5" K-Style Aluminum — Almond 10\'',        matCostEach:14},
+    {label:'5" K-Style Aluminum — Bronze 10\'',        matCostEach:16},
+    {label:'5" K-Style Aluminum — Black 10\'',         matCostEach:16},
+    {label:'5" K-Style Galv Steel 10\'',               matCostEach:16},
+    // 6" K-style (larger watershed)
+    {label:'6" K-Style Aluminum — White 10\'',         matCostEach:18},
+    {label:'6" K-Style Aluminum — Bronze 10\'',        matCostEach:20},
+    {label:'6" K-Style Galv Steel 10\'',               matCostEach:21},
+    // Half-round (premium look)
+    {label:'5" Half-Round Aluminum 10\'',              matCostEach:24},
+    {label:'6" Half-Round Aluminum 10\'',              matCostEach:30},
+    {label:'5" Half-Round Copper 10\'',                matCostEach:78},
+    {label:'6" Half-Round Copper 10\'',                matCostEach:98},
+    // Seamless (per LF, on-site rolled)
+    {label:'5" Seamless Aluminum (per lf, on-site)',   matCostEach:6.50, _perFt:true},
+    {label:'6" Seamless Aluminum (per lf, on-site)',   matCostEach:8.50, _perFt:true},
+    // Gutter guards
+    {label:'LeafFilter-style mesh guard (per lf)',     matCostEach:3.50, _perFt:true},
+    {label:'Foam gutter insert (4\' stick)',           matCostEach:6},
   ],
   insulation: [
-    {label:'R-13 Fiberglass batt (bag)', matCostEach:52},
-    {label:'R-15 Mineral Wool (bag)',    matCostEach:68},
-    {label:'R-19 Fiberglass batt (bag)', matCostEach:58},
-    {label:'R-20 Fiberglass batt (bag)', matCostEach:78},
-    {label:'R-21 Fiberglass HD (bag)',   matCostEach:88},
-    {label:'R-30 Blown-In (bag)',        matCostEach:42},
-    {label:'ccSPF kit 200 bf',           matCostEach:385},
+    // Fiberglass batts — by brand + R-value
+    {label:'Owens Corning EcoTouch R-13 unfaced (bag, 88 sf)',  matCostEach:48},
+    {label:'Owens Corning EcoTouch R-13 kraft-faced (bag)',     matCostEach:52},
+    {label:'Owens Corning EcoTouch R-15 (bag, 2×4 deep cavity)',matCostEach:68},
+    {label:'Owens Corning EcoTouch R-19 kraft (bag, 64 sf)',    matCostEach:58},
+    {label:'Owens Corning EcoTouch R-21 HD (bag, 2×6 wall)',    matCostEach:78},
+    {label:'Owens Corning R-30 Blown-In (bag)',                 matCostEach:42},
+    {label:'Johns Manville R-13 kraft-faced (bag)',             matCostEach:46},
+    {label:'Johns Manville R-15 unfaced (bag)',                 matCostEach:64},
+    {label:'Johns Manville R-19 kraft-faced (bag)',             matCostEach:54},
+    {label:'Johns Manville R-21 HD (bag, 2×6 wall)',            matCostEach:74},
+    {label:'Knauf EcoBatt R-13 (bag, 88 sf)',                   matCostEach:44},
+    {label:'Knauf EcoBatt R-19 (bag, 64 sf)',                   matCostEach:52},
+    // Mineral wool (fire / sound)
+    {label:'Rockwool Comfortbatt R-15 (bag)',                   matCostEach:72},
+    {label:'Rockwool Comfortbatt R-23 (bag, 2×6 wall)',         matCostEach:88},
+    {label:'Rockwool Safe\'n\'Sound (acoustic, bag)',           matCostEach:62},
+    // Rigid foam
+    {label:'Owens Corning Foamular 250 1" XPS (4×8)',           matCostEach:38},
+    {label:'Owens Corning Foamular 250 2" XPS (4×8)',           matCostEach:72},
+    {label:'Dow Thermax Polyiso 1" (4×8)',                      matCostEach:58},
+    {label:'Atlas EnergyShield Polyiso 1.5" (4×8)',             matCostEach:68},
+    // Spray foam kits
+    {label:'Touch\'n Seal ccSPF kit 200 bf',                    matCostEach:385},
+    {label:'Touch\'n Seal ocSPF kit 600 bf',                    matCostEach:725},
+    {label:'Great Stuff Pro window/door foam (12 oz can)',      matCostEach:9},
   ],
   column: [
-    {label:'6×6 PT Post',          matCostEach:32},
-    {label:'PVC Wrap 8" Round',    matCostEach:215},
-    {label:'PVC Wrap 10" Round',   matCostEach:265},
-    {label:'PVC Wrap 12" Square Fluted', matCostEach:325},
-    {label:'Fiberglass Round 8"',  matCostEach:195},
-    {label:'Cedar 6×6 Wrapped',    matCostEach:165},
+    // Bare wood
+    {label:'6×6 PT Post',                              matCostEach:32},
+    {label:'6×6 Cedar Post',                           matCostEach:78},
+    // PVC column wraps (HB&G / AZEK / Royal)
+    {label:'AZEK PVC Wrap 8" Round Smooth',            matCostEach:215},
+    {label:'AZEK PVC Wrap 10" Round Smooth',           matCostEach:265},
+    {label:'HB&G PermaSnap PVC 8" Square Fluted',      matCostEach:245},
+    {label:'HB&G PermaSnap PVC 10" Square Fluted',     matCostEach:295},
+    {label:'HB&G PermaSnap PVC 12" Square Fluted',     matCostEach:325},
+    {label:'Royal Builders PVC 8" Tapered Round',      matCostEach:285},
+    // Fiberglass (FRP)
+    {label:'HB&G PermaCast FRP 8" Round Tapered',      matCostEach:195},
+    {label:'HB&G PermaCast FRP 10" Round Tapered',     matCostEach:265},
+    {label:'HB&G PermaCast FRP 12" Round Tapered',     matCostEach:345},
+    // Cedar wraps
+    {label:'Cedar 6×6 Wrapped (site-built)',           matCostEach:165},
+    {label:'Cedar 8" Square Wrap (factory)',           matCostEach:225},
+    // Stone / stacked stone column wrap
+    {label:'Stone Veneer Column Wrap (per sf)',        matCostEach:18, _perSf:true},
+    // Structural steel
+    {label:'Steel Sch40 4" Round Column (8\')',        matCostEach:155},
+    {label:'Steel HSS 4×4×¼" Tube (8\')',              matCostEach:185},
+  ],
+  // ── SIDING (new role) — vinyl / fiber-cement / engineered-wood / cedar
+  // Pricing is per square (100 sf) at ETN supplier pricing, May 2026.
+  siding: [
+    // Vinyl
+    {label:'CertainTeed MainStreet Vinyl D4 — Almond (sq)',       matCostEach:185, _perSq:true},
+    {label:'CertainTeed MainStreet Vinyl D4 — Granite Gray (sq)', matCostEach:195, _perSq:true},
+    {label:'CertainTeed Monogram Vinyl D5 — Premium (sq)',        matCostEach:265, _perSq:true},
+    {label:'Mastic Carvedwood 44 D4.5 (sq)',                       matCostEach:225, _perSq:true},
+    {label:'Royal Crest D5 Vinyl (sq)',                            matCostEach:210, _perSq:true},
+    // Fiber cement (James Hardie)
+    {label:'James Hardie HardiePlank Select Cedarmill — primed (sq, ColorPlus add)',matCostEach:285, _perSq:true},
+    {label:'James Hardie HardiePlank ColorPlus — Arctic White (sq)',matCostEach:380, _perSq:true},
+    {label:'James Hardie HardiePlank ColorPlus — Iron Gray (sq)',  matCostEach:380, _perSq:true},
+    {label:'James Hardie HardiePlank ColorPlus — Aged Pewter (sq)',matCostEach:380, _perSq:true},
+    {label:'James Hardie HardiePlank ColorPlus — Khaki Brown (sq)',matCostEach:380, _perSq:true},
+    {label:'James Hardie Statement Collection — Boothbay Blue (sq)',matCostEach:415, _perSq:true},
+    {label:'James Hardie Aspyre Artisan V-Groove (sq)',            matCostEach:585, _perSq:true},
+    // Engineered wood (LP SmartSide)
+    {label:'LP SmartSide 76-Series Lap 3/8"×8" — primed (sq)',     matCostEach:235, _perSq:true},
+    {label:'LP SmartSide ExpertFinish Lap — Snowscape White (sq)', matCostEach:345, _perSq:true},
+    {label:'LP SmartSide ExpertFinish Lap — Cavern Steel (sq)',    matCostEach:345, _perSq:true},
+    {label:'LP SmartSide ExpertFinish Lap — Rapids Blue (sq)',     matCostEach:345, _perSq:true},
+    {label:'LP SmartSide Board-and-Batten Panel (sq)',             matCostEach:215, _perSq:true},
+    // Cedar / real wood
+    {label:'Western Red Cedar Bevel 1×6 — clear (sq)',             matCostEach:485, _perSq:true},
+    {label:'Western Red Cedar Bevel 1×6 — knotty (sq)',            matCostEach:325, _perSq:true},
+    {label:'Cedar Shingle Sidewall — #1 Perfections (sq)',         matCostEach:425, _perSq:true},
+    // Metal
+    {label:'29-ga Steel Board-and-Batten (Galvalume, sq)',         matCostEach:285, _perSq:true},
+    {label:'24-ga Steel Standing-Seam Sidewall — Painted (sq)',    matCostEach:485, _perSq:true},
   ],
   paint: [
-    {label:'Sherwin Multipurpose Primer 1 gal',  matCostEach:52},
-    {label:'Sherwin SuperPaint Ext 1 gal',       matCostEach:78},
-    {label:'Sherwin Duration Ext 1 gal',         matCostEach:115},
-    {label:'Behr Premium Ext 1 gal',             matCostEach:48},
-    {label:'Benjamin Moore Aura 1 gal',          matCostEach:88},
+    // Sherwin-Williams (contractor pricing ~30-40% off retail with PSP)
+    {label:'Sherwin Multi-Purpose Primer 1 gal',         matCostEach:52},
+    {label:'Sherwin ProMar 200 Interior 1 gal (contractor)',matCostEach:42},
+    {label:'Sherwin Cashmere Interior 1 gal',            matCostEach:62},
+    {label:'Sherwin SuperPaint Exterior 1 gal',          matCostEach:72},
+    {label:'Sherwin Duration Exterior 1 gal',            matCostEach:88},
+    {label:'Sherwin Emerald Exterior 1 gal',             matCostEach:115},
+    {label:'Sherwin Emerald Urethane Trim Enamel 1 gal', matCostEach:98},
+    // Benjamin Moore
+    {label:'Benjamin Moore Ben Interior 1 gal',          matCostEach:48},
+    {label:'Benjamin Moore Regal Select Interior 1 gal', matCostEach:62},
+    {label:'Benjamin Moore Aura Interior 1 gal',         matCostEach:88},
+    {label:'Benjamin Moore Aura Exterior 1 gal',         matCostEach:92},
+    {label:'Benjamin Moore Advance Cabinet Enamel 1 gal',matCostEach:78},
+    // Behr (Home Depot)
+    {label:'Behr Premium Plus Interior 1 gal',           matCostEach:32},
+    {label:'Behr Ultra Interior 1 gal',                  matCostEach:42},
+    {label:'Behr Marquee Interior 1 gal',                matCostEach:52},
+    {label:'Behr Premium Plus Exterior 1 gal',           matCostEach:42},
+    {label:'Behr Marquee Exterior 1 gal',                matCostEach:58},
+    // PPG / Valspar
+    {label:'PPG Diamond Exterior 1 gal',                 matCostEach:54},
+    {label:'Valspar Reserve Interior 1 gal (Lowe\'s)',   matCostEach:46},
   ],
   caulk: [
     {label:'Big Stretch Acrylic 10 oz', matCostEach:11},
@@ -3436,6 +3616,7 @@ function inferItemRole(name){
   if(/k[- ]style|gutter\s+(\d|al|gal|copper|half)/.test(s)) return 'gutter';
   if(/fiberglass batt|mineral wool|spray foam|ccspf|insulation/.test(s)) return 'insulation';
   if(/column(?! (cap|base))|pvc wrap/.test(s)) return 'column';
+  if(/(vinyl|hardie|hardiplank|lp smartside|smartside|cedar bevel|cedar shingle sidewall|board[- ]and[- ]batten|sidewall)/.test(s)) return 'siding';
   if(/(exterior|primer|sherwin|behr|benjamin) (paint|primer|wall|exterior)/.test(s) || /\bpaint 1 gal/.test(s)) return 'paint';
   if(/caulk|sealant\s+(10 oz|tube)/.test(s)) return 'caulk';
   if(/deck(ing)? screw/.test(s)) return 'deck_screw';
