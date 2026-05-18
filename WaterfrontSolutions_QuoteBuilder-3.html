@@ -61,6 +61,10 @@
 .orient-btn{font-size:11px;padding:3px 9px;border-radius:5px;border:0.5px solid var(--border2);background:transparent;color:var(--text3);cursor:pointer;transition:all .15s}
 .orient-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
 .orient-btn:active{opacity:.8}
+.dr-tool{font-size:11px;padding:6px 10px;border-radius:6px;border:0.5px solid var(--border2);background:var(--surface);color:var(--text2);cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:4px;font-weight:500}
+.dr-tool:hover{background:var(--surface2);color:var(--text)}
+.dr-tool.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.dr-tool:active{opacity:.85}
 .to-item{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
 .to-item:last-child{border:none}
 .to-item-name{flex:1;color:var(--text)}
@@ -1214,6 +1218,107 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
     <div class="page" id="page-sketch">
 
 
+      <!-- ══ FREE-DRAW SCALED PROJECT PLANNER ══ -->
+      <div class="section">
+        <div class="section-head">
+          <span class="section-title">✏️ Draw Project to Scale</span>
+          <span class="badge" style="background:var(--accent-dim);color:var(--accent)">Scaled</span>
+        </div>
+        <div class="section-body">
+          <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6">
+            Sketch any project (deck, porch, addition, carport, slab, wall) directly to scale. Set the site dimensions and grid, then draw with the tools below — every shape is dimensioned in real-world feet/inches. When you're done, save as PNG or apply the largest rectangle's footprint to the takeoff calculator.
+          </div>
+
+          <!-- Site & scale -->
+          <div class="field-row">
+            <div class="field"><label>Site width (ft)</label><input type="number" id="dr-site-w" value="40" min="4" max="500" step="1" oninput="drawerUpdateScale()"/></div>
+            <div class="field"><label>Site length (ft)</label><input type="number" id="dr-site-l" value="30" min="4" max="500" step="1" oninput="drawerUpdateScale()"/></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>Grid spacing</label>
+              <select id="dr-grid" onchange="drawerUpdateScale()">
+                <option value="0.5">6&quot;</option>
+                <option value="1" selected>1 ft</option>
+                <option value="2">2 ft</option>
+                <option value="5">5 ft</option>
+              </select>
+            </div>
+            <div class="field"><label>Snap to grid</label>
+              <select id="dr-snap" onchange="drawerUpdateScale()">
+                <option value="1" selected>On</option>
+                <option value="0">Off</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Toolbar -->
+          <div style="display:flex;flex-wrap:wrap;gap:4px;margin:10px 0;padding:6px;background:var(--surface2);border-radius:8px;align-items:center">
+            <button class="dr-tool active" data-tool="select" onclick="drawerSetTool('select')">🖱 Select</button>
+            <button class="dr-tool" data-tool="pencil" onclick="drawerSetTool('pencil')">✏️ Free</button>
+            <button class="dr-tool" data-tool="line" onclick="drawerSetTool('line')">📏 Wall</button>
+            <button class="dr-tool" data-tool="rect" onclick="drawerSetTool('rect')">▭ Room</button>
+            <button class="dr-tool" data-tool="circle" onclick="drawerSetTool('circle')">○ Post</button>
+            <button class="dr-tool" data-tool="dim" onclick="drawerSetTool('dim')">↔ Dim</button>
+            <button class="dr-tool" data-tool="text" onclick="drawerSetTool('text')">T Text</button>
+            <button class="dr-tool" data-tool="eraser" onclick="drawerSetTool('eraser')">⌫ Erase</button>
+            <div style="flex:1;min-width:8px"></div>
+            <button class="dr-tool" onclick="drawerUndo()" title="Undo (Ctrl+Z)">↶</button>
+            <button class="dr-tool" onclick="drawerRedo()" title="Redo (Ctrl+Y)">↷</button>
+            <button class="dr-tool" onclick="drawerClear()" title="Clear all">✕</button>
+          </div>
+
+          <!-- Style controls -->
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;font-size:11px;align-items:center;color:var(--text2)">
+            <span>Color</span>
+            <input type="color" id="dr-color" value="#1a8a8a" onchange="drawerSetColor(this.value)" style="width:36px;height:26px;padding:0;border:1px solid var(--border);border-radius:4px;cursor:pointer">
+            <span>Stroke</span>
+            <select id="dr-stroke" onchange="drawerSetStroke(this.value)" style="padding:3px 6px;border-radius:4px;font-size:11px">
+              <option value="1">1 px</option>
+              <option value="2" selected>2 px</option>
+              <option value="3">3 px</option>
+              <option value="4">4 px</option>
+              <option value="6">6 px</option>
+            </select>
+            <span>Fill</span>
+            <select id="dr-fill" onchange="drawerSetFill(this.value)" style="padding:3px 6px;border-radius:4px;font-size:11px">
+              <option value="none" selected>None</option>
+              <option value="solid">Solid</option>
+              <option value="hatch">Hatch</option>
+            </select>
+            <span style="margin-left:auto;color:var(--text3)">Tap & drag on the canvas</span>
+          </div>
+
+          <!-- Canvas -->
+          <div style="position:relative;background:#fdfaf0;border:1px solid var(--border);border-radius:8px;overflow:hidden">
+            <canvas id="drawer-canvas" style="width:100%;display:block;cursor:crosshair;touch-action:none"></canvas>
+            <div id="drawer-coords" style="position:absolute;top:6px;right:8px;font-size:10px;font-family:DM Mono,monospace;color:rgba(10,40,40,0.7);background:rgba(255,255,255,0.85);padding:3px 8px;border-radius:4px;pointer-events:none">0&apos;, 0&apos;</div>
+            <div id="drawer-hud" style="position:absolute;top:6px;left:8px;font-size:10px;font-family:DM Mono,monospace;color:rgba(10,40,40,0.7);background:rgba(255,255,255,0.85);padding:3px 8px;border-radius:4px;pointer-events:none">Select tool</div>
+          </div>
+
+          <!-- Live stats -->
+          <div id="drawer-stats" style="margin-top:10px;display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:6px;font-size:11px"></div>
+
+          <!-- Actions -->
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px">
+            <button class="btn btn-primary" onclick="drawerExportPNG()" style="flex:1;min-width:140px">💾 Save as PNG</button>
+            <button class="btn btn-success" onclick="drawerUseInTakeoff()" style="flex:1;min-width:140px">📐 Use in Takeoff</button>
+            <button class="btn btn-ghost" onclick="drawerCopyClipboard()" title="Copy to clipboard">📋</button>
+          </div>
+
+          <div style="margin-top:10px;background:var(--gold-dim2);border:0.5px solid var(--gold-dim);border-radius:8px;padding:8px 10px;font-size:10.5px;color:var(--text2);line-height:1.6">
+            <strong style="color:var(--gold)">Quick tips:</strong>
+            <strong>Wall</strong> draws a single line w/ length label · <strong>Room</strong> draws a dimensioned rectangle with area · <strong>Post</strong> draws a circle (diameter labeled) · <strong>Dim</strong> drops a stand-alone dimension callout · <strong>Text</strong> labels anything · drag in <strong>Select</strong> mode to move shapes. Use <strong>Use in Takeoff</strong> to push the largest room rectangle into the active takeoff type.
+          </div>
+        </div>
+      </div>
+
+      <div style="margin:14px 0;display:flex;align-items:center;gap:8px">
+        <div style="flex:1;height:1px;background:var(--border)"></div>
+        <div style="font-size:11px;color:var(--text3);font-weight:500">OR DESCRIBE IN TEXT</div>
+        <div style="flex:1;height:1px;background:var(--border)"></div>
+      </div>
+
+
       <!-- ══ TEXT DESCRIPTION SECTION ══ -->
       <div class="section">
         <div class="section-head">
@@ -1488,10 +1593,10 @@ const TASKS = [
   {name:"Covered porch over deck — reinforce existing deck framing",cat:"Covered Porch",icon:"🏡",unit:"sqft",unitLabel:"sq ft of deck",hrsPerUnit:0.11,rateKey:"sk",matPerUnit:4.85,notes:"Sister joists, blocking, connectors, beam/post upgrades as needed"},
   {name:"Covered porch — ledger / house roof tie-in",cat:"Covered Porch",icon:"🏡",unit:"lf",unitLabel:"lin ft",hrsPerUnit:0.85,rateKey:"sk",matPerUnit:18.5,notes:"Ledger, flashing, house attachment, water management"},
   {name:"Covered porch — columns & beam package",cat:"Covered Porch",icon:"🏡",unit:"lf",unitLabel:"lin ft of front beam",hrsPerUnit:0.7,rateKey:"sk",matPerUnit:22,notes:"6×6 posts, double beam, caps, bases, structural hardware"},
-  {name:"Covered porch — roof framing package",cat:"Covered Porch",icon:"🏡",unit:"sqft",unitLabel:"sq ft roof area",hrsPerUnit:0.16,rateKey:"sk",matPerUnit:6.75,notes:"Rafters/trusses, ridge, ties, blocking, hurricane hardware"},
-  {name:"Covered porch — roof sheathing & dry-in",cat:"Covered Porch",icon:"🏡",unit:"sqft",unitLabel:"sq ft roof area",hrsPerUnit:0.035,rateKey:"sk",matPerUnit:1.45,notes:"OSB, underlayment, drip edge, nails"},
-  {name:"Covered porch roofing — architectural shingles",cat:"Covered Porch",icon:"🏡",unit:"sqft",unitLabel:"sq ft roof area",hrsPerUnit:0.028,rateKey:"roof",matPerUnit:2.15,notes:"Starter, field shingles, cap, roof nails"},
-  {name:"Covered porch roofing — standing seam metal",cat:"Covered Porch",icon:"🏡",unit:"sqft",unitLabel:"sq ft roof area",hrsPerUnit:0.07,rateKey:"roof",matPerUnit:8.35,notes:"Panels, clips/screws, trim, closures"},
+  {name:"Covered porch — roof framing package",cat:"Covered Porch",icon:"🏡",unit:"sqft",unitLabel:"sq ft roof area",hrsPerUnit:0.18,rateKey:"sk",matPerUnit:8.50,notes:"Rafters/trusses, ridge, ties, blocking, hurricane hardware — lumber up ~25% since 2024"},
+  {name:"Covered porch — roof sheathing & dry-in",cat:"Covered Porch",icon:"🏡",unit:"sqft",unitLabel:"sq ft roof area",hrsPerUnit:0.040,rateKey:"sk",matPerUnit:2.10,notes:"OSB (7/16\" $22-26/sheet), synthetic underlayment, drip edge, nails"},
+  {name:"Covered porch roofing — architectural shingles",cat:"Covered Porch",icon:"🏡",unit:"sqft",unitLabel:"sq ft roof area",hrsPerUnit:0.032,rateKey:"roof",matPerUnit:2.85,notes:"Starter, field shingles, cap, roof nails — small-roof premium"},
+  {name:"Covered porch roofing — standing seam metal",cat:"Covered Porch",icon:"🏡",unit:"sqft",unitLabel:"sq ft roof area",hrsPerUnit:0.078,rateKey:"roof",matPerUnit:11.50,notes:"Panels, clips/screws, trim, closures — 24ga 2026 pricing"},
   {name:"Covered porch — T&G pine ceiling",cat:"Covered Porch",icon:"🏡",unit:"sqft",unitLabel:"sq ft ceiling",hrsPerUnit:0.095,rateKey:"sk",matPerUnit:3.65,notes:"1×6 T&G pine, finish nails, trim allowance"},
   {name:"Covered porch — beadboard ceiling",cat:"Covered Porch",icon:"🏡",unit:"sqft",unitLabel:"sq ft ceiling",hrsPerUnit:0.085,rateKey:"sk",matPerUnit:4.1,notes:"Beadboard, trim, finish fasteners"},
   {name:"Covered porch — screen enclosure",cat:"Covered Porch",icon:"🏡",unit:"lf",unitLabel:"lin ft perimeter",hrsPerUnit:1.15,rateKey:"sk",matPerUnit:31,notes:"Screen frames, screen, spline, door allowance spread by perimeter"},
@@ -1506,16 +1611,16 @@ const TASKS = [
   {name:"Wall sheathing — OSB",cat:"Framing",icon:"🏠",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.004,rateKey:"sk",matPerUnit:1.05,notes:"3-person crew ~250 sqft/hr"},
   {name:"Roof sheathing — OSB",cat:"Framing",icon:"🏠",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.0038,rateKey:"sk",matPerUnit:0.9,notes:"Pitched roof"},
   {name:"Header install (door/window)",cat:"Framing",icon:"🏠",unit:"ea",unitLabel:"each",hrsPerUnit:1.2,rateKey:"sk",matPerUnit:42,notes:"Standard LVL or doubled 2×"},
-  {name:"Tear-off — asphalt shingles",cat:"Roofing",icon:"🏚️",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.012,rateKey:"roof",matPerUnit:0,notes:"1 layer; ~85 sqft/hr per roofer"},
-  {name:"Felt / synthetic underlayment",cat:"Roofing",icon:"🏚️",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.005,rateKey:"roof",matPerUnit:0.18,notes:"15# felt or synthetic"},
-  {name:"3-tab asphalt shingles",cat:"Roofing",icon:"🏚️",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.022,rateKey:"roof",matPerUnit:1.0,notes:"~45 sqft/hr; starter, field, ridge"},
-  {name:"Architectural shingles",cat:"Roofing",icon:"🏚️",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.025,rateKey:"roof",matPerUnit:1.42,notes:"Dimensional / laminate"},
-  {name:"Metal roofing — standing seam",cat:"Roofing",icon:"🏚️",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.065,rateKey:"roof",matPerUnit:7.8,notes:"Pre-fab panels; ~80 sqft/hr"},
-  {name:"Ridge cap / hip shingles",cat:"Roofing",icon:"🏚️",unit:"lf",unitLabel:"lin ft",hrsPerUnit:.08,rateKey:"roof",matPerUnit:1.5,notes:"Cut & nail cap shingles"},
-  {name:"Drip edge installation",cat:"Roofing",icon:"🏚️",unit:"lf",unitLabel:"lin ft",hrsPerUnit:0.08,rateKey:"roof",matPerUnit:0.42,notes:"Aluminum drip edge"},
-  {name:"Roof flashing (step/counter)",cat:"Roofing",icon:"🏚️",unit:"lf",unitLabel:"lin ft",hrsPerUnit:.25,rateKey:"roof",matPerUnit:3,notes:"Wall, chimney, valley"},
-  {name:"Roof vent installation",cat:"Roofing",icon:"🏚️",unit:"ea",unitLabel:"each",hrsPerUnit:.75,rateKey:"roof",matPerUnit:25,notes:"Box vent or power vent"},
-  {name:"Gutters — aluminum 5\" K-style",cat:"Roofing",icon:"🏚️",unit:"lf",unitLabel:"lin ft",hrsPerUnit:.15,rateKey:"sk",matPerUnit:4.5,notes:"Incl. end caps, hangers"},
+  {name:"Tear-off — asphalt shingles",cat:"Roofing",icon:"🏚️",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.014,rateKey:"roof",matPerUnit:0.18,notes:"1 layer; ~70 sqft/hr per roofer (incl haul, tarp, sweep)"},
+  {name:"Felt / synthetic underlayment",cat:"Roofing",icon:"🏚️",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.005,rateKey:"roof",matPerUnit:0.26,notes:"Synthetic ($24-28/sq) — 15# felt now rare"},
+  {name:"3-tab asphalt shingles",cat:"Roofing",icon:"🏚️",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.024,rateKey:"roof",matPerUnit:1.40,notes:"~42 sqft/hr; starter, field, ridge"},
+  {name:"Architectural shingles",cat:"Roofing",icon:"🏚️",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.028,rateKey:"roof",matPerUnit:1.95,notes:"GAF Timberline HDZ / Owens Duration — Knoxville HD/Lowes 2026"},
+  {name:"Metal roofing — standing seam",cat:"Roofing",icon:"🏚️",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.070,rateKey:"roof",matPerUnit:10.50,notes:"24ga Galvalume pre-fab panels; ~70 sqft/hr"},
+  {name:"Ridge cap / hip shingles",cat:"Roofing",icon:"🏚️",unit:"lf",unitLabel:"lin ft",hrsPerUnit:.09,rateKey:"roof",matPerUnit:2.20,notes:"Timbertex/Seal-A-Ridge"},
+  {name:"Drip edge installation",cat:"Roofing",icon:"🏚️",unit:"lf",unitLabel:"lin ft",hrsPerUnit:0.09,rateKey:"roof",matPerUnit:0.75,notes:"Aluminum drip edge — $7-9/10ft stick"},
+  {name:"Roof flashing (step/counter)",cat:"Roofing",icon:"🏚️",unit:"lf",unitLabel:"lin ft",hrsPerUnit:.28,rateKey:"roof",matPerUnit:4.50,notes:"Wall, chimney, valley"},
+  {name:"Roof vent installation",cat:"Roofing",icon:"🏚️",unit:"ea",unitLabel:"each",hrsPerUnit:.85,rateKey:"roof",matPerUnit:42,notes:"Box vent or power vent"},
+  {name:"Gutters — aluminum 5\" K-style",cat:"Roofing",icon:"🏚️",unit:"lf",unitLabel:"lin ft",hrsPerUnit:.17,rateKey:"sk",matPerUnit:7,notes:"Incl. end caps, hangers — seamless run-on-site"},
   {name:"Exterior painting — walls",cat:"Painting",icon:"🎨",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.012,rateKey:"paint",matPerUnit:0.38,notes:"~80 sqft/hr; 2 coats"},
   {name:"Interior painting — 1 coat",cat:"Painting",icon:"🎨",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.008,rateKey:"paint",matPerUnit:0.22,notes:"~120 sqft/hr flat walls"},
   {name:"Interior painting — 2 coats",cat:"Painting",icon:"🎨",unit:"sqft",unitLabel:"sq ft",hrsPerUnit:0.014,rateKey:"paint",matPerUnit:0.38,notes:"Prime + finish"},
@@ -1784,10 +1889,13 @@ let _panning = false, _panStart = null;
 const rates = () => ({
   // ETN contractor billing rates (May 2026): wage + 35% burden + 25% overhead
   // Sources: BLS OEWS 2025, ZipRecruiter TN 2026, CalculatorConstruction.com 2026
-  gen:   parseFloat(document.getElementById('r-gen')?.value)||42,
-  sk:    parseFloat(document.getElementById('r-sk')?.value)||62,
-  fore:  parseFloat(document.getElementById('r-fore')?.value)||82,
-  roof:  parseFloat(document.getElementById('r-roof')?.value)||58,
+  // Roofing crew rate updated to reflect East TN reality — most roofers in
+  // Knox/Blount/Sevier are sub'd at $300-475/sq installed, which back-solves
+  // to ~$78-92/hr loaded (insurance, fall-protection, comp, profit).
+  gen:   parseFloat(document.getElementById('r-gen')?.value)||48,
+  sk:    parseFloat(document.getElementById('r-sk')?.value)||72,
+  fore:  parseFloat(document.getElementById('r-fore')?.value)||92,
+  roof:  parseFloat(document.getElementById('r-roof')?.value)||82,
   mason: parseFloat(document.getElementById('r-mason')?.value)||68,
   paint: parseFloat(document.getElementById('r-paint')?.value)||48,
   equip: parseFloat(document.getElementById('r-equip')?.value)||78,
@@ -2794,7 +2902,8 @@ function toCalcFraming(){
   };
 
   extendTakeoffWithCompleteList('framing', items, {
-    extPerim, ht, totalStuds, openings, doors, windows, studSz, sheath,
+    extPerim, ht, totalStuds, openings, doors, windows, studSz, sheath, ceil,
+    sqft, floorSqft: sqft, len, wid, intStudCount, extStudCount, oc,
   });
 
   toRenderResults(items, summary, 'framing');
@@ -3219,6 +3328,10 @@ function toCalcBlockwall(){
     'Finish': finish==='none' ? 'Bare block' : finish.charAt(0).toUpperCase()+finish.slice(1),
   };
 
+  extendTakeoffWithCompleteList('blockwall', items, {
+    len, ht, wallSqft, blockQty,
+  });
+
   toRenderResults(items, summary, 'blockwall');
 }
 
@@ -3567,85 +3680,475 @@ function extendTakeoffWithCompleteList(type, items, c){
       _i('Building Permit Fee (allowance)', 1, 'ea', 'ea', 150),
       _i('Inspection Fee', 1, 'ea', 'ea', 75),
     );
+    // Sonotube forms — not in base calc; required for every pier
+    P(items, 'Foundation & Posts',
+      _i('Sonotube Form 12"Ø × 48"', postQty, 'ea', 'ea', 24),
+    );
+    // Excavation & site prep — pier holes, spoils haul
+    P(items, 'Site Prep & Excavation',
+      _i('Post Hole Auger Rental (1-man, day)', postQty>6?1:0, 'day', 'day', 85),
+      _i('Manual Post Hole Digger', 1, 'ea', 'ea', 38),
+      _i('Wheelbarrow 6 cu ft', 1, 'ea', 'ea', 95),
+      _i('Round-Point Shovel', 2, 'ea', 'ea', 28),
+      _i('Spoils Haul-off (per pier ~½ CY)', Math.ceil(postQty*0.5), 'CY', 'CY', 32),
+    );
+    // Finish coat — every deck needs sealing/staining
+    P(items, 'Finish & Sealing',
+      _i('Penetrating Deck Stain/Sealer 5 gal (Ready Seal)', Math.ceil(sqft/200), 'pail', 'pail', 165),
+      _i('Stain Brush 4"', 2, 'ea', 'ea', 9),
+      _i('9" Roller Frame + Pad (3-pk)', 1, 'set', 'set', 18),
+      _i('Pump Sprayer 2 gal', 1, 'ea', 'ea', 38),
+      _i('Drop Cloth 9×12 Canvas', 1, 'ea', 'ea', 18),
+      _i('Painter\'s Tape 1.88"×60yd', 2, 'roll', 'roll', 9),
+    );
+    // Final cleanup & disposal
+    P(items, 'Cleanup & Disposal',
+      _i('30-yd Dumpster Rental', sqft>200?1:0, 'ea', 'ea', 425),
+      _i('Construction Trash Bag 3mil (32 ct)', 1, 'box', 'box', 28),
+      _i('Push Broom 24"', 1, 'ea', 'ea', 22),
+      _i('Magnetic Nail Sweep Rental (day)', 1, 'day', 'day', 18),
+      _i('Final Cleanup Labor Allowance', 1, 'ea', 'ea', 145),
+    );
   }
   else if(type==='roof'){
     const {blen=0,bwid=0,eaveExt=0,roofSqFt=0,eavePerim=0,rakePerim=0,ridge=0,valley=0,shingle='arch',sheetsNeeded=0,tearoff=0,gutterLF=0,penetr=0}=c;
     if(tearoff>0){
       P(items, 'Tear-Off',
-        _i('30-yd Dumpster (tear-off haul)', Math.ceil(roofSqFt/1500), 'ea', 'ea', 425),
-        _i('Magnetic Nail Sweeper Rental (day)', 1, 'day', 'day', 18),
-        _i('Roof Safety Harness Kit', 1, 'ea', 'ea', 185),
+        _i('30-yd Dumpster (tear-off haul)', Math.ceil(roofSqFt/1500), 'ea', 'ea', 525),
+        _i('Magnetic Nail Sweeper Rental (day)', 1, 'day', 'day', 24),
+        _i('Roof Safety Harness Kit', 1, 'ea', 'ea', 225),
       );
     }
     P(items, 'Sheathing',
       _i('H2.5A Hurricane Tie (truss-to-plate)', Math.ceil((blen+bwid)*2/2), 'ea', 'box(100)', 0.95),
-      _i('Plastic Cap Nail 1" 3000 ct Pail (underlayment)', Math.ceil(roofSqFt/1500), 'pail', 'pail', 58),
+      _i('Plastic Cap Nail 1" 3000 ct Pail (underlayment)', Math.ceil(roofSqFt/1500), 'pail', 'pail', 85),
     );
     P(items, 'Flashing & Trim',
-      _i('Kick-out Flashing (Quick-Flash QSC-1)', 2, 'ea', 'ea', 14),
-      _i('Apron Flashing 10\' (chimney/dormer)', penetr>0?2:0, 'ea', 'ea', 22),
-      _i('Counter Flashing 10\' (saw-kerf reglet)', penetr>0?2:0, 'ea', 'ea', 26),
-      _i('Cobra Ridge Vent 20\' Roll', ridge>0?Math.ceil(ridge/20):0, 'roll', 'roll', 48),
-      _i('Soffit Vent Strip 8\'×3"', Math.ceil((blen+eaveExt*2)*2/8), 'ea', 'ea', 14),
+      _i('Kick-out Flashing (Quick-Flash QSC-1)', 2, 'ea', 'ea', 22),
+      _i('Apron Flashing 10\' (chimney/dormer)', penetr>0?2:0, 'ea', 'ea', 32),
+      _i('Counter Flashing 10\' (saw-kerf reglet)', penetr>0?2:0, 'ea', 'ea', 38),
+      _i('Cobra Ridge Vent 20\' Roll', ridge>0?Math.ceil(ridge/20):0, 'roll', 'roll', 72),
+      _i('Soffit Vent Strip 8\'×3"', Math.ceil((blen+eaveExt*2)*2/8), 'ea', 'ea', 22),
     );
     if(shingle!=='metal'){
       P(items, 'Roofing Material',
-        _i('Roof Cement 10.1 oz Tube', Math.ceil(roofSqFt/400), 'tube', 'tube', 7),
-        _i('Roof Cement 1 gal (flashing bed)', 1, 'gal', 'gal', 28),
-        _i('Starter Strip Bundle', Math.ceil((eavePerim+rakePerim)/100), 'bundle', 'bundle', 58),
+        _i('Roof Cement 10.1 oz Tube', Math.ceil(roofSqFt/400), 'tube', 'tube', 11),
+        _i('Roof Cement 1 gal (flashing bed)', 1, 'gal', 'gal', 42),
+        _i('Starter Strip Bundle', Math.ceil((eavePerim+rakePerim)/100), 'bundle', 'bundle', 78),
       );
     }
     if(gutterLF>0){
       P(items, 'Gutters & Drainage',
-        _i('Gutter Sealant 10 oz Tube', Math.ceil(gutterLF/50), 'tube', 'tube', 9),
-        _i('Splash Block (per downspout)', Math.max(2, Math.ceil(gutterLF/50)*2), 'ea', 'ea', 7),
-        _i('1¼" Zip Screw 100 ct Box', 1, 'box', 'box', 14),
-        _i('1×6 PVC Fascia 18\' (new const)', Math.ceil(gutterLF/18*1.10), 'ea', 'ea', 52),
-        _i('Vented Aluminum Soffit 12\'×12"', Math.ceil(gutterLF*1.5/12), 'ea', 'ea', 18),
-        _i('F-Channel + J-Channel 12\'', Math.ceil(gutterLF/12)*2, 'ea', 'ea', 9),
+        _i('Gutter Sealant 10 oz Tube', Math.ceil(gutterLF/50), 'tube', 'tube', 13),
+        _i('Splash Block (per downspout)', Math.max(2, Math.ceil(gutterLF/50)*2), 'ea', 'ea', 12),
+        _i('1¼" Zip Screw 100 ct Box', 1, 'box', 'box', 22),
+        _i('1×6 PVC Fascia 18\' (new const)', Math.ceil(gutterLF/18*1.10), 'ea', 'ea', 72),
+        _i('Vented Aluminum Soffit 12\'×12"', Math.ceil(gutterLF*1.5/12), 'ea', 'ea', 26),
+        _i('F-Channel + J-Channel 12\'', Math.ceil(gutterLF/12)*2, 'ea', 'ea', 14),
       );
     }
+    // Additional penetration flashing (skylights/chimneys/lead boots)
+    if(penetr>0){
+      P(items, 'Flashing & Trim',
+        _i('Chimney Cricket Saddle Kit', 1, 'ea', 'ea', 225),
+        _i('Lead Pipe Boot 1.5"-3" (replaces EPDM, 50-yr)', penetr, 'ea', 'ea', 48),
+        _i('Storm Collar (around vent stack)', penetr, 'ea', 'ea', 14),
+      );
+    }
+    // Finish / touch-up paint — fascia + soffit + trim
+    P(items, 'Finish & Paint',
+      _i('Fascia/Soffit Touch-up Paint qt (Sherwin Exterior)', 1, 'qt', 'qt', 32),
+      _i('Angle Sash Brush 2.5"', 1, 'ea', 'ea', 14),
+      _i('Drop Cloth 9×12', 1, 'ea', 'ea', 22),
+    );
+    // Cleanup & Disposal — always needed even on new construction
+    P(items, 'Cleanup & Disposal',
+      _i('30-yd Dumpster (debris haul, new const)', tearoff>0?0:1, 'ea', 'ea', 525),
+      _i('Magnetic Nail Sweep Rental (day)', 1, 'day', 'day', 24),
+      _i('Push Broom 24"', 1, 'ea', 'ea', 28),
+      _i('Ground Tarp 20×30 (catch debris)', 2, 'ea', 'ea', 38),
+      _i('Final Cleanup Labor Allowance', 1, 'ea', 'ea', 245),
+    );
     P(items, 'Summary',
-      _i('Building Permit Fee (allowance)', 1, 'ea', 'ea', 150),
-      _i('Roofing Inspection Fee', 1, 'ea', 'ea', 75),
+      _i('Building Permit Fee (allowance)', 1, 'ea', 'ea', 185),
+      _i('Roofing Inspection Fee', 1, 'ea', 'ea', 95),
     );
   }
   else if(type==='framing'){
-    const {extPerim=0,ht=0,totalStuds=0,openings=0,doors=0,windows=0,studSz='2x4',sheath=false}=c;
+    // The "framing" takeoff is used for room additions and bump-outs in
+    // East TN. A real addition project covers far more than wall sticks —
+    // it includes demo/tie-in to the existing house, foundation, floor
+    // joists, roof framing + dry-in, exterior siding, windows/doors,
+    // interior drywall/trim, electrical/plumbing/HVAC rough-in, and
+    // cleanup. All prices are Knoxville / Tri-Cities 2026 actuals.
+    const {extPerim=0,ht=0,totalStuds=0,openings=0,doors=0,windows=0,
+           studSz='2x4',sheath=false,ceil=true,sqft=0,floorSqft=0,
+           len=0,wid=0,oc=16,intStudCount=0,extStudCount=0}=c;
+    const isExt2x6 = studSz==='2x6';
+    const studWall = isExt2x6?'2×6':'2×4';
+    const wallSqft = extPerim * ht;
+
+    // ── SITE WORK & LAYOUT ────────────────────────────────────────────────
+    P(items, 'Site Work & Layout',
+      _i('Batter Board 1×4×8\' (corners)', 12, 'ea', 'ea', 9),
+      _i('Mason\'s Twine 500\' Roll', 1, 'roll', 'roll', 8),
+      _i('Marking Paint (utility orange)', 2, 'can', 'can', 9),
+      _i('Self-Leveling Laser Rental (day)', 2, 'day', 'day', 85),
+      _i('Job-Site Porta-John Rental (month)', 1, 'ea', 'ea', 165),
+      _i('Silt Fence 100\' Roll (erosion control)', Math.ceil(extPerim/100)+1, 'roll', 'roll', 52),
+      _i('Surveyor Allowance (corner pins, setback verify)', 1, 'ea', 'ea', 485),
+    );
+
+    // ── DEMOLITION & TIE-IN ───────────────────────────────────────────────
+    // Cut opening into existing house: siding, sheathing, drywall, framing.
+    P(items, 'Demolition & Tie-In',
+      _i('Recip Saw Blade Pack (Lenox demo)', 2, 'pack', 'pack', 28),
+      _i('Carbide Demo Blade 7¼"', 2, 'ea', 'ea', 24),
+      _i('Dust Barrier Plastic 10×100 + ZipWall', 1, 'kit', 'kit', 145),
+      _i('Existing Siding Removal (lf along tie-in)', Math.ceil(len), 'lf', 'lf', 4.50),
+      _i('Existing Sheathing Removal (sf)', Math.ceil(len*ht), 'sf', 'sf', 2.20),
+      _i('Existing Interior Drywall Demo (sf)', Math.ceil(len*ht), 'sf', 'sf', 1.85),
+      _i('Existing Insulation Removal (bag)', Math.ceil(len*ht/64), 'bag', 'bag', 18),
+      _i('Existing Stud Removal / Header Tie-in', Math.max(2, Math.ceil(len/2)), 'ea', 'ea', 24),
+      _i('Temporary Shoring Post + Header (2×10 + jack post)', 4, 'ea', 'ea', 38),
+      _i('Floor Protection Ram Board 38"×100\'', 1, 'roll', 'roll', 95),
+      _i('Plastic Floor Runner 24"×200\'', 1, 'roll', 'roll', 62),
+    );
+
+    // ── FOUNDATION (perimeter footing/stem wall for addition) ─────────────
+    // Typical ETN addition uses 8" concrete stem wall on 16×8 footing, or
+    // 12"Ø sonotube piers for crawl-space construction.
+    P(items, 'Foundation',
+      _i('Trench Excavation (12"W × 30"D footing)', Math.ceil(extPerim*1*2.5/27), 'CY', 'CY', 38),
+      _i('Spoils Haul-off Allowance', Math.ceil(extPerim*1*2.5/27), 'CY', 'CY', 38),
+      _i('#57 Crushed Stone Footer Base', Math.ceil(extPerim*1.33*0.33/27*1.4), 'tons', 'tons', 48),
+      _i('Form Boards 2×10×16\' (footer)', Math.ceil(extPerim*2/16*1.10), 'pcs', 'pcs', 32),
+      _i('Form Stakes 18" wood', Math.ceil(extPerim/2), 'ea', 'bundle(50)', 1.80),
+      _i('Ready-Mix Concrete 3000psi (footer)', Math.ceil(extPerim*1.33*0.67/27*1.05*10)/10, 'CY', 'CY', 185),
+      _i('Ready-Mix Concrete (stem wall)', Math.ceil(extPerim*0.67*4/27*1.05*10)/10, 'CY', 'CY', 185),
+      _i('#4 Rebar 20\' stick (2 continuous + dowels)', Math.ceil(extPerim*2.5/20), 'stick', 'stick', 14),
+      _i('#4 Dowel 18" L (footing-to-stem)', Math.ceil(extPerim/2), 'ea', 'ea', 2.40),
+      _i('Tie Wire 3.5 lb roll', 1, 'roll', 'roll', 14),
+      _i('⅝"×10" J-Bolt Anchor + Nut + Washer', Math.ceil(extPerim/6)+4, 'set', 'box(25)', 6.20),
+      _i('Damp-Proofing Asphalt 5 gal pail', Math.ceil(extPerim*4/500), 'pail', 'pail', 72),
+      _i('Foundation Inspection Fee', 1, 'ea', 'ea', 95),
+    );
+
+    // ── STUDS & PLATES (existing extension augments) ──────────────────────
     P(items, 'Studs & Plates',
-      _i('Sill Sealer Foam ¼"×6"×50\'', Math.ceil(extPerim/50), 'roll', 'roll', 14),
-      _i('Termite Shield Aluminum 6"×50\' (TN R318)', Math.ceil(extPerim/50), 'roll', 'roll', 46),
-      _i('PT Sill Plate '+(studSz==='2x6'?'2×6':'2×4')+'×16\'', Math.ceil(extPerim/16*1.10), 'ea', 'ea', studSz==='2x6'?19:11),
-      _i('CS16 Coiled Strap (top-plate splice)', Math.ceil(extPerim/20), 'ea', 'ea', 4.80),
+      _i('Sill Sealer Foam ¼"×6"×50\'', Math.ceil(extPerim/50), 'roll', 'roll', 18),
+      _i('Termite Shield Aluminum 6"×50\' (TN R318)', Math.ceil(extPerim/50), 'roll', 'roll', 62),
+      _i('PT Sill Plate '+studWall+'×16\'', Math.ceil(extPerim/16*1.10), 'ea', 'ea', isExt2x6?22:14),
+      _i('CS16 Coiled Strap 50\' (top-plate splice)', Math.ceil(extPerim/50), 'ea', 'ea', 38),
+      _i('LSTA21 Strap (intersecting walls)', Math.max(8, Math.ceil(extPerim/12)), 'ea', 'box(50)', 4.80),
+      _i('SDS25212 ¼"×2½" Screw (strap fastener, 1 lb)', 2, 'lb', 'lb', 22),
     );
+
+    // ── HARDWARE & FASTENERS ──────────────────────────────────────────────
     P(items, 'Hardware & Fasteners',
-      _i('3"×3"×0.229" Plate Washer (BPS½, per anchor bolt)', Math.ceil(extPerim/6), 'ea', 'box(100)', 1.60),
-      _i('A35 Framing Angle (corner/intersection)', 12, 'ea', 'box(50)', 1.10),
-      _i('L70 Heavy Angle', 4, 'ea', 'ea', 4),
-      _i('Pneumatic 3¼" Framing Nail Clip 4000 ct', Math.ceil(totalStuds*4/4000), 'box', 'box', 88),
-      _i('Fiberglass Batt R-'+(studSz==='2x6'?20:13)+' (bag)', Math.ceil(totalStuds/(studSz==='2x6'?16:24)), 'bag', 'bag', studSz==='2x6'?78:52),
-      _i('Great Stuff Fireblock Foam 24 oz', Math.ceil(extPerim/40), 'can', 'can', 11),
-      _i('Acoustic Sealant (Tremco) 29 oz', 4, 'tube', 'tube', 14),
+      _i('3"×3"×0.229" Plate Washer BPS½ (per anchor bolt)', Math.ceil(extPerim/6), 'ea', 'box(100)', 2.20),
+      _i('A35 Framing Angle (corner/intersection)', 24, 'ea', 'box(50)', 1.40),
+      _i('L70 Heavy Angle (header support)', 8, 'ea', 'ea', 5.20),
+      _i('Pneumatic 3¼" Framing Nail Clip 4000 ct', Math.ceil(totalStuds*4/4000)+1, 'box', 'box', 118),
+      _i('Pneumatic 2⅜" Sheathing Nail Coil 5000 ct', Math.ceil((wallSqft+sqft)/450), 'box', 'box', 88),
+      _i('Great Stuff Fireblock Foam 24 oz', Math.ceil(extPerim/40), 'can', 'can', 14),
+      _i('Acoustic Sealant (Tremco) 29 oz', 6, 'tube', 'tube', 18),
+      _i('PL Premium Construction Adhesive 28 oz', Math.ceil(extPerim/16), 'tube', 'tube', 11),
+      _i('Galvanized 16d Common Nail (50 lb keg, hand-nail)', 1, 'keg', 'keg', 92),
+      _i('Galvanized 8d Box Nail (sheathing, 50 lb)', 1, 'keg', 'keg', 88),
+      _i('Hilti Powder Actuated PTP-27 Pin (bottom plate)', Math.ceil(extPerim/2), 'ea', 'box(100)', 0.95),
+      _i('Hilti Powder Charge .27 cal Yellow', Math.ceil(extPerim/4), 'ea', 'box(100)', 0.65),
     );
+
+    // ── HEADERS / WINDOWS & DOORS FLASHING ────────────────────────────────
     if(openings>0){
       P(items, 'Headers',
-        _i('Window Sill Pan (Jamsill/SureSill)', windows, 'ea', 'ea', 18),
-        _i('DuPont FlexWrap NF 4"×75\' (sill flashing)', Math.ceil(windows*8/75), 'roll', 'roll', 52),
-        _i('Butyl Flashing Tape 4"×75\' (jambs/head)', Math.ceil(openings*12/75), 'roll', 'roll', 34),
-        _i('Great Stuff Pro Window Foam 24 oz', Math.ceil(openings*0.5), 'can', 'can', 11),
-        _i('Shim Bundle ⅛" (per opening)', openings, 'bundle', 'bundle', 4),
-        _i('½" Plywood Header Spacer (2×6 wall)', studSz==='2x6'?Math.ceil(openings/3):0, 'sheet', 'sheet', 42),
+        _i('Window Sill Pan (Jamsill/SureSill)', windows, 'ea', 'ea', 26),
+        _i('DuPont FlexWrap NF 4"×75\' (sill flashing)', Math.ceil(windows*8/75)+1, 'roll', 'roll', 72),
+        _i('Butyl Flashing Tape 4"×75\' (jambs/head)', Math.ceil(openings*12/75)+1, 'roll', 'roll', 48),
+        _i('Great Stuff Pro Window Foam 24 oz', Math.ceil(openings*0.6), 'can', 'can', 14),
+        _i('Shim Bundle ⅛" (per opening)', openings, 'bundle', 'bundle', 6),
+        _i('½" Plywood Header Spacer (2×6 wall)', isExt2x6?Math.ceil(openings/3):0, 'sheet', 'sheet', 54),
+        _i('Z-Flashing 5"×3"×10\' (head flashing)', Math.ceil(openings/3)+1, 'ea', 'ea', 18),
       );
     }
+
+    // ── FLOOR FRAMING (joists + rim + subfloor) ───────────────────────────
+    // Common 2×10 @ 16" OC spans ~14' clear (#2 SYP). Joist count along len
+    // (joists run across the short dimension `wid`).
+    {
+      const joistCount = Math.ceil((len*12)/oc)+1;
+      const joistLen = wid<=16?wid:Math.ceil(wid/2)+2;
+      P(items, 'Floor Framing',
+        _i('2×10×'+joistLen+"' Floor Joist (#2 SYP)", joistCount, 'pcs', 'pcs', joistLen<=12?22:joistLen<=16?32:46),
+        _i('2×10 PT Rim Joist 16\'', Math.ceil(extPerim/16*1.10), 'ea', 'ea', 36),
+        _i('2×10 Mid-Span Blocking', Math.max(0, joistCount-1), 'pcs', 'pcs', 18),
+        _i('Joist Hanger LUS210 (rim-to-joist)', joistCount*2+12, 'ea', 'box(50)', 2.40),
+        _i('Joist Hanger Nail SDN ×1½" 1 lb', 3, 'lb', 'lb', 22),
+        _i('23/32" T&G Subfloor (Advantech) 4×8', Math.ceil((sqft||floorSqft||len*wid)/32*1.08), 'sheet', 'sheet', 58),
+        _i('Subfloor Adhesive PL Premium 28 oz', Math.ceil(joistCount*joistLen/40), 'tube', 'tube', 11),
+        _i('Subfloor Screws 2½" GRK (5 lb box)', 3, 'box', 'box', 72),
+        _i('Joist Tape 4"×75\' (Trex Protect)', Math.ceil(joistCount*joistLen/300), 'roll', 'roll', 48),
+      );
+    }
+
+    // ── WALL FRAMING EXTRAS ───────────────────────────────────────────────
+    // The base calc gives stud + plate counts; this adds engineered headers
+    // and elements typically forgotten (drywall blocking, fire blocks, etc).
+    P(items, 'Wall Framing',
+      _i('LVL 1¾"×9¼"×16\' (header upgrade allowance)', Math.ceil(openings/2), 'ea', 'ea', 115),
+      _i('LVL 1¾"×11⅞"×16\' (long-span header allowance)', Math.ceil(openings/4), 'ea', 'ea', 148),
+      _i('Drywall Backing Block (electrical/cabinet)', Math.ceil(extPerim/3), 'ea', 'ea', 3.20),
+      _i('Fire Block 2×4 (vertical chase)', Math.ceil(extPerim/8), 'pcs', 'pcs', 6.80),
+      _i('Cripple Stud Stock (2×4×92⅝")', openings*3, 'ea', 'ea', isExt2x6?9.80:5.40),
+      _i('Trimmer/Jack Stud (full-height per opening)', openings*2, 'ea', 'ea', isExt2x6?12.50:6.80),
+      _i('California Corner Filler (2×4 block)', 16, 'ea', 'ea', 4.20),
+    );
+
+    // ── WALL SHEATHING & WRAP ─────────────────────────────────────────────
     if(sheath){
       P(items, 'Wall Sheathing',
-        _i('Tyvek Tape 1.88"×165\' (wrap seams)', Math.ceil(extPerim*ht/30/165), 'roll', 'roll', 24),
-        _i('1" Plastic-Cap Staple 1000 ct (wrap fastener)', Math.ceil(extPerim*ht*4/1000), 'box', 'box', 32),
+        _i('Tyvek Tape 1.88"×165\' (wrap seams)', Math.ceil(wallSqft/30/165)+1, 'roll', 'roll', 32),
+        _i('1" Plastic-Cap Staple 1000 ct (wrap fastener)', Math.ceil(wallSqft*4/1000)+1, 'box', 'box', 42),
+        _i('Zip System Liquid Flash 29 oz (seam upgrade option)', 4, 'tube', 'tube', 38),
+        _i('Felt Paper 30# (over OSB if no wrap)', 0, 'roll', 'roll', 48),
       );
     }
+
+    // ── ROOF FRAMING ──────────────────────────────────────────────────────
+    // Stick-frame gable roof at 6:12 pitch. Rafter length = sqrt((wid/2)²+ht²).
+    {
+      const pitch = 6;
+      const rise = (wid/2)*(pitch/12);
+      const rafterLen = Math.ceil(Math.sqrt((wid/2)**2 + rise**2)) + 1;
+      const rafterCount = Math.ceil((len*12)/16)+2;
+      const ceilJoistCount = ceil ? Math.ceil((len*12)/oc)+1 : 0;
+      P(items, 'Roof Framing',
+        _i('2×8×'+rafterLen+"' Rafter (#2 SYP)", rafterCount*2, 'pcs', 'pcs', rafterLen<=12?16:rafterLen<=14?20:26),
+        _i('2×10 Ridge Board 16\'', Math.ceil(len/16)+1, 'pcs', 'pcs', 38),
+        _i('2×6×'+wid+"' Ceiling Joist", ceilJoistCount, 'pcs', 'pcs', wid<=12?14:wid<=16?22:32),
+        _i('Joist Hanger LUS26 (ceiling joist-to-plate)', ceilJoistCount*2, 'ea', 'box(50)', 1.80),
+        _i('H2.5A Hurricane Tie (rafter-to-plate)', rafterCount*2, 'ea', 'box(100)', 1.20),
+        _i('LSTA12 Strap (ridge tie)', Math.ceil(len/4), 'ea', 'ea', 4.80),
+        _i('Sub-Fascia 2×6×16\'', Math.ceil((len+wid)*2/16*1.10), 'pcs', 'pcs', 24),
+        _i('Collar Tie 2×6×8\' (at upper third)', Math.ceil(rafterCount/2), 'pcs', 'pcs', 12),
+        _i('Rafter Energy Heel Block (vented)', rafterCount, 'ea', 'ea', 1.40),
+      );
+    }
+
+    // ── ROOF SHEATHING & DRY-IN ───────────────────────────────────────────
+    {
+      const pitchMult = Math.sqrt(1 + (6/12)**2);
+      const roofSqft = (len+2) * (wid/2+1) * pitchMult * 2;
+      P(items, 'Roof Sheathing & Dry-In',
+        _i('7/16" OSB Roof Sheathing 4×8 (CDX upgrade avail)', Math.ceil(roofSqft/32*1.08), 'sheet', 'sheet', 26),
+        _i('OSB Sheathing Nails 8d ring-shank (5 lb)', Math.ceil(roofSqft/450), 'box', 'box', 28),
+        _i('Synthetic Underlayment (10 sq roll)', Math.ceil(roofSqft/1000)+1, 'roll', 'roll', 245),
+        _i('Ice & Water Shield 200 sf roll (eaves + valleys)', Math.ceil((len+wid)*3/200)+1, 'roll', 'roll', 196),
+        _i('Drip Edge Aluminum 10\' stick', Math.ceil(((len+wid)*2 + wid)/10*1.05), 'ea', 'ea', 7.50),
+        _i('Plastic Cap Nail 1" 3000 ct pail', Math.ceil(roofSqft/1500), 'pail', 'pail', 85),
+      );
+    }
+
+    // ── ROOFING MATERIAL (architectural shingles default) ────────────────
+    {
+      const pitchMult = Math.sqrt(1 + (6/12)**2);
+      const roofSqft = (len+2) * (wid/2+1) * pitchMult * 2;
+      const squares = roofSqft/100;
+      P(items, 'Roofing Material',
+        _i('Architectural Shingles (bundle)', Math.ceil(squares*3*1.10), 'bundle', 'bundle', 62),
+        _i('Starter Strip Bundle', Math.ceil((len+wid)*2/100)+1, 'bundle', 'bundle', 78),
+        _i('Ridge Cap Bundle (Timbertex 35 lf)', Math.ceil(len/35)+1, 'bundle', 'bundle', 78),
+        _i('Roofing Nails 1¾" (5 lb)', Math.ceil(squares*2.5/5), 'box', 'box', 22),
+        _i('Roof Cement 10.1 oz Tube', Math.ceil(squares/3), 'tube', 'tube', 11),
+        _i('Pipe Boot Flashing EPDM 1½-3"', 2, 'ea', 'ea', 22),
+        _i('Cobra Ridge Vent 20\' Roll', Math.ceil(len/20), 'roll', 'roll', 72),
+        _i('Tie-in Step Flashing (existing roof to new)', Math.ceil(wid), 'ea', 'box(50)', 2.20),
+        _i('Apron Flashing 10\' (where new meets existing)', 2, 'ea', 'ea', 32),
+      );
+    }
+
+    // ── EXTERIOR SIDING & TRIM (Hardie default for ETN) ───────────────────
+    P(items, 'Siding & Exterior Trim',
+      _i('HardiePlank 8.25"×12\' Lap Siding', Math.ceil(wallSqft*1.10), 'sqft', 'sqft', 1.95),
+      _i('HardieTrim 5/4×4×12\' (corners)', Math.ceil((ht*8)/12), 'pcs', 'pcs', 28),
+      _i('HardieTrim 5/4×4×12\' (window/door casing)', Math.ceil(openings*16/12), 'pcs', 'pcs', 28),
+      _i('HardieSoffit Vented 12"×12\'', Math.ceil((len+wid)*2*1.5/12), 'pcs', 'pcs', 32),
+      _i('HardieFascia 1×6×12\' (sub-fascia cover)', Math.ceil((len+wid)*2/12), 'pcs', 'pcs', 38),
+      _i('Hardie Roughneck Trim Nail 2¼" (5 lb)', 3, 'box', 'box', 62),
+      _i('Stainless Ring-Shank Siding Nail 2½" (5 lb)', 1, 'box', 'box', 88),
+      _i('OSI QUAD Max 10 oz (exterior caulk)', 18, 'tube', 'tube', 14),
+      _i('Pre-bent Aluminum Coil Stock 24"×50\'', 1, 'roll', 'roll', 245),
+      _i('Exterior Primer 5 gal (Sherwin Multipurpose)', Math.ceil(wallSqft/1500)+1, 'pail', 'pail', 245),
+      _i('Exterior Paint 5 gal (SuperPaint Satin)', Math.ceil(wallSqft/1500)+1, 'pail', 'pail', 365),
+    );
+
+    // ── GUTTERS & DOWNSPOUTS ──────────────────────────────────────────────
+    {
+      const gutterLF = (len+2)*2;
+      P(items, 'Gutters & Drainage',
+        _i('5" K-Style Aluminum Gutter (10\' stick)', Math.ceil(gutterLF/10*1.10), 'pcs', 'pcs', 13),
+        _i('Gutter End Caps', 4, 'ea', 'ea', 4.00),
+        _i('Gutter Hangers (every 2\')', Math.ceil(gutterLF/2), 'ea', 'ea', 2.20),
+        _i('Downspout 2×3 — 10\' stick', 4, 'pcs', 'pcs', 11.50),
+        _i('Downspout Elbows', 8, 'ea', 'ea', 5.50),
+        _i('Gutter Sealant 10 oz Tube', 3, 'tube', 'tube', 13),
+        _i('Splash Block', 2, 'ea', 'ea', 12),
+      );
+    }
+
+    // ── DOORS & WINDOWS (actual units) ────────────────────────────────────
+    if(doors+windows>0){
+      // ETN 2026 allowances: avg vinyl DH 3050 ~$315, fiberglass ext door
+      // 3/0×6/8 ~$485, interior pre-hung 2/8 ~$185, builder-grade lockset
+      // ~$48, deadbolt ~$45. Add ~50% labor/install hours captured under
+      // category labor map (1.50 hr/ea avg).
+      const intDoors = Math.max(0, doors-1); // Assume 1 ext + rest interior
+      P(items, 'Doors & Windows',
+        _i('Vinyl Double-Hung Window 3050 (allowance)', windows, 'ea', 'ea', 315),
+        _i('Window Screen (per window)', windows, 'ea', 'ea', 28),
+        _i('Pre-Hung Fiberglass Ext Door 3/0×6/8 (allowance)', Math.max(0, doors-intDoors), 'ea', 'ea', 485),
+        _i('Pre-Hung Interior Door 2/8×6/8 6-panel (allowance)', intDoors, 'ea', 'ea', 185),
+        _i('Door Lockset (Schlage Plymouth)', doors, 'ea', 'ea', 52),
+        _i('Door Deadbolt (Schlage B60N)', Math.max(0, doors-intDoors), 'ea', 'ea', 48),
+        _i('Door Threshold + Sweep Kit', Math.max(0, doors-intDoors), 'ea', 'ea', 38),
+        _i('Door Hinges 4" Satin Nickel (3pk)', doors, 'pk', 'pk', 18),
+        _i('Window/Door Trim Casing 2¼"×16\' (interior)', Math.ceil(openings*17/16), 'pcs', 'pcs', 18),
+        _i('Window Stool 1×6 PT 12\'', windows, 'ea', 'ea', 22),
+      );
+    }
+
+    // ── INSULATION ────────────────────────────────────────────────────────
+    {
+      const wallBags = Math.ceil(wallSqft/(isExt2x6?64:88));
+      const ceilBags = ceil ? Math.ceil(sqft/64) : 0;
+      const intWallSqft = intStudCount * ht * 1.33; // rough int wall area
+      P(items, 'Insulation',
+        _i('R-'+(isExt2x6?'21':'13')+' Faced Fiberglass Batt (bag) — ext walls', wallBags, 'bag', 'bag', isExt2x6?105:68),
+        _i('R-19 Sound Batt (bag) — interior walls', Math.ceil(intWallSqft/72), 'bag', 'bag', 78),
+        _i('R-38 Faced Fiberglass Batt (bag) — ceiling', ceilBags, 'bag', 'bag', 95),
+        _i('Insulation Hangers / Wire', Math.ceil((wallSqft+sqft)/50), 'ea', 'box(100)', 0.40),
+        _i('6 mil Poly Vapor Barrier 10\'×100\'', Math.ceil((wallSqft+sqft)/1000), 'roll', 'roll', 78),
+        _i('Sheathing Tape (vapor seal seams)', 2, 'roll', 'roll', 38),
+        _i('Insulation Stapler / Knife (consumable)', 1, 'set', 'set', 38),
+      );
+    }
+
+    // ── INTERIOR DRYWALL & TRIM ───────────────────────────────────────────
+    {
+      const wallDwSqft = wallSqft + (intStudCount*ht*1.33); // 1 side ext + 2 sides int
+      const ceilDwSqft = sqft;
+      const dwSheets = Math.ceil((wallDwSqft+ceilDwSqft)/32*1.12);
+      P(items, 'Interior Finish',
+        _i('½" Drywall 4×8 (walls)', Math.ceil(wallDwSqft/32*1.10), 'sheet', 'sheet', 15),
+        _i('⅝" Type X Drywall 4×8 (ceiling)', Math.ceil(ceilDwSqft/32*1.10), 'sheet', 'sheet', 18),
+        _i('Drywall Screws 1¼" (5 lb)', Math.ceil(dwSheets/15), 'box', 'box', 22),
+        _i('Joint Compound 4.5 gal Pail (All-Purpose)', Math.ceil(dwSheets/12), 'pail', 'pail', 24),
+        _i('Drywall Tape 500\' Paper Roll', Math.ceil(dwSheets/8), 'roll', 'roll', 8),
+        _i('Corner Bead 10\' Metal', Math.ceil(extPerim/10) + 8, 'ea', 'ea', 4.50),
+        _i('Sanding Sponge / 220-grit Sheets', 12, 'ea', 'pk', 1.40),
+        _i('Texture Spray Hopper Rental (orange peel)', 1, 'day', 'day', 95),
+        _i('Drywall Texture Compound 5 gal', Math.ceil(sqft/400), 'pail', 'pail', 38),
+        _i('Baseboard 1×4×16 MDF', Math.ceil(extPerim/16*1.10), 'pcs', 'pcs', 22),
+        _i('Crown Molding 3¼"×16 MDF', Math.ceil(extPerim/16*1.10), 'pcs', 'pcs', 28),
+        _i('Window/Door Casing 2¼"×16 MDF', Math.ceil(openings*17/16), 'pcs', 'pcs', 18),
+        _i('16-ga Finish Nail 2" (collated 2500 ct)', 2, 'box', 'box', 42),
+        _i('18-ga Brad Nail 1¼" (5000 ct)', 1, 'box', 'box', 38),
+        _i('Wood Filler 16 oz', 2, 'ea', 'ea', 9),
+        _i('Caulk White Acrylic Paintable 10 oz', 18, 'tube', 'tube', 5),
+        _i('Interior Primer 5 gal (KILZ Premium)', Math.ceil((wallDwSqft+sqft)/1500)+1, 'pail', 'pail', 145),
+        _i('Interior Paint 5 gal (Eggshell, Sherwin Cashmere)', Math.ceil((wallDwSqft+sqft)/1500)+1, 'pail', 'pail', 285),
+        _i('Trim Paint 1 gal Semi-Gloss', Math.ceil(extPerim/200)+1, 'gal', 'gal', 78),
+        _i('9" Roller + Frame + Sleeve (5 pk)', 1, 'set', 'set', 24),
+        _i('2.5" Angle Sash Brush (Purdy)', 2, 'ea', 'ea', 18),
+        _i('Drop Cloth Canvas 9×12', 3, 'ea', 'ea', 22),
+        _i('Painter\'s Tape 1.88"×60yd', 4, 'roll', 'roll', 11),
+      );
+    }
+
+    // ── FLOORING (allowance — installed by trade later) ───────────────────
+    P(items, 'Flooring (allowance)',
+      _i('LVP Click Plank Allowance ($/sqft installed)', Math.ceil(sqft*1.05), 'sqft', 'sqft', 4.85),
+      _i('Underlayment Foam Padding 100 sf roll', Math.ceil(sqft/100), 'roll', 'roll', 28),
+      _i('Quarter-round Shoe Molding 8\'', Math.ceil(extPerim/8), 'pcs', 'pcs', 6.80),
+      _i('Transition Strip (T-mold)', doors+1, 'ea', 'ea', 22),
+    );
+
+    // ── ELECTRICAL ROUGH-IN ───────────────────────────────────────────────
+    {
+      const outlets = Math.max(6, Math.ceil(sqft/40));
+      const lights  = Math.max(2, Math.ceil(sqft/80));
+      const switches= Math.max(2, Math.ceil(sqft/100));
+      P(items, 'Electrical (Rough-In)',
+        _i('Outlet Box 18 cu in (NM, plastic)', outlets, 'ea', 'ea', 1.60),
+        _i('Switch Box Single-Gang (plastic)', switches, 'ea', 'ea', 1.40),
+        _i('Ceiling Light Box 4" Octagon (braced)', lights, 'ea', 'ea', 3.20),
+        _i('12-2 NM Romex 250\' Roll (20A circuits)', Math.max(1, Math.ceil(sqft/250)), 'roll', 'roll', 145),
+        _i('14-2 NM Romex 250\' Roll (15A lighting)', Math.max(1, Math.ceil(sqft/300)), 'roll', 'roll', 118),
+        _i('Cable Staple 1000 ct', 1, 'box', 'box', 32),
+        _i('Plastic Nail Plate (stud protection) 16/box', Math.ceil(extPerim/8), 'ea', 'ea', 0.85),
+        _i('Wire Nut Assortment (Wago 221 + twist)', 2, 'bag', 'bag', 24),
+        _i('Tamper-Resistant 15A Decora Outlet', outlets, 'ea', 'ea', 4.20),
+        _i('Decora Switch + Plate (Leviton)', switches, 'ea', 'ea', 7.50),
+        _i('AFCI/GFCI Combo 20A Outlet (kitchen/bath)', 2, 'ea', 'ea', 32),
+        _i('Smoke + CO Combo Detector (BRK)', Math.max(1, Math.ceil(sqft/300)), 'ea', 'ea', 48),
+        _i('LED 4" Recessed Can (Halo)', lights, 'ea', 'ea', 28),
+        _i('Bath Exhaust Fan + Light (Broan QT)', doors>1?1:0, 'ea', 'ea', 145),
+        _i('Sub-Panel Breaker 20A (if new circuit)', 2, 'ea', 'ea', 18),
+        _i('Electrical Permit Fee (allowance)', 1, 'ea', 'ea', 145),
+        _i('Electrical Inspection Fee', 1, 'ea', 'ea', 85),
+      );
+    }
+
+    // ── PLUMBING ROUGH-IN (allowance) ─────────────────────────────────────
+    P(items, 'Plumbing Rough-In (allowance)',
+      _i('PEX-A ½" 100\' Coil (hot)', 1, 'coil', 'coil', 85),
+      _i('PEX-A ½" 100\' Coil (cold)', 1, 'coil', 'coil', 85),
+      _i('PEX Expansion Fitting Assortment Kit', 1, 'kit', 'kit', 145),
+      _i('PEX Manifold 4-port', 1, 'ea', 'ea', 95),
+      _i('2" PVC DWV 10\' Stick', 4, 'pcs', 'pcs', 18),
+      _i('3" PVC DWV 10\' Stick', 2, 'pcs', 'pcs', 28),
+      _i('1½" PVC P-Trap', 2, 'ea', 'ea', 7),
+      _i('PVC Cement + Primer (8 oz pack)', 1, 'pack', 'pack', 28),
+      _i('PVC Fittings Assortment (90s/45s/Ts/couplings)', 1, 'kit', 'kit', 145),
+      _i('Tub/Shower Drain Assembly', 0, 'ea', 'ea', 145),
+      _i('Mixing Valve / Pressure-Balance Rough', 0, 'ea', 'ea', 285),
+      _i('Plumbing Permit Fee (allowance)', 1, 'ea', 'ea', 165),
+      _i('Plumbing Inspection Fee', 1, 'ea', 'ea', 85),
+      _i('Plumber Subcontractor Allowance', 1, 'ea', 'ea', 1850),
+    );
+
+    // ── HVAC TIE-IN (allowance) ───────────────────────────────────────────
+    P(items, 'HVAC Tie-In (allowance)',
+      _i('Supply Register 4×10 (white aluminum)', Math.max(2, Math.ceil(sqft/120)), 'ea', 'ea', 18),
+      _i('Return Air Grille 14×20', 1, 'ea', 'ea', 38),
+      _i('Insulated Flex Duct 6"Ø R-8 × 25\'', Math.max(1, Math.ceil(sqft/200)), 'ea', 'ea', 62),
+      _i('Sheet Metal Boot 6"×4×10', Math.max(2, Math.ceil(sqft/120)), 'ea', 'ea', 14),
+      _i('Trunk Line Tap-In Collar', 1, 'ea', 'ea', 22),
+      _i('Duct Mastic 1 gal', 1, 'gal', 'gal', 32),
+      _i('Foil Tape 2"×60yd (UL 181)', 2, 'roll', 'roll', 18),
+      _i('Mini-Split Allowance (12k BTU 18 SEER2) — optional', 0, 'ea', 'ea', 1485),
+      _i('HVAC Mechanical Permit (if new system)', 0, 'ea', 'ea', 145),
+      _i('HVAC Sub Tie-In Labor Allowance', 1, 'ea', 'ea', 985),
+    );
+
+    // ── CLEANUP & DISPOSAL ────────────────────────────────────────────────
+    P(items, 'Cleanup & Disposal',
+      _i('30-yd Dumpster Rental (demo + framing waste)', 2, 'ea', 'ea', 525),
+      _i('30-yd Dumpster Rental (finish phase debris)', 1, 'ea', 'ea', 525),
+      _i('Construction Trash Bag 3mil (32 ct)', 3, 'box', 'box', 28),
+      _i('Push Broom 24"', 2, 'ea', 'ea', 28),
+      _i('Magnetic Nail Sweep Rental (day)', 2, 'day', 'day', 24),
+      _i('Shop-Vac Filter (drywall dust)', 4, 'ea', 'ea', 18),
+      _i('Final Construction Cleaning (sf)', sqft, 'sqft', 'sqft', 0.45),
+      _i('Final Cleanup Labor Allowance', 1, 'ea', 'ea', 485),
+    );
+
     P(items, 'Summary',
-      _i('Building Permit Fee (allowance)', 1, 'ea', 'ea', 150),
-      _i('Framing Inspection Fee', 1, 'ea', 'ea', 75),
+      _i('Building Permit Fee (addition, allowance)', 1, 'ea', 'ea', 485),
+      _i('Plan Review Fee (county)', 1, 'ea', 'ea', 245),
+      _i('Framing Inspection Fee', 1, 'ea', 'ea', 95),
+      _i('Final Inspection / C-of-O Fee', 1, 'ea', 'ea', 145),
     );
   }
   else if(type==='concrete'){
@@ -3693,6 +4196,29 @@ function extendTakeoffWithCompleteList(type, items, c){
         _i('16-ga Tie Wire Roll (additional)', 1, 'roll', 'roll', 11),
       );
     }
+    // Excavation — separate from compaction; required to dig footers/grade pad
+    P(items, 'Site Work & Excavation',
+      _i('Mini-Excavator Rental (day, ≤500 sf)', sqft<=500?1:0, 'day', 'day', 285),
+      _i('Skid-Steer Rental (day, >500 sf)', sqft>500?1:0, 'day', 'day', 365),
+      _i('Spoils Haul-off (excavated dirt)', Math.ceil(sqft*0.4/27), 'CY', 'CY', 32),
+      _i('Round-Point Shovel', 2, 'ea', 'ea', 28),
+      _i('Pick Mattock', 1, 'ea', 'ea', 38),
+      _i('Grade Stake 1×2×36"', Math.ceil(perim/4), 'ea', 'bundle(50)', 1.40),
+    );
+    // Cold-weather / curing protection — concrete fails if frozen
+    P(items, 'Finishing',
+      _i('Concrete Curing Blanket 6×25\'', sqft>200?Math.ceil(sqft/150):0, 'ea', 'ea', 58),
+      _i('Plastic Cure Sheeting 10\'×100\' (alt to blanket)', 1, 'roll', 'roll', 42),
+      _i('Calcium Chloride Accelerator (cold pour)', orderCY>5?Math.ceil(orderCY):0, 'bag', 'bag', 18),
+    );
+    // Cleanup & Disposal
+    P(items, 'Cleanup & Disposal',
+      _i('Concrete Washout Bag Disposal Fee', 1, 'ea', 'ea', 85),
+      _i('30-yd Dumpster Rental (form lumber/debris)', sqft>500?1:0, 'ea', 'ea', 425),
+      _i('Push Broom 24" (concrete surface clean)', 1, 'ea', 'ea', 22),
+      _i('Pressure Washer Rental (day, slab rinse)', 1, 'day', 'day', 95),
+      _i('Final Cleanup Labor Allowance', 1, 'ea', 'ea', 165),
+    );
     P(items, 'Summary',
       _i('Building Permit Fee (allowance)', 1, 'ea', 'ea', 150),
       _i('Concrete Inspection Fee', 1, 'ea', 'ea', 75),
@@ -3706,15 +4232,15 @@ function extendTakeoffWithCompleteList(type, items, c){
       _i('Marking Paint (utility orange)', 2, 'can', 'can', 7),
     );
     P(items, 'Drip Edge & Flashing',
-      _i('Apron Flashing 10\' (porch-to-wall)', attached?Math.ceil(len/10*1.10):0, 'ea', 'ea', 22),
-      _i('Counter Flashing 10\' (kerf into siding)', attached?Math.ceil(len/10*1.10):0, 'ea', 'ea', 26),
-      _i('Step Flashing 4×4×8" 50/box', attached?1:0, 'box', 'box', 42),
-      _i('Kick-out Flashing', attached?2:0, 'ea', 'ea', 14),
-      _i('Pipe Boot Flashing EPDM', 1, 'ea', 'ea', 14),
-      _i('Cobra Ridge Vent 20\' Roll', ridgeLF>0?Math.ceil(ridgeLF/20):0, 'roll', 'roll', 48),
-      _i('1×6 PVC Fascia 18\'', Math.ceil((len+dep*2)/18*1.10), 'ea', 'ea', 52),
-      _i('Vented Aluminum Soffit 12\'×12"', Math.ceil((len+dep*2)*1.5/12), 'ea', 'ea', 18),
-      _i('F + J Channel 12\'', Math.ceil((len+dep*2)/12)*2, 'ea', 'ea', 9),
+      _i('Apron Flashing 10\' (porch-to-wall)', attached?Math.ceil(len/10*1.10):0, 'ea', 'ea', 32),
+      _i('Counter Flashing 10\' (kerf into siding)', attached?Math.ceil(len/10*1.10):0, 'ea', 'ea', 38),
+      _i('Step Flashing 4×4×8" 50/box', attached?1:0, 'box', 'box', 62),
+      _i('Kick-out Flashing', attached?2:0, 'ea', 'ea', 22),
+      _i('Pipe Boot Flashing EPDM', 1, 'ea', 'ea', 22),
+      _i('Cobra Ridge Vent 20\' Roll', ridgeLF>0?Math.ceil(ridgeLF/20):0, 'roll', 'roll', 72),
+      _i('1×6 PVC Fascia 18\'', Math.ceil((len+dep*2)/18*1.10), 'ea', 'ea', 72),
+      _i('Vented Aluminum Soffit 12\'×12"', Math.ceil((len+dep*2)*1.5/12), 'ea', 'ea', 26),
+      _i('F + J Channel 12\'', Math.ceil((len+dep*2)/12)*2, 'ea', 'ea', 14),
     );
     if(fans>0 || lights>0){
       P(items, 'Electrical (Rough-In)',
@@ -3750,6 +4276,36 @@ function extendTakeoffWithCompleteList(type, items, c){
       _i('Building Permit Fee (allowance)', 1, 'ea', 'ea', 175),
       _i('Inspection Fee', 1, 'ea', 'ea', 75),
     );
+    // Insulation — needed if ceiling is closed (drywall/T&G)
+    P(items, 'Ceiling',
+      _i('R-19 Faced Fiberglass Batt (bag, covers ~64 sf)', Math.ceil(sqft/64), 'bag', 'bag', 58),
+      _i('Insulation Hangers / Staples', Math.ceil(sqft/50), 'ea', 'box(100)', 0.20),
+      _i('Vapor Barrier 6mil 10\'×100\'', Math.ceil(sqft/1000), 'roll', 'roll', 58),
+    );
+    // Paint & Finish — ceiling, columns, floor stain
+    P(items, 'Paint & Finish',
+      _i('Ceiling Paint 5 gal (Flat White)', Math.ceil(sqft/1500), 'pail', 'pail', 145),
+      _i('Column Wrap Paint qt (Semi-Gloss)', Math.ceil(totalCols/4), 'qt', 'qt', 24),
+      _i('Floor Stain/Sealer 5 gal (if PT/Cedar)', Math.ceil(sqft/200), 'pail', 'pail', 165),
+      _i('9" Roller + Frame + Sleeve (3pk)', 1, 'set', 'set', 18),
+      _i('2.5" Angle Sash Brush', 2, 'ea', 'ea', 11),
+      _i('Drop Cloth 9×12 Canvas', 2, 'ea', 'ea', 18),
+    );
+    // Door — required for screened porches; allowance for screen door
+    if(screening==='screen'){
+      P(items, 'Screening / Enclosure',
+        _i('Screen Door 36" Aluminum w/ Closer', 1, 'ea', 'ea', 245),
+        _i('Door Hardware Lockset + Latch', 1, 'ea', 'ea', 38),
+      );
+    }
+    // Cleanup & Disposal
+    P(items, 'Cleanup & Disposal',
+      _i('30-yd Dumpster Rental', sqft>150?1:0, 'ea', 'ea', 425),
+      _i('Construction Trash Bag 3mil (32 ct)', 1, 'box', 'box', 28),
+      _i('Push Broom 24"', 1, 'ea', 'ea', 22),
+      _i('Magnetic Nail Sweep Rental (day)', 1, 'day', 'day', 18),
+      _i('Final Cleanup Labor Allowance', 1, 'ea', 'ea', 195),
+    );
   }
   else if(type==='carport'){
     const {len=0,wid=0,ht=0,perim=0,sqft=0,postCount=4,ridgeLF=0,roofMat='metal',sides='none'}=c;
@@ -3772,9 +4328,9 @@ function extendTakeoffWithCompleteList(type, items, c){
     );
     if(roofMat==='metal'||roofMat==='tin'){
       P(items, 'Roofing Material',
-        _i('Z-closure Foam 3\' (eave/ridge)', Math.ceil(((len*2)+(ridgeLF||0))/3), 'ea', 'ea', 4.80),
-        _i('Eave/Rake Trim 10\'6"', Math.ceil((len+wid)*2/10.5), 'ea', 'ea', 36),
-        _i('Butyl Seam Sealant Tape ⅛"×½"×30\'', Math.ceil(len/30), 'roll', 'roll', 14),
+        _i('Z-closure Foam 3\' (eave/ridge)', Math.ceil(((len*2)+(ridgeLF||0))/3), 'ea', 'ea', 7.20),
+        _i('Eave/Rake Trim 10\'6"', Math.ceil((len+wid)*2/10.5), 'ea', 'ea', 52),
+        _i('Butyl Seam Sealant Tape ⅛"×½"×30\'', Math.ceil(len/30), 'roll', 'roll', 22),
       );
     }
     if(sides && sides!=='none'){
@@ -3797,6 +4353,40 @@ function extendTakeoffWithCompleteList(type, items, c){
       _i('Building Permit Fee (allowance)', 1, 'ea', 'ea', 175),
       _i('Zoning / Setback Verification Fee', 1, 'ea', 'ea', 85),
       _i('Inspection Fee', 1, 'ea', 'ea', 75),
+    );
+    // Insulation — only when enclosed (any sides)
+    if(sides && sides!=='none' && sides!=='open'){
+      P(items, 'Side Walls',
+        _i('R-13 Faced Fiberglass Batt (bag, covers ~88 sf)', Math.ceil(perim*ht/88), 'bag', 'bag', 52),
+        _i('Insulation Hangers / Staples', Math.ceil(perim*ht/50), 'ea', 'box(100)', 0.20),
+      );
+    }
+    // Garage door opening framing/hardware allowance (carports often add later)
+    P(items, 'Roof Framing',
+      _i('Garage Door Header LVL 1¾×11⅞ × 16\' (rough opening allowance)', 0, 'ea', 'ea', 145),
+      _i('Garage Door Jamb Trim 2×6 PT × 10\'', 0, 'ea', 'ea', 22),
+    );
+    // Cleanup & Disposal
+    P(items, 'Cleanup & Disposal',
+      _i('30-yd Dumpster Rental', sqft>300?1:0, 'ea', 'ea', 425),
+      _i('Construction Trash Bag 3mil (32 ct)', 1, 'box', 'box', 28),
+      _i('Push Broom 24"', 1, 'ea', 'ea', 22),
+      _i('Magnetic Nail Sweep Rental (day)', 1, 'day', 'day', 18),
+      _i('Final Cleanup Labor Allowance', 1, 'ea', 'ea', 195),
+    );
+  }
+  else if(type==='blockwall'){
+    const {len=0,ht=0,wallSqft=0,blockQty=0}=c;
+    // Blockwall calc is comprehensive inline; this adds final cleanup/disposal
+    // and finish items that round out the construction sequence.
+    P(items, 'Cleanup & Disposal',
+      _i('30-yd Dumpster Rental (block scrap, mortar bags)', wallSqft>200?1:0, 'ea', 'ea', 425),
+      _i('Construction Trash Bag 3mil (32 ct)', 1, 'box', 'box', 28),
+      _i('Push Broom 24"', 1, 'ea', 'ea', 22),
+      _i('Wire Brush (mortar cleanup)', 2, 'ea', 'ea', 9),
+      _i('Muriatic Acid Wash 1 gal (block surface)', Math.ceil(wallSqft/300), 'gal', 'gal', 14),
+      _i('Pressure Washer Rental (day)', 1, 'day', 'day', 95),
+      _i('Final Cleanup Labor Allowance', 1, 'ea', 'ea', 185),
     );
   }
 }
@@ -3841,6 +4431,17 @@ function toRenderResults(items, summary, type){
     'Core Grout Fill':     R.mason, 'Wall Cap':          R.mason,
     'Waterproofing':       R.sk,  'Drainage':            R.sk,
     'Wall Finish':         R.mason,
+    'Site Prep & Excavation':R.gen,'Site Work & Excavation':R.gen,
+    'Finish & Sealing':    R.sk,  'Finish & Paint':      R.sk,
+    'Paint & Finish':      R.sk,  'Cleanup & Disposal':  R.gen,
+    'Floor Framing':       R.sk,  'Interior Finish':     R.sk,
+    'Doors & Windows':     R.sk,  'Ceiling':             R.sk,
+    // Framing addition / wall scope (Knoxville 2026)
+    'Demolition & Tie-In': R.sk,  'Wall Framing':        R.sk,
+    'Roof Sheathing & Dry-In':R.sk,'Siding & Exterior Trim':R.side,
+    'Insulation':          R.sk,  'Flooring (allowance)':R.sk,
+    'Plumbing Rough-In (allowance)':R.plumb,
+    'HVAC Tie-In (allowance)':R.hvac,
   };
 
   // Estimate labor by category if not provided explicitly
@@ -3874,6 +4475,25 @@ function toRenderResults(items, summary, type){
     'Waterproofing':       {pail:1.5, roll:0.60, gal:0.20, ea:0.08, default:0.30},
     'Drainage':            {ea:0.20, tons:0.80, roll:0.40, default:0.25},
     'Wall Finish':         {pail:1.5, bag:0.30, sqft:0.10, lf:0.30, default:0.20, sheet:0.25},
+    'Site Prep & Excavation':{day:0,  ea:0.10, cy:0.40, bundle:0.05, default:0.15},
+    'Site Work & Excavation':{day:0,  cy:0.40, ea:0.10, bundle:0.05, default:0.15},
+    'Finish & Sealing':    {pail:0.80,gal:0.50, ea:0.10, set:0.10, roll:0.10, qt:0.30, default:0.20},
+    'Finish & Paint':      {qt:0.30, gal:0.50, ea:0.10, default:0.15},
+    'Paint & Finish':      {pail:0.80,gal:0.50, qt:0.30, ea:0.10, set:0.10, default:0.20},
+    'Cleanup & Disposal':  {ea:0.10, day:0,    box:0.05, gal:0.15, sqft:0.005, default:0.10},
+    'Floor Framing':       {pcs:0.22,ea:0.06, sheet:0.32,tube:0.05,box:0.10, roll:0.15, lb:0.05, default:0.15},
+    'Interior Finish':     {sheet:0.50,pail:1.5,roll:0.30,ea:0.20, box:0.10, pcs:0.20, tube:0.04, gal:0.50, pk:0.05, set:0.10, default:0.20},
+    'Doors & Windows':     {ea:1.50, pcs:0.50, pk:0.05, default:1.0},
+    // Framing addition / wall scope hour estimates
+    'Demolition & Tie-In': {lf:0.18, sf:0.05, sqft:0.05, ea:0.45, pack:0.05, kit:0.10, roll:0.10, bag:0.20, day:0, default:0.20},
+    'Wall Framing':        {pcs:0.18,ea:0.10, default:0.15},
+    'Roof Sheathing & Dry-In':{sheet:0.20, roll:0.30, ea:0.10, pail:0.20, box:0.05, default:0.15},
+    'Siding & Exterior Trim':{sqft:0.04, pcs:0.18, box:0.05, tube:0.03, roll:0.20, gal:0.50, pail:0.80, default:0.10},
+    'Insulation':          {bag:0.20, ea:0.005, roll:0.30, set:0.10, default:0.15},
+    'Flooring (allowance)':{sqft:0.04, roll:0.15, pcs:0.10, ea:0.20, default:0.10},
+    'Plumbing Rough-In (allowance)':{coil:0.50, kit:0.50, pcs:0.30, ea:0.30, pack:0.10, gal:0.10, default:0.30},
+    'HVAC Tie-In (allowance)':{ea:0.30, gal:0.15, roll:0.10, default:0.25},
+    'Foundation':          {CY:2.0, cy:2.0, bag:0.05, ea:0.20, tons:0.80, pcs:0.10, stick:0.18, set:0.15, roll:0.05, pail:0.20, default:0.10},
   };
 
   // Build full cost data per item
@@ -8574,18 +9194,18 @@ const DEFAULT_PRICES = {
   '6x6 Wire Mesh 5x10 sheet':  {price:12.2,unit:'ea',  cat:'Concrete',   note:'W1.4 welded wire'},
   'Fiber Mesh (per bag)':       {price:9.50, unit:'bag', cat:'Concrete',   note:'Add to ready-mix order'},
   // ROOFING
-  '3-Tab Shingles (sq)':        {price:98,  unit:'sq',   cat:'Roofing',    note:'Per roofing square (100sqft). HD/Lowes'},
-  'Arch Shingles 30yr (sq)':    {price:138, unit:'sq',   cat:'Roofing',    note:'GAF Timberline HDZ or equiv'},
-  'Arch Shingles 50yr (sq)':    {price:192, unit:'sq',   cat:'Roofing',    note:'Premium architectural'},
-  'Metal Roofing Panel (sqft)': {price:4.4, unit:'sqft',cat:'Roofing',    note:'29ga steel panel. Installed ~$8-12'},
-  'Standing Seam Metal (sqft)': {price:8.1, unit:'sqft',cat:'Roofing',    note:'24ga Galvalume. Installed ~$14-18'},
-  'Synthetic Underlayment (sq)':{price:19,  unit:'sq',   cat:'Roofing',    note:'Grace/GAF or equiv, 10sq roll ~$180'},
-  '15# Felt (sq)':              {price:8.8, unit:'sq',  cat:'Roofing',    note:'2sq per roll at ~$17'},
-  'Ice & Water Shield (sq)':    {price:74,  unit:'sq',   cat:'Roofing',    note:'Grace Ice & Water ~$72/sq'},
-  'Drip Edge 10ft aluminum':    {price:4.4, unit:'ea',  cat:'Roofing',    note:'Standard .019 aluminum'},
-  'Ridge Cap Bundle (35lf)':    {price:44,  unit:'bundle',cat:'Roofing',   note:'Matches arch shingle'},
-  '5" K-Style Gutter 10ft':     {price:8.8, unit:'ea',  cat:'Roofing',    note:'Aluminum'},
-  '6" K-Style Gutter 10ft':     {price:11.6,unit:'ea',  cat:'Roofing',    note:'Heavy gauge'},
+  '3-Tab Shingles (sq)':        {price:132, unit:'sq',   cat:'Roofing',    note:'Per roofing square (100sqft). Knoxville HD/Lowes May 2026'},
+  'Arch Shingles 30yr (sq)':    {price:186, unit:'sq',   cat:'Roofing',    note:'GAF Timberline HDZ or equiv — was $138 in 2024, up ~35%'},
+  'Arch Shingles 50yr (sq)':    {price:258, unit:'sq',   cat:'Roofing',    note:'Premium architectural (GAF Camelot, Owens TruDef)'},
+  'Metal Roofing Panel (sqft)': {price:5.80,unit:'sqft', cat:'Roofing',    note:'29ga exposed-fastener panel. Installed ~$11-14 ETN'},
+  'Standing Seam Metal (sqft)': {price:10.80,unit:'sqft',cat:'Roofing',    note:'24ga Galvalume. Installed ~$16-20 ETN'},
+  'Synthetic Underlayment (sq)':{price:26,  unit:'sq',   cat:'Roofing',    note:'GAF FeltBuster/Sharkskin — 10sq roll ~$245'},
+  '15# Felt (sq)':              {price:12.50,unit:'sq',  cat:'Roofing',    note:'2sq per roll at ~$25 — rarely used now'},
+  'Ice & Water Shield (sq)':    {price:98,  unit:'sq',   cat:'Roofing',    note:'Grace Ice & Water ~$95-105/sq Knoxville'},
+  'Drip Edge 10ft aluminum':    {price:7.50,unit:'ea',   cat:'Roofing',    note:'Standard .019 aluminum — $7-9/stick 2026'},
+  'Ridge Cap Bundle (35lf)':    {price:64,  unit:'bundle',cat:'Roofing',   note:'Matches arch shingle (Timbertex)'},
+  '5" K-Style Gutter 10ft':     {price:13,  unit:'ea',   cat:'Roofing',    note:'Aluminum — seamless run on-site preferred'},
+  '6" K-Style Gutter 10ft':     {price:16.50,unit:'ea',  cat:'Roofing',    note:'Heavy gauge — recommended for 1500+ sf roofs'},
   // SIDING
   'Vinyl Siding D4 (sq)':       {price:91,  unit:'sq',   cat:'Siding',     note:'Per 100sqft. Mid-grade'},
   'Vinyl Siding D5 (sq)':       {price:98,  unit:'sq',   cat:'Siding',     note:''},
@@ -8809,34 +9429,38 @@ const PRICE_MAP = (()=>{
   add('Stair Angle Hardware',          8.50, 0.20,'sk');
 
   // ── ROOFING ────────────────────────────────────────────────────────────
-  add('Ice & Water Shield (200sqft rolls)', 74, 0.15,'roof');
-  add('Synthetic Underlayment',        19,  0.1,'roof');
-  add('Starter Strip Shingles',        45,  0.08,'roof');
-  add('Architectural Shingles',        46,  0.8,'roof');
-  add('3-Tab Shingles',                32,  0.65,'roof');
-  add('Ridge Cap Shingles',            44,  0.2,'roof');
-  add('Drip Edge Aluminum 10\' sticks', 4.20, 0.08,'sk');
-  add('Roofing Nails 1-3/4" (5lb)',    14,  0.01,'roof');
-  add('Sheathing Nails (1-3/4")',       8,  0.01,'sk');
-  add('7/16" OSB Sheathing (4×8)',     14.50, 0.18,'sk');
+  // East TN 2026: material costs reset to Knoxville HD/Lowes / supplier pricing.
+  // Labor bumped to reflect actual sub-contractor productivity after fall-
+  // protection setup, tarping, magnetic sweep, and disposal.
+  add('Ice & Water Shield (200sqft rolls)', 98, 0.18,'roof');
+  add('Synthetic Underlayment',        26,  0.12,'roof');
+  add('Starter Strip Shingles',        62,  0.10,'roof');
+  add('Architectural Shingles',        62,  0.95,'roof');
+  add('3-Tab Shingles',                42,  0.80,'roof');
+  add('Ridge Cap Shingles',            64,  0.25,'roof');
+  add('Drip Edge Aluminum 10\' sticks', 7.50,0.10,'roof');
+  add('Roofing Nails 1-3/4" (5lb)',    22,  0.01,'roof');
+  add('Sheathing Nails (1-3/4")',      14,  0.01,'sk');
+  add('7/16" OSB Sheathing (4×8)',     24,  0.20,'sk');
   // Exposed-fastener metal panels: 2-man crew runs ~50 sqft/hr per person.
   // Standing seam is slower due to clip layout + snap engagement.
-  add('Metal Roofing Panel (sqft)',     4.20, 0.025,'roof');
-  add('Standing Seam Metal Panels',    7.80, 0.045,'roof');
-  add('Metal Roofing Screws w/EPDM',   0.08, 0.005,'sk');
-  add('Metal Roofing Screws w/EPDM washer', 0.08, 0.005,'sk');
-  add('Metal Ridge Cap',               8.50, 0.12,'sk');
-  add('Butyl Tape Closure Strip',      12,  0.08,'sk');
-  add('Metal Touch-Up Paint',          12,  0.05,'paint');
+  add('Metal Roofing Panel (sqft)',     5.80,0.030,'roof');
+  add('Standing Seam Metal Panels',    10.50,0.055,'roof');
+  add('Metal Roofing Screws w/EPDM',    0.14,0.005,'roof');
+  add('Metal Roofing Screws w/EPDM washer', 0.14,0.005,'roof');
+  add('Metal Ridge Cap',               12.50,0.15,'roof');
+  add('Butyl Tape Closure Strip',      18,  0.08,'roof');
+  add('Metal Touch-Up Paint',          18,  0.05,'paint');
 
   // ── GUTTERS ────────────────────────────────────────────────────────────
-  add('5" K-Style Aluminum Gutter (10\')', 8.50, 0.15,'sk');
-  add('5" K-Style Gutter (10\' sticks)', 8.50, 0.15,'sk');
-  add('6" K-Style Gutter 10ft',       11.20, 0.18,'sk');
-  add('Gutter End Caps',               2.50, 0.05,'sk');
-  add('Gutter Hangers',                1.20, 0.05,'sk');
-  add('Downspout (2×3 — 10\' sticks)', 7.50, 0.12,'sk');
-  add('Downspout Elbows',              3.50, 0.05,'sk');
+  // Seamless gutter sub rate in ETN runs $7-9/lf installed for 5" K-style.
+  add('5" K-Style Aluminum Gutter (10\')', 13.00,0.17,'sk');
+  add('5" K-Style Gutter (10\' sticks)',   13.00,0.17,'sk');
+  add('6" K-Style Gutter 10ft',           16.50,0.20,'sk');
+  add('Gutter End Caps',                   4.00,0.07,'sk');
+  add('Gutter Hangers',                    2.20,0.05,'sk');
+  add('Downspout (2×3 — 10\' sticks)',    11.50,0.15,'sk');
+  add('Downspout Elbows',                  5.50,0.08,'sk');
 
   // ── CONCRETE SLAB / FOUNDATION ─────────────────────────────────────────
   // Labor is placement + screed + finish; assumes ready-mix delivered by
@@ -8855,16 +9479,56 @@ const PRICE_MAP = (()=>{
   add('Fiber Mesh (per bag)',           9.50, 0.02,'sk');
 
   // ── FRAMING (room addition) ─────────────────────────────────────────────
-  add('2×4 Wall Studs 8\'',            4.85, 0.15,'sk');
-  add('Bottom Plate',                   5.20, 0.06,'sk');
-  add('Anchor Bolt Sets',               4.20, 0.20,'sk');
-  add('1/2" Drywall 4×8',              8.95, 0.06,'sk');
-  add('House Wrap (9\'×150\' roll)',   145,  0.03,'sk');
-  add('LVL Header',                    55,  0.50,'sk');
-  add('Window Header',                 35,  0.50,'sk');
-  add('Window Sill',                    8,  0.20,'sk');
-  add('Jack Studs',                    4.85, 0.15,'sk');
-  add('OSB Sheathing',                14.50, 0.04,'sk');
+  // East TN 2026: stick lumber 25-35% above 2024 baseline. Labor hours
+  // reflect real Knoxville/Tri-Cities framing crews (3-4 carpenters
+  // producing ~40-55 lf wall/day complete with sheathing).
+  add('2×4 Wall Studs 8\'',             5.40, 0.18,'sk');
+  add('2×4 Wall Studs 9\'',             6.80, 0.20,'sk');
+  add('2×6 Wall Studs 8\'',             9.20, 0.20,'sk');
+  add('2×6 Wall Studs 9\'',            10.80, 0.22,'sk');
+  add('Bottom Plate',                   8.50, 0.08,'sk');
+  add('Top Plate (dbl)',               17,   0.10,'sk');
+  add('Anchor Bolt Sets',               6.20, 0.22,'sk');
+  add('1/2" Drywall 4×8',              15,   0.10,'sk');
+  add('5/8" Type X Drywall 4×8',       18,   0.11,'sk');
+  add('House Wrap (9\'×150\' roll)',  225,   0.05,'sk');
+  add('LVL Header',                   115,   0.55,'sk');
+  add('LVL 1¾"×9¼"×16\'',             115,   0.55,'sk');
+  add('LVL 1¾"×11⅞"×16\'',            148,   0.65,'sk');
+  add('Window Header',                 48,   0.55,'sk');
+  add('Window Sill',                   12,   0.22,'sk');
+  add('Jack Studs',                     5.40, 0.18,'sk');
+  add('Cripple Stud Stock (2×4×92⅝")',  5.40, 0.12,'sk');
+  add('OSB Sheathing',                 24,   0.06,'sk');
+  add('7/16" OSB Wall Sheathing (4×8)',24,   0.20,'sk');
+  add('Zip System 7/16" Sheathing 4×8',58,   0.22,'sk');
+  // Floor / roof framing lumber (addition scope)
+  add('2×10 Floor Joist (#2 SYP)',     32,   0.22,'sk');
+  add('2×12 Floor Joist (#2 SYP)',     46,   0.25,'sk');
+  add('2×10 PT Rim Joist 16\'',        36,   0.20,'sk');
+  add('23/32" T&G Subfloor (Advantech) 4×8', 58, 0.32,'sk');
+  add('2×8 Rafter (#2 SYP)',           20,   0.22,'sk');
+  add('2×10 Ridge Board 16\'',         38,   0.20,'sk');
+  add('2×6 Ceiling Joist',             22,   0.20,'sk');
+  add('Sub-Fascia 2×6×16\'',           24,   0.10,'sk');
+  add('Collar Tie 2×6×8\'',            12,   0.15,'sk');
+  // Fasteners / hardware (addition scope)
+  add('H2.5A Hurricane Tie (rafter-to-plate)', 1.20, 0.05, 'sk');
+  add('Joist Hanger LUS210 (rim-to-joist)',    2.40, 0.06, 'sk');
+  add('Joist Hanger LUS26 (ceiling joist-to-plate)', 1.80, 0.06,'sk');
+  add('A35 Framing Angle (corner/intersection)',     1.40, 0.04,'sk');
+  add('LSTA21 Strap (intersecting walls)',           4.80, 0.10,'sk');
+  add('LSTA12 Strap (ridge tie)',                    4.80, 0.10,'sk');
+  add('CS16 Coiled Strap 50\' (top-plate splice)',  38,    0.20,'sk');
+  // Insulation (addition scope)
+  add('R-13 Faced Fiberglass Batt (bag)',           68,    0.20,'sk');
+  add('R-21 Faced Fiberglass Batt (bag)',          105,    0.22,'sk');
+  add('R-19 Sound Batt (bag)',                      78,    0.20,'sk');
+  add('R-38 Faced Fiberglass Batt (bag)',           95,    0.25,'sk');
+  // Doors / windows
+  add('Vinyl Double-Hung Window 3050 (allowance)', 315,    1.20,'sk');
+  add('Pre-Hung Fiberglass Ext Door 3/0×6/8 (allowance)', 485, 2.00,'sk');
+  add('Pre-Hung Interior Door 2/8×6/8 6-panel (allowance)', 185, 0.85,'sk');
 
   // ── PORCH ──────────────────────────────────────────────────────────────
   add('Outdoor Tile 12×12',            1.85, 0.12,'mason');
@@ -8928,12 +9592,13 @@ const PRICE_MAP = (()=>{
   add('Ridge Board 2×10',             19.20, 0.22,'sk');
   add('Hurricane Ties H2.5A',          0.85, 0.04,'sk');
   add('Framing Nails 16d (25lb)',     72,   0.05,'sk');
-  // Metal roof panels — carport name variants, same labor as roofing block
-  add('29ga Steel Metal Panels',       4.20, 0.025,'roof');
-  add('Corrugated Tin Panels',         3.80, 0.025,'roof');
-  add('29ga Steel Wall Panels',        3.80, 0.022,'sk');
-  add('Wall Panel Screws',             0.10, 0.005,'sk');
-  add('Polycarbonate Panels 26"×12\'', 45,  0.18,'sk');
+  // Metal roof panels — carport name variants, same labor as roofing block.
+  // 2026: 29ga panels at Mueller/Knox metal yards run $5.50-6.20/sqft.
+  add('29ga Steel Metal Panels',       5.80, 0.030,'roof');
+  add('Corrugated Tin Panels',         5.20, 0.030,'roof');
+  add('29ga Steel Wall Panels',        5.20, 0.028,'sk');
+  add('Wall Panel Screws',             0.14, 0.005,'sk');
+  add('Polycarbonate Panels 26"×12\'', 62,  0.20,'sk');
   add('Polycarbonate Closure Strips', 12,  0.05,'sk');
   add('Stainless Self-Drill Screws',   0.12, 0.005,'sk');
   add('Foam Closure Strips',           8.50, 0.05,'sk');
@@ -12451,19 +13116,620 @@ const QUICK_EXAMPLES = [
 function sketchPageOpened(){
   // Populate quick-start buttons
   const el = document.getElementById('desc-examples');
-  if(!el || el.children.length > 0) return;
-  QUICK_EXAMPLES.forEach(ex => {
-    const btn = document.createElement('button');
-    btn.className = 'btn btn-ghost btn-sm';
-    btn.style.cssText = 'font-size:11px;padding:4px 10px;border-radius:20px;white-space:nowrap';
-    btn.textContent = ex.label;
-    btn.onclick = () => {
-      const ta = document.getElementById('desc-input');
-      if(ta){ ta.value = ex.text; ta.style.borderColor='var(--gold)'; }
-    };
-    el.appendChild(btn);
-  });
+  if(el && el.children.length === 0){
+    QUICK_EXAMPLES.forEach(ex => {
+      const btn = document.createElement('button');
+      btn.className = 'btn btn-ghost btn-sm';
+      btn.style.cssText = 'font-size:11px;padding:4px 10px;border-radius:20px;white-space:nowrap';
+      btn.textContent = ex.label;
+      btn.onclick = () => {
+        const ta = document.getElementById('desc-input');
+        if(ta){ ta.value = ex.text; ta.style.borderColor='var(--gold)'; }
+      };
+      el.appendChild(btn);
+    });
+  }
+  // Initialize the free-draw canvas (idempotent)
+  if(typeof Drawer !== 'undefined') Drawer.init();
 }
+
+// ══════════════════════════════════════════════════════════════════════════
+// FREE-DRAW PROJECT PLANNER — scaled vector sketch tool
+//
+// Lets the user draw any project (deck, porch, addition, carport, slab,
+// retaining wall) to scale on a graph-paper canvas. Every shape stores its
+// geometry in real-world feet so dimensions stay accurate at any zoom and
+// the drawing can be exported at higher resolution without aliasing.
+//
+// Tools: select/move, freehand pencil, straight wall (line w/ length),
+// room (dimensioned rect w/ area), post (circle), dimension callout,
+// text label, eraser. Click "Use in Takeoff" to push the largest room
+// rectangle's dimensions into the currently-selected takeoff type.
+// ══════════════════════════════════════════════════════════════════════════
+const Drawer = (() => {
+  let canvas = null, ctx = null;
+  let siteW = 40, siteL = 30;     // feet
+  let gridFt = 1;
+  let snap = true;
+  let scale = 10;                  // pixels per foot (recomputed on resize)
+  let tool = 'select';
+  let strokeColor = '#1a8a8a';
+  let strokeWidth = 2;
+  let fillStyle = 'none';
+  let elements = [];               // committed shapes (real-world coords)
+  let undoStack = [];
+  let redoStack = [];
+  let currentDraw = null;          // shape being drawn this gesture
+  let selectedIdx = -1;
+  let dragOffset = null;
+  let initialized = false;
+
+  function init(){
+    canvas = document.getElementById('drawer-canvas');
+    if(!canvas) return;
+    ctx = canvas.getContext('2d');
+    if(!initialized){
+      bindEvents();
+      window.addEventListener('resize', () => { fitCanvas(); redraw(); });
+      // keyboard shortcuts (active only when sketch tab is visible)
+      document.addEventListener('keydown', (e) => {
+        const sketchPage = document.getElementById('page-sketch');
+        if(!sketchPage || !sketchPage.classList.contains('active')) return;
+        if(e.target && /input|textarea|select/i.test(e.target.tagName)) return;
+        if(e.ctrlKey || e.metaKey){
+          if(e.key==='z'){ e.preventDefault(); undo(); }
+          else if(e.key==='y'){ e.preventDefault(); redo(); }
+        } else {
+          const map = {s:'select', p:'pencil', l:'line', r:'rect', c:'circle', d:'dim', t:'text', e:'eraser'};
+          if(map[e.key.toLowerCase()]){ setTool(map[e.key.toLowerCase()]); }
+        }
+      });
+      initialized = true;
+    }
+    updateScale();
+  }
+
+  function fitCanvas(){
+    if(!canvas) return;
+    const wrap = canvas.parentElement;
+    const dpr = window.devicePixelRatio || 1;
+    const ratio = siteL / siteW;
+    const w = wrap.clientWidth;
+    const h = Math.min(640, Math.max(280, w * ratio));
+    canvas.width  = Math.floor(w * dpr);
+    canvas.height = Math.floor(h * dpr);
+    canvas.style.height = h + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    scale = Math.min(w / siteW, h / siteL);
+  }
+
+  function ftToPx(ft){ return ft * scale; }
+  function pxToFt(px){ return px / scale; }
+  function snapTo(ft){ return snap ? Math.round(ft/gridFt)*gridFt : ft; }
+
+  function clientToFt(e){
+    const rect = canvas.getBoundingClientRect();
+    const pt = e.touches ? e.touches[0] : (e.changedTouches ? e.changedTouches[0] : e);
+    const cx = pt.clientX - rect.left;
+    const cy = pt.clientY - rect.top;
+    const rawX = pxToFt(cx), rawY = pxToFt(cy);
+    return {x: snapTo(rawX), y: snapTo(rawY), rawX, rawY};
+  }
+
+  function bindEvents(){
+    let drawing = false;
+    const onDown = e => {
+      if(!canvas) return;
+      e.preventDefault();
+      const p = clientToFt(e);
+      if(tool==='select'){
+        for(let i=elements.length-1;i>=0;i--){
+          if(hitTest(elements[i], p)){
+            selectedIdx = i;
+            const el = elements[i];
+            dragOffset = (el.x!=null) ? {dx:p.x-el.x, dy:p.y-el.y} : {dx:0, dy:0};
+            redraw();
+            return;
+          }
+        }
+        selectedIdx = -1;
+        redraw();
+        return;
+      }
+      if(tool==='eraser'){
+        for(let i=elements.length-1;i>=0;i--){
+          if(hitTest(elements[i], p)){
+            pushUndo();
+            elements.splice(i,1);
+            redraw();
+            return;
+          }
+        }
+        return;
+      }
+      if(tool==='text'){
+        const txt = prompt('Label text:', '');
+        if(!txt) return;
+        pushUndo();
+        elements.push({type:'text', x:p.x, y:p.y, text:txt, color:strokeColor, size:14});
+        redraw();
+        return;
+      }
+      drawing = true;
+      currentDraw = startShape(p);
+    };
+    const onMove = e => {
+      if(!canvas) return;
+      const p = clientToFt(e);
+      updateHud(p);
+      if(tool==='select' && selectedIdx>=0 && dragOffset){
+        const el = elements[selectedIdx];
+        if(el.type==='line' || el.type==='dim'){
+          const dx = snapTo(p.x - dragOffset.dx) - el.x1;
+          const dy = snapTo(p.y - dragOffset.dy) - el.y1;
+          el.x1 += dx; el.y1 += dy; el.x2 += dx; el.y2 += dy;
+        } else if(el.type==='pencil'){
+          // skip dragging freehand for now
+        } else if(el.x != null){
+          el.x = snapTo(p.x - dragOffset.dx);
+          el.y = snapTo(p.y - dragOffset.dy);
+        }
+        redraw();
+        return;
+      }
+      if(!drawing || !currentDraw) return;
+      updateShape(currentDraw, p);
+      redraw();
+    };
+    const onUp = () => {
+      if(tool==='select'){
+        dragOffset = null;
+        return;
+      }
+      if(drawing && currentDraw){
+        if(isValid(currentDraw)){
+          pushUndo();
+          elements.push(currentDraw);
+        }
+        currentDraw = null;
+        drawing = false;
+        redraw();
+      }
+    };
+    canvas.addEventListener('mousedown', onDown);
+    canvas.addEventListener('mousemove', onMove);
+    canvas.addEventListener('mouseup', onUp);
+    canvas.addEventListener('mouseleave', onUp);
+    canvas.addEventListener('touchstart', onDown, {passive:false});
+    canvas.addEventListener('touchmove',  e=>{ e.preventDefault(); onMove(e); }, {passive:false});
+    canvas.addEventListener('touchend',   onUp);
+    canvas.addEventListener('touchcancel',onUp);
+  }
+
+  function startShape(p){
+    const base = {color:strokeColor, width:strokeWidth};
+    if(tool==='pencil') return {...base, type:'pencil', pts:[{x:p.rawX,y:p.rawY}]};
+    if(tool==='line')   return {...base, type:'line', x1:p.x, y1:p.y, x2:p.x, y2:p.y};
+    if(tool==='rect')   return {...base, type:'rect', x:p.x, y:p.y, w:0, h:0, fill:fillStyle};
+    if(tool==='circle') return {...base, type:'circle', x:p.x, y:p.y, r:0, fill:fillStyle};
+    if(tool==='dim')    return {type:'dim', x1:p.x, y1:p.y, x2:p.x, y2:p.y, color:'#c4830f', width:1.2};
+    return null;
+  }
+
+  function updateShape(s, p){
+    if(s.type==='pencil') s.pts.push({x:p.rawX, y:p.rawY});
+    else if(s.type==='line' || s.type==='dim'){ s.x2 = p.x; s.y2 = p.y; }
+    else if(s.type==='rect'){ s.w = p.x - s.x; s.h = p.y - s.y; }
+    else if(s.type==='circle'){ s.r = Math.hypot(p.x - s.x, p.y - s.y); }
+  }
+
+  function isValid(s){
+    if(s.type==='pencil') return s.pts.length > 2;
+    if(s.type==='line' || s.type==='dim') return Math.hypot(s.x2-s.x1, s.y2-s.y1) > 0.1;
+    if(s.type==='rect') return Math.abs(s.w) > 0.1 && Math.abs(s.h) > 0.1;
+    if(s.type==='circle') return s.r > 0.1;
+    return true;
+  }
+
+  function hitTest(el, p){
+    const TOL = 0.6;
+    if(el.type==='rect'){
+      const x = Math.min(el.x, el.x+el.w), y = Math.min(el.y, el.y+el.h);
+      const w = Math.abs(el.w), h = Math.abs(el.h);
+      return p.x >= x-TOL && p.x <= x+w+TOL && p.y >= y-TOL && p.y <= y+h+TOL;
+    }
+    if(el.type==='circle') return Math.hypot(p.x-el.x, p.y-el.y) <= el.r + TOL;
+    if(el.type==='line' || el.type==='dim') return pointLineDist(p, el) < TOL;
+    if(el.type==='text') return Math.abs(p.x-el.x) < (el.text||'').length*0.4 && Math.abs(p.y-el.y) < 1.2;
+    if(el.type==='pencil'){
+      for(const pt of el.pts){ if(Math.hypot(pt.x-p.x, pt.y-p.y) < TOL) return true; }
+      return false;
+    }
+    return false;
+  }
+
+  function pointLineDist(p, l){
+    const dx = l.x2-l.x1, dy = l.y2-l.y1;
+    const L2 = dx*dx + dy*dy;
+    if(L2 === 0) return Math.hypot(p.x-l.x1, p.y-l.y1);
+    const t = Math.max(0, Math.min(1, ((p.x-l.x1)*dx + (p.y-l.y1)*dy) / L2));
+    return Math.hypot(p.x-l.x1-t*dx, p.y-l.y1-t*dy);
+  }
+
+  function pushUndo(){
+    undoStack.push(JSON.stringify(elements));
+    if(undoStack.length > 80) undoStack.shift();
+    redoStack = [];
+  }
+  function undo(){
+    if(!undoStack.length) return;
+    redoStack.push(JSON.stringify(elements));
+    elements = JSON.parse(undoStack.pop());
+    selectedIdx = -1;
+    redraw();
+  }
+  function redo(){
+    if(!redoStack.length) return;
+    undoStack.push(JSON.stringify(elements));
+    elements = JSON.parse(redoStack.pop());
+    redraw();
+  }
+  function clearAll(){
+    if(!confirm('Clear the drawing? This cannot be undone with browser back.')) return;
+    pushUndo();
+    elements = [];
+    selectedIdx = -1;
+    redraw();
+  }
+
+  function drawGrid(c){
+    const w = canvas.width  / (window.devicePixelRatio || 1);
+    const h = canvas.height / (window.devicePixelRatio || 1);
+    c.fillStyle = '#fdfaf0';
+    c.fillRect(0,0,w,h);
+    // minor grid
+    c.strokeStyle = 'rgba(20,80,80,0.10)';
+    c.lineWidth = 0.5;
+    for(let x=0; x<=siteW; x+=gridFt){
+      const px = ftToPx(x);
+      c.beginPath(); c.moveTo(px,0); c.lineTo(px,h); c.stroke();
+    }
+    for(let y=0; y<=siteL; y+=gridFt){
+      const py = ftToPx(y);
+      c.beginPath(); c.moveTo(0,py); c.lineTo(w,py); c.stroke();
+    }
+    // major (5ft) + labels
+    c.strokeStyle = 'rgba(20,80,80,0.25)';
+    c.lineWidth = 0.8;
+    c.font = '9px DM Mono, monospace';
+    c.fillStyle = 'rgba(20,80,80,0.55)';
+    for(let x=0; x<=siteW; x+=5){
+      const px = ftToPx(x);
+      c.beginPath(); c.moveTo(px,0); c.lineTo(px,h); c.stroke();
+      if(x>0) c.fillText(x+"'", px+2, 10);
+    }
+    for(let y=0; y<=siteL; y+=5){
+      const py = ftToPx(y);
+      c.beginPath(); c.moveTo(0,py); c.lineTo(w,py); c.stroke();
+      if(y>0) c.fillText(y+"'", 2, py-2);
+    }
+    // boundary
+    c.strokeStyle = 'rgba(20,80,80,0.7)';
+    c.lineWidth = 1.5;
+    c.strokeRect(0, 0, ftToPx(siteW), ftToPx(siteL));
+  }
+
+  function drawElement(c, el, idx){
+    c.strokeStyle = el.color || '#1a8a8a';
+    c.lineWidth   = el.width || 2;
+    c.lineCap = 'round'; c.lineJoin = 'round';
+
+    if(el.type==='pencil'){
+      c.beginPath();
+      c.moveTo(ftToPx(el.pts[0].x), ftToPx(el.pts[0].y));
+      for(let i=1;i<el.pts.length;i++) c.lineTo(ftToPx(el.pts[i].x), ftToPx(el.pts[i].y));
+      c.stroke();
+    }
+    else if(el.type==='line'){
+      c.beginPath();
+      c.moveTo(ftToPx(el.x1), ftToPx(el.y1));
+      c.lineTo(ftToPx(el.x2), ftToPx(el.y2));
+      c.stroke();
+      const len = Math.hypot(el.x2-el.x1, el.y2-el.y1);
+      const mx = (el.x1+el.x2)/2, my = (el.y1+el.y2)/2;
+      const lbl = fmtFt(len);
+      c.font = 'bold 10px DM Mono, monospace';
+      const m = c.measureText(lbl);
+      c.fillStyle = 'rgba(253,250,240,0.9)';
+      c.fillRect(ftToPx(mx)+2, ftToPx(my)-12, m.width+6, 13);
+      c.fillStyle = el.color;
+      c.fillText(lbl, ftToPx(mx)+5, ftToPx(my)-2);
+    }
+    else if(el.type==='rect'){
+      const x = Math.min(el.x, el.x+el.w), y = Math.min(el.y, el.y+el.h);
+      const w = Math.abs(el.w), h = Math.abs(el.h);
+      if(el.fill==='solid'){
+        c.fillStyle = el.color + '33';
+        c.fillRect(ftToPx(x), ftToPx(y), ftToPx(w), ftToPx(h));
+      } else if(el.fill==='hatch'){
+        c.save();
+        c.beginPath();
+        c.rect(ftToPx(x), ftToPx(y), ftToPx(w), ftToPx(h));
+        c.clip();
+        c.strokeStyle = el.color + '66';
+        c.lineWidth = 0.6;
+        const px=ftToPx(x), py=ftToPx(y), pw=ftToPx(w), ph=ftToPx(h);
+        for(let i=-ph; i<pw+ph; i+=6){
+          c.beginPath(); c.moveTo(px+i,py); c.lineTo(px+i+ph,py+ph); c.stroke();
+        }
+        c.restore();
+      }
+      c.strokeStyle = el.color; c.lineWidth = el.width || 2;
+      c.strokeRect(ftToPx(x), ftToPx(y), ftToPx(w), ftToPx(h));
+      // dim labels
+      c.fillStyle = el.color;
+      c.font = 'bold 10px DM Mono, monospace';
+      c.textAlign = 'center';
+      c.fillText(fmtFt(w), ftToPx(x+w/2), ftToPx(y)-6);
+      c.save();
+      c.translate(ftToPx(x)-6, ftToPx(y+h/2));
+      c.rotate(-Math.PI/2);
+      c.fillText(fmtFt(h), 0, 0);
+      c.restore();
+      c.fillStyle = 'rgba(20,80,80,0.7)';
+      c.font = '9px DM Mono, monospace';
+      c.fillText((w*h).toFixed(0)+' sf', ftToPx(x+w/2), ftToPx(y+h/2)+4);
+      c.textAlign = 'start';
+    }
+    else if(el.type==='circle'){
+      c.beginPath();
+      c.arc(ftToPx(el.x), ftToPx(el.y), ftToPx(el.r), 0, Math.PI*2);
+      if(el.fill==='solid'){ c.fillStyle = el.color + '33'; c.fill(); }
+      c.stroke();
+      // crosshair center
+      c.strokeStyle = el.color + 'aa';
+      c.lineWidth = 0.6;
+      const cx=ftToPx(el.x), cy=ftToPx(el.y);
+      c.beginPath(); c.moveTo(cx-4,cy); c.lineTo(cx+4,cy); c.stroke();
+      c.beginPath(); c.moveTo(cx,cy-4); c.lineTo(cx,cy+4); c.stroke();
+      c.fillStyle = el.color;
+      c.font = 'bold 10px DM Mono, monospace';
+      c.fillText('Ø ' + fmtFt(el.r*2), ftToPx(el.x)+ftToPx(el.r)+4, ftToPx(el.y));
+    }
+    else if(el.type==='dim'){
+      const x1=ftToPx(el.x1), y1=ftToPx(el.y1);
+      const x2=ftToPx(el.x2), y2=ftToPx(el.y2);
+      c.strokeStyle = '#c4830f';
+      c.lineWidth = 1.2;
+      c.beginPath(); c.moveTo(x1,y1); c.lineTo(x2,y2); c.stroke();
+      const ang = Math.atan2(y2-y1, x2-x1);
+      drawArrow(c, x1, y1, ang + Math.PI);
+      drawArrow(c, x2, y2, ang);
+      const len = Math.hypot(el.x2-el.x1, el.y2-el.y1);
+      const txt = fmtFt(len);
+      const mx = (x1+x2)/2, my = (y1+y2)/2;
+      c.font = 'bold 11px DM Mono, monospace';
+      c.textAlign = 'center';
+      const m = c.measureText(txt);
+      c.fillStyle = '#fdfaf0';
+      c.fillRect(mx - m.width/2 - 4, my - 14, m.width + 8, 16);
+      c.fillStyle = '#c4830f';
+      c.fillText(txt, mx, my - 2);
+      c.textAlign = 'start';
+    }
+    else if(el.type==='text'){
+      c.fillStyle = el.color || '#1a8a8a';
+      c.font = (el.size||14) + 'px sans-serif';
+      c.fillText(el.text, ftToPx(el.x), ftToPx(el.y));
+    }
+
+    if(idx === selectedIdx){
+      c.save();
+      c.strokeStyle = '#e89a2b';
+      c.lineWidth = 1;
+      c.setLineDash([4,3]);
+      const bb = boundingBox(el);
+      if(bb) c.strokeRect(ftToPx(bb.x)-3, ftToPx(bb.y)-3, ftToPx(bb.w)+6, ftToPx(bb.h)+6);
+      c.restore();
+    }
+  }
+
+  function drawArrow(c, px, py, ang){
+    const sz = 7;
+    c.beginPath();
+    c.moveTo(px, py);
+    c.lineTo(px - sz*Math.cos(ang-0.42), py - sz*Math.sin(ang-0.42));
+    c.lineTo(px - sz*Math.cos(ang+0.42), py - sz*Math.sin(ang+0.42));
+    c.closePath();
+    c.fillStyle = '#c4830f';
+    c.fill();
+  }
+
+  function boundingBox(el){
+    if(el.type==='rect'){
+      return {x:Math.min(el.x, el.x+el.w), y:Math.min(el.y, el.y+el.h), w:Math.abs(el.w), h:Math.abs(el.h)};
+    }
+    if(el.type==='circle') return {x:el.x-el.r, y:el.y-el.r, w:el.r*2, h:el.r*2};
+    if(el.type==='line' || el.type==='dim'){
+      return {x:Math.min(el.x1,el.x2), y:Math.min(el.y1,el.y2),
+              w:Math.abs(el.x2-el.x1), h:Math.abs(el.y2-el.y1)};
+    }
+    if(el.type==='pencil'){
+      const xs=el.pts.map(p=>p.x), ys=el.pts.map(p=>p.y);
+      return {x:Math.min(...xs), y:Math.min(...ys),
+              w:Math.max(...xs)-Math.min(...xs), h:Math.max(...ys)-Math.min(...ys)};
+    }
+    if(el.type==='text') return {x:el.x, y:el.y-1, w:(el.text||'').length*0.45, h:1.4};
+    return null;
+  }
+
+  // Format feet as ft & in (e.g., 12.5 -> "12' 6\"")
+  function fmtFt(ft){
+    const t = Math.abs(ft);
+    const f = Math.floor(t);
+    let inches = Math.round((t - f) * 12);
+    if(inches === 12) return (f+1) + "'";
+    if(inches === 0)  return f + "'";
+    return f + "' " + inches + '"';
+  }
+
+  function redraw(){
+    if(!ctx) return;
+    drawGrid(ctx);
+    elements.forEach((el, i) => drawElement(ctx, el, i));
+    if(currentDraw) drawElement(ctx, currentDraw, -1);
+    updateStats();
+  }
+
+  function updateStats(){
+    const stats = document.getElementById('drawer-stats');
+    if(!stats) return;
+    let totalLF = 0, totalSF = 0, count = elements.length;
+    let rectCount = 0, lineCount = 0, postCount = 0;
+    elements.forEach(el => {
+      if(el.type==='line'){ totalLF += Math.hypot(el.x2-el.x1, el.y2-el.y1); lineCount++; }
+      if(el.type==='rect'){ totalSF += Math.abs(el.w*el.h); rectCount++; }
+      if(el.type==='circle'){ postCount++; }
+    });
+    const cell = (lbl,val) => `<div style="background:var(--surface2);padding:6px 10px;border-radius:6px"><div style="color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.04em">${lbl}</div><div style="color:var(--accent);font-weight:600;font-size:13px">${val}</div></div>`;
+    stats.innerHTML =
+      cell('Shapes', count) +
+      cell('Walls', lineCount + ' (' + totalLF.toFixed(1) + " lf)") +
+      cell('Rooms', rectCount + ' (' + totalSF.toFixed(0) + ' sf)') +
+      cell('Posts', postCount) +
+      cell('Scale', scale.toFixed(1) + ' px/ft') +
+      cell('Site', siteW + "'×" + siteL + "'");
+  }
+
+  function updateHud(p){
+    const c = document.getElementById('drawer-coords');
+    if(c) c.textContent = fmtFt(p.x) + ', ' + fmtFt(p.y);
+    const h = document.getElementById('drawer-hud');
+    if(h) h.textContent = tool.charAt(0).toUpperCase() + tool.slice(1) + ' tool';
+  }
+
+  function setTool(t){
+    tool = t;
+    document.querySelectorAll('.dr-tool').forEach(b => {
+      if(b.dataset.tool) b.classList.toggle('active', b.dataset.tool === t);
+    });
+    if(canvas){
+      canvas.style.cursor = t==='select' ? 'grab'
+        : t==='text' ? 'text'
+        : t==='eraser' ? 'crosshair'
+        : 'crosshair';
+    }
+    const h = document.getElementById('drawer-hud');
+    if(h) h.textContent = t.charAt(0).toUpperCase() + t.slice(1) + ' tool';
+  }
+
+  function updateScale(){
+    const wEl = document.getElementById('dr-site-w');
+    const lEl = document.getElementById('dr-site-l');
+    const gEl = document.getElementById('dr-grid');
+    const sEl = document.getElementById('dr-snap');
+    siteW  = Math.max(4, Math.min(500, parseFloat(wEl?.value)||40));
+    siteL  = Math.max(4, Math.min(500, parseFloat(lEl?.value)||30));
+    gridFt = parseFloat(gEl?.value) || 1;
+    snap   = (sEl?.value !== '0');
+    fitCanvas();
+    redraw();
+  }
+
+  function exportPNG(){
+    // Render at 3× DPR for crisp print
+    const exportCanvas = document.createElement('canvas');
+    const factor = 3;
+    const w = canvas.width  / (window.devicePixelRatio || 1);
+    const h = canvas.height / (window.devicePixelRatio || 1);
+    exportCanvas.width  = w * factor;
+    exportCanvas.height = h * factor;
+    const ex = exportCanvas.getContext('2d');
+    ex.scale(factor, factor);
+    // Temporarily redirect draw routines to the export ctx by swapping
+    // canvas.width/height-derived globals isn't safe — instead, draw
+    // straight into ex using the same helpers.
+    drawGrid(ex);
+    elements.forEach((el, i) => drawElement(ex, el, -1));
+    // Title block
+    ex.fillStyle = 'rgba(20,80,80,0.85)';
+    ex.font = 'bold 11px sans-serif';
+    ex.fillText('Project Plan — ' + siteW + "' × " + siteL + "' site  ·  grid " + gridFt + " ft", 6, h-6);
+    const dataUrl = exportCanvas.toDataURL('image/png');
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = 'project-plan-' + siteW + 'x' + siteL + 'ft.png';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    if(typeof toast==='function') toast('Saved PNG (' + (factor*w) + '×' + (factor*h) + ' px)');
+  }
+
+  async function copyClipboard(){
+    try {
+      const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+      if(!navigator.clipboard || !window.ClipboardItem) throw new Error('No clipboard');
+      await navigator.clipboard.write([new ClipboardItem({'image/png': blob})]);
+      if(typeof toast==='function') toast('Drawing copied to clipboard');
+    } catch(e){
+      if(typeof toast==='function') toast('Clipboard not supported — use Save as PNG');
+    }
+  }
+
+  function useInTakeoff(){
+    // Find largest room rectangle and push its dims to the active takeoff type.
+    let biggest = null, area = 0;
+    elements.forEach(el => {
+      if(el.type==='rect'){
+        const a = Math.abs(el.w * el.h);
+        if(a > area){ area = a; biggest = el; }
+      }
+    });
+    if(!biggest){
+      if(typeof toast==='function') toast('Draw a room rectangle first to define the footprint');
+      return;
+    }
+    const w = Math.abs(biggest.w), h = Math.abs(biggest.h);
+    const long = Math.max(w, h), short = Math.min(w, h);
+    if(typeof switchTab === 'function') switchTab('takeoff', 'tab-takeoff');
+    const typeEl = document.getElementById('to-type');
+    const type = typeEl ? typeEl.value : 'deck';
+    // Map takeoff type → length / width input IDs
+    const M = {
+      deck:     {len:'dk-len', wid:'dk-wid'},
+      porch:    {len:'po-len', wid:'po-dep'},
+      roof:     {len:'rf-len', wid:'rf-wid'},
+      framing:  {len:'fr-len', wid:'fr-wid'},
+      concrete: {len:'co-len', wid:'co-wid'},
+      carport:  {len:'cp-len', wid:'cp-wid'},
+      blockwall:{len:'bw-len'},
+    }[type] || {};
+    if(M.len){ const e = document.getElementById(M.len); if(e){ e.value = long.toFixed(1); } }
+    if(M.wid){ const e = document.getElementById(M.wid); if(e){ e.value = short.toFixed(1); } }
+    if(typeof toCalc === 'function') toCalc();
+    if(typeof toast === 'function') toast('Applied ' + fmtFt(long) + ' × ' + fmtFt(short) + ' to ' + type + ' takeoff');
+  }
+
+  return {
+    init, setTool, undo, redo, clearAll, updateScale,
+    exportPNG, copyClipboard, useInTakeoff,
+    setColor: (c) => { strokeColor = c; },
+    setStroke:(s) => { strokeWidth = parseFloat(s) || 2; },
+    setFill:  (f) => { fillStyle  = f; },
+  };
+})();
+
+window.drawerSetTool       = (t) => Drawer.setTool(t);
+window.drawerUndo          = ()  => Drawer.undo();
+window.drawerRedo          = ()  => Drawer.redo();
+window.drawerClear         = ()  => Drawer.clearAll();
+window.drawerUpdateScale   = ()  => Drawer.updateScale();
+window.drawerExportPNG     = ()  => Drawer.exportPNG();
+window.drawerCopyClipboard = ()  => Drawer.copyClipboard();
+window.drawerUseInTakeoff  = ()  => Drawer.useInTakeoff();
+window.drawerSetColor      = (c) => Drawer.setColor(c);
+window.drawerSetStroke     = (s) => Drawer.setStroke(s);
+window.drawerSetFill       = (f) => Drawer.setFill(f);
 
 // ── MAIN ANALYZE FUNCTION ─────────────────────────────────────────────────
 async function descAnalyze(){
