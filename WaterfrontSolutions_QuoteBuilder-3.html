@@ -61,6 +61,10 @@
 .orient-btn{font-size:11px;padding:3px 9px;border-radius:5px;border:0.5px solid var(--border2);background:transparent;color:var(--text3);cursor:pointer;transition:all .15s}
 .orient-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
 .orient-btn:active{opacity:.8}
+.dr-tool{font-size:11px;padding:6px 10px;border-radius:6px;border:0.5px solid var(--border2);background:var(--surface);color:var(--text2);cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:4px;font-weight:500}
+.dr-tool:hover{background:var(--surface2);color:var(--text)}
+.dr-tool.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.dr-tool:active{opacity:.85}
 .to-item{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
 .to-item:last-child{border:none}
 .to-item-name{flex:1;color:var(--text)}
@@ -1212,6 +1216,107 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 
     <!-- ══ PAGE: SKETCH ══ -->
     <div class="page" id="page-sketch">
+
+
+      <!-- ══ FREE-DRAW SCALED PROJECT PLANNER ══ -->
+      <div class="section">
+        <div class="section-head">
+          <span class="section-title">✏️ Draw Project to Scale</span>
+          <span class="badge" style="background:var(--accent-dim);color:var(--accent)">Scaled</span>
+        </div>
+        <div class="section-body">
+          <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6">
+            Sketch any project (deck, porch, addition, carport, slab, wall) directly to scale. Set the site dimensions and grid, then draw with the tools below — every shape is dimensioned in real-world feet/inches. When you're done, save as PNG or apply the largest rectangle's footprint to the takeoff calculator.
+          </div>
+
+          <!-- Site & scale -->
+          <div class="field-row">
+            <div class="field"><label>Site width (ft)</label><input type="number" id="dr-site-w" value="40" min="4" max="500" step="1" oninput="drawerUpdateScale()"/></div>
+            <div class="field"><label>Site length (ft)</label><input type="number" id="dr-site-l" value="30" min="4" max="500" step="1" oninput="drawerUpdateScale()"/></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>Grid spacing</label>
+              <select id="dr-grid" onchange="drawerUpdateScale()">
+                <option value="0.5">6&quot;</option>
+                <option value="1" selected>1 ft</option>
+                <option value="2">2 ft</option>
+                <option value="5">5 ft</option>
+              </select>
+            </div>
+            <div class="field"><label>Snap to grid</label>
+              <select id="dr-snap" onchange="drawerUpdateScale()">
+                <option value="1" selected>On</option>
+                <option value="0">Off</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Toolbar -->
+          <div style="display:flex;flex-wrap:wrap;gap:4px;margin:10px 0;padding:6px;background:var(--surface2);border-radius:8px;align-items:center">
+            <button class="dr-tool active" data-tool="select" onclick="drawerSetTool('select')">🖱 Select</button>
+            <button class="dr-tool" data-tool="pencil" onclick="drawerSetTool('pencil')">✏️ Free</button>
+            <button class="dr-tool" data-tool="line" onclick="drawerSetTool('line')">📏 Wall</button>
+            <button class="dr-tool" data-tool="rect" onclick="drawerSetTool('rect')">▭ Room</button>
+            <button class="dr-tool" data-tool="circle" onclick="drawerSetTool('circle')">○ Post</button>
+            <button class="dr-tool" data-tool="dim" onclick="drawerSetTool('dim')">↔ Dim</button>
+            <button class="dr-tool" data-tool="text" onclick="drawerSetTool('text')">T Text</button>
+            <button class="dr-tool" data-tool="eraser" onclick="drawerSetTool('eraser')">⌫ Erase</button>
+            <div style="flex:1;min-width:8px"></div>
+            <button class="dr-tool" onclick="drawerUndo()" title="Undo (Ctrl+Z)">↶</button>
+            <button class="dr-tool" onclick="drawerRedo()" title="Redo (Ctrl+Y)">↷</button>
+            <button class="dr-tool" onclick="drawerClear()" title="Clear all">✕</button>
+          </div>
+
+          <!-- Style controls -->
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;font-size:11px;align-items:center;color:var(--text2)">
+            <span>Color</span>
+            <input type="color" id="dr-color" value="#1a8a8a" onchange="drawerSetColor(this.value)" style="width:36px;height:26px;padding:0;border:1px solid var(--border);border-radius:4px;cursor:pointer">
+            <span>Stroke</span>
+            <select id="dr-stroke" onchange="drawerSetStroke(this.value)" style="padding:3px 6px;border-radius:4px;font-size:11px">
+              <option value="1">1 px</option>
+              <option value="2" selected>2 px</option>
+              <option value="3">3 px</option>
+              <option value="4">4 px</option>
+              <option value="6">6 px</option>
+            </select>
+            <span>Fill</span>
+            <select id="dr-fill" onchange="drawerSetFill(this.value)" style="padding:3px 6px;border-radius:4px;font-size:11px">
+              <option value="none" selected>None</option>
+              <option value="solid">Solid</option>
+              <option value="hatch">Hatch</option>
+            </select>
+            <span style="margin-left:auto;color:var(--text3)">Tap & drag on the canvas</span>
+          </div>
+
+          <!-- Canvas -->
+          <div style="position:relative;background:#fdfaf0;border:1px solid var(--border);border-radius:8px;overflow:hidden">
+            <canvas id="drawer-canvas" style="width:100%;display:block;cursor:crosshair;touch-action:none"></canvas>
+            <div id="drawer-coords" style="position:absolute;top:6px;right:8px;font-size:10px;font-family:DM Mono,monospace;color:rgba(10,40,40,0.7);background:rgba(255,255,255,0.85);padding:3px 8px;border-radius:4px;pointer-events:none">0&apos;, 0&apos;</div>
+            <div id="drawer-hud" style="position:absolute;top:6px;left:8px;font-size:10px;font-family:DM Mono,monospace;color:rgba(10,40,40,0.7);background:rgba(255,255,255,0.85);padding:3px 8px;border-radius:4px;pointer-events:none">Select tool</div>
+          </div>
+
+          <!-- Live stats -->
+          <div id="drawer-stats" style="margin-top:10px;display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:6px;font-size:11px"></div>
+
+          <!-- Actions -->
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px">
+            <button class="btn btn-primary" onclick="drawerExportPNG()" style="flex:1;min-width:140px">💾 Save as PNG</button>
+            <button class="btn btn-success" onclick="drawerUseInTakeoff()" style="flex:1;min-width:140px">📐 Use in Takeoff</button>
+            <button class="btn btn-ghost" onclick="drawerCopyClipboard()" title="Copy to clipboard">📋</button>
+          </div>
+
+          <div style="margin-top:10px;background:var(--gold-dim2);border:0.5px solid var(--gold-dim);border-radius:8px;padding:8px 10px;font-size:10.5px;color:var(--text2);line-height:1.6">
+            <strong style="color:var(--gold)">Quick tips:</strong>
+            <strong>Wall</strong> draws a single line w/ length label · <strong>Room</strong> draws a dimensioned rectangle with area · <strong>Post</strong> draws a circle (diameter labeled) · <strong>Dim</strong> drops a stand-alone dimension callout · <strong>Text</strong> labels anything · drag in <strong>Select</strong> mode to move shapes. Use <strong>Use in Takeoff</strong> to push the largest room rectangle into the active takeoff type.
+          </div>
+        </div>
+      </div>
+
+      <div style="margin:14px 0;display:flex;align-items:center;gap:8px">
+        <div style="flex:1;height:1px;background:var(--border)"></div>
+        <div style="font-size:11px;color:var(--text3);font-weight:500">OR DESCRIBE IN TEXT</div>
+        <div style="flex:1;height:1px;background:var(--border)"></div>
+      </div>
 
 
       <!-- ══ TEXT DESCRIPTION SECTION ══ -->
@@ -13011,19 +13116,620 @@ const QUICK_EXAMPLES = [
 function sketchPageOpened(){
   // Populate quick-start buttons
   const el = document.getElementById('desc-examples');
-  if(!el || el.children.length > 0) return;
-  QUICK_EXAMPLES.forEach(ex => {
-    const btn = document.createElement('button');
-    btn.className = 'btn btn-ghost btn-sm';
-    btn.style.cssText = 'font-size:11px;padding:4px 10px;border-radius:20px;white-space:nowrap';
-    btn.textContent = ex.label;
-    btn.onclick = () => {
-      const ta = document.getElementById('desc-input');
-      if(ta){ ta.value = ex.text; ta.style.borderColor='var(--gold)'; }
-    };
-    el.appendChild(btn);
-  });
+  if(el && el.children.length === 0){
+    QUICK_EXAMPLES.forEach(ex => {
+      const btn = document.createElement('button');
+      btn.className = 'btn btn-ghost btn-sm';
+      btn.style.cssText = 'font-size:11px;padding:4px 10px;border-radius:20px;white-space:nowrap';
+      btn.textContent = ex.label;
+      btn.onclick = () => {
+        const ta = document.getElementById('desc-input');
+        if(ta){ ta.value = ex.text; ta.style.borderColor='var(--gold)'; }
+      };
+      el.appendChild(btn);
+    });
+  }
+  // Initialize the free-draw canvas (idempotent)
+  if(typeof Drawer !== 'undefined') Drawer.init();
 }
+
+// ══════════════════════════════════════════════════════════════════════════
+// FREE-DRAW PROJECT PLANNER — scaled vector sketch tool
+//
+// Lets the user draw any project (deck, porch, addition, carport, slab,
+// retaining wall) to scale on a graph-paper canvas. Every shape stores its
+// geometry in real-world feet so dimensions stay accurate at any zoom and
+// the drawing can be exported at higher resolution without aliasing.
+//
+// Tools: select/move, freehand pencil, straight wall (line w/ length),
+// room (dimensioned rect w/ area), post (circle), dimension callout,
+// text label, eraser. Click "Use in Takeoff" to push the largest room
+// rectangle's dimensions into the currently-selected takeoff type.
+// ══════════════════════════════════════════════════════════════════════════
+const Drawer = (() => {
+  let canvas = null, ctx = null;
+  let siteW = 40, siteL = 30;     // feet
+  let gridFt = 1;
+  let snap = true;
+  let scale = 10;                  // pixels per foot (recomputed on resize)
+  let tool = 'select';
+  let strokeColor = '#1a8a8a';
+  let strokeWidth = 2;
+  let fillStyle = 'none';
+  let elements = [];               // committed shapes (real-world coords)
+  let undoStack = [];
+  let redoStack = [];
+  let currentDraw = null;          // shape being drawn this gesture
+  let selectedIdx = -1;
+  let dragOffset = null;
+  let initialized = false;
+
+  function init(){
+    canvas = document.getElementById('drawer-canvas');
+    if(!canvas) return;
+    ctx = canvas.getContext('2d');
+    if(!initialized){
+      bindEvents();
+      window.addEventListener('resize', () => { fitCanvas(); redraw(); });
+      // keyboard shortcuts (active only when sketch tab is visible)
+      document.addEventListener('keydown', (e) => {
+        const sketchPage = document.getElementById('page-sketch');
+        if(!sketchPage || !sketchPage.classList.contains('active')) return;
+        if(e.target && /input|textarea|select/i.test(e.target.tagName)) return;
+        if(e.ctrlKey || e.metaKey){
+          if(e.key==='z'){ e.preventDefault(); undo(); }
+          else if(e.key==='y'){ e.preventDefault(); redo(); }
+        } else {
+          const map = {s:'select', p:'pencil', l:'line', r:'rect', c:'circle', d:'dim', t:'text', e:'eraser'};
+          if(map[e.key.toLowerCase()]){ setTool(map[e.key.toLowerCase()]); }
+        }
+      });
+      initialized = true;
+    }
+    updateScale();
+  }
+
+  function fitCanvas(){
+    if(!canvas) return;
+    const wrap = canvas.parentElement;
+    const dpr = window.devicePixelRatio || 1;
+    const ratio = siteL / siteW;
+    const w = wrap.clientWidth;
+    const h = Math.min(640, Math.max(280, w * ratio));
+    canvas.width  = Math.floor(w * dpr);
+    canvas.height = Math.floor(h * dpr);
+    canvas.style.height = h + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    scale = Math.min(w / siteW, h / siteL);
+  }
+
+  function ftToPx(ft){ return ft * scale; }
+  function pxToFt(px){ return px / scale; }
+  function snapTo(ft){ return snap ? Math.round(ft/gridFt)*gridFt : ft; }
+
+  function clientToFt(e){
+    const rect = canvas.getBoundingClientRect();
+    const pt = e.touches ? e.touches[0] : (e.changedTouches ? e.changedTouches[0] : e);
+    const cx = pt.clientX - rect.left;
+    const cy = pt.clientY - rect.top;
+    const rawX = pxToFt(cx), rawY = pxToFt(cy);
+    return {x: snapTo(rawX), y: snapTo(rawY), rawX, rawY};
+  }
+
+  function bindEvents(){
+    let drawing = false;
+    const onDown = e => {
+      if(!canvas) return;
+      e.preventDefault();
+      const p = clientToFt(e);
+      if(tool==='select'){
+        for(let i=elements.length-1;i>=0;i--){
+          if(hitTest(elements[i], p)){
+            selectedIdx = i;
+            const el = elements[i];
+            dragOffset = (el.x!=null) ? {dx:p.x-el.x, dy:p.y-el.y} : {dx:0, dy:0};
+            redraw();
+            return;
+          }
+        }
+        selectedIdx = -1;
+        redraw();
+        return;
+      }
+      if(tool==='eraser'){
+        for(let i=elements.length-1;i>=0;i--){
+          if(hitTest(elements[i], p)){
+            pushUndo();
+            elements.splice(i,1);
+            redraw();
+            return;
+          }
+        }
+        return;
+      }
+      if(tool==='text'){
+        const txt = prompt('Label text:', '');
+        if(!txt) return;
+        pushUndo();
+        elements.push({type:'text', x:p.x, y:p.y, text:txt, color:strokeColor, size:14});
+        redraw();
+        return;
+      }
+      drawing = true;
+      currentDraw = startShape(p);
+    };
+    const onMove = e => {
+      if(!canvas) return;
+      const p = clientToFt(e);
+      updateHud(p);
+      if(tool==='select' && selectedIdx>=0 && dragOffset){
+        const el = elements[selectedIdx];
+        if(el.type==='line' || el.type==='dim'){
+          const dx = snapTo(p.x - dragOffset.dx) - el.x1;
+          const dy = snapTo(p.y - dragOffset.dy) - el.y1;
+          el.x1 += dx; el.y1 += dy; el.x2 += dx; el.y2 += dy;
+        } else if(el.type==='pencil'){
+          // skip dragging freehand for now
+        } else if(el.x != null){
+          el.x = snapTo(p.x - dragOffset.dx);
+          el.y = snapTo(p.y - dragOffset.dy);
+        }
+        redraw();
+        return;
+      }
+      if(!drawing || !currentDraw) return;
+      updateShape(currentDraw, p);
+      redraw();
+    };
+    const onUp = () => {
+      if(tool==='select'){
+        dragOffset = null;
+        return;
+      }
+      if(drawing && currentDraw){
+        if(isValid(currentDraw)){
+          pushUndo();
+          elements.push(currentDraw);
+        }
+        currentDraw = null;
+        drawing = false;
+        redraw();
+      }
+    };
+    canvas.addEventListener('mousedown', onDown);
+    canvas.addEventListener('mousemove', onMove);
+    canvas.addEventListener('mouseup', onUp);
+    canvas.addEventListener('mouseleave', onUp);
+    canvas.addEventListener('touchstart', onDown, {passive:false});
+    canvas.addEventListener('touchmove',  e=>{ e.preventDefault(); onMove(e); }, {passive:false});
+    canvas.addEventListener('touchend',   onUp);
+    canvas.addEventListener('touchcancel',onUp);
+  }
+
+  function startShape(p){
+    const base = {color:strokeColor, width:strokeWidth};
+    if(tool==='pencil') return {...base, type:'pencil', pts:[{x:p.rawX,y:p.rawY}]};
+    if(tool==='line')   return {...base, type:'line', x1:p.x, y1:p.y, x2:p.x, y2:p.y};
+    if(tool==='rect')   return {...base, type:'rect', x:p.x, y:p.y, w:0, h:0, fill:fillStyle};
+    if(tool==='circle') return {...base, type:'circle', x:p.x, y:p.y, r:0, fill:fillStyle};
+    if(tool==='dim')    return {type:'dim', x1:p.x, y1:p.y, x2:p.x, y2:p.y, color:'#c4830f', width:1.2};
+    return null;
+  }
+
+  function updateShape(s, p){
+    if(s.type==='pencil') s.pts.push({x:p.rawX, y:p.rawY});
+    else if(s.type==='line' || s.type==='dim'){ s.x2 = p.x; s.y2 = p.y; }
+    else if(s.type==='rect'){ s.w = p.x - s.x; s.h = p.y - s.y; }
+    else if(s.type==='circle'){ s.r = Math.hypot(p.x - s.x, p.y - s.y); }
+  }
+
+  function isValid(s){
+    if(s.type==='pencil') return s.pts.length > 2;
+    if(s.type==='line' || s.type==='dim') return Math.hypot(s.x2-s.x1, s.y2-s.y1) > 0.1;
+    if(s.type==='rect') return Math.abs(s.w) > 0.1 && Math.abs(s.h) > 0.1;
+    if(s.type==='circle') return s.r > 0.1;
+    return true;
+  }
+
+  function hitTest(el, p){
+    const TOL = 0.6;
+    if(el.type==='rect'){
+      const x = Math.min(el.x, el.x+el.w), y = Math.min(el.y, el.y+el.h);
+      const w = Math.abs(el.w), h = Math.abs(el.h);
+      return p.x >= x-TOL && p.x <= x+w+TOL && p.y >= y-TOL && p.y <= y+h+TOL;
+    }
+    if(el.type==='circle') return Math.hypot(p.x-el.x, p.y-el.y) <= el.r + TOL;
+    if(el.type==='line' || el.type==='dim') return pointLineDist(p, el) < TOL;
+    if(el.type==='text') return Math.abs(p.x-el.x) < (el.text||'').length*0.4 && Math.abs(p.y-el.y) < 1.2;
+    if(el.type==='pencil'){
+      for(const pt of el.pts){ if(Math.hypot(pt.x-p.x, pt.y-p.y) < TOL) return true; }
+      return false;
+    }
+    return false;
+  }
+
+  function pointLineDist(p, l){
+    const dx = l.x2-l.x1, dy = l.y2-l.y1;
+    const L2 = dx*dx + dy*dy;
+    if(L2 === 0) return Math.hypot(p.x-l.x1, p.y-l.y1);
+    const t = Math.max(0, Math.min(1, ((p.x-l.x1)*dx + (p.y-l.y1)*dy) / L2));
+    return Math.hypot(p.x-l.x1-t*dx, p.y-l.y1-t*dy);
+  }
+
+  function pushUndo(){
+    undoStack.push(JSON.stringify(elements));
+    if(undoStack.length > 80) undoStack.shift();
+    redoStack = [];
+  }
+  function undo(){
+    if(!undoStack.length) return;
+    redoStack.push(JSON.stringify(elements));
+    elements = JSON.parse(undoStack.pop());
+    selectedIdx = -1;
+    redraw();
+  }
+  function redo(){
+    if(!redoStack.length) return;
+    undoStack.push(JSON.stringify(elements));
+    elements = JSON.parse(redoStack.pop());
+    redraw();
+  }
+  function clearAll(){
+    if(!confirm('Clear the drawing? This cannot be undone with browser back.')) return;
+    pushUndo();
+    elements = [];
+    selectedIdx = -1;
+    redraw();
+  }
+
+  function drawGrid(c){
+    const w = canvas.width  / (window.devicePixelRatio || 1);
+    const h = canvas.height / (window.devicePixelRatio || 1);
+    c.fillStyle = '#fdfaf0';
+    c.fillRect(0,0,w,h);
+    // minor grid
+    c.strokeStyle = 'rgba(20,80,80,0.10)';
+    c.lineWidth = 0.5;
+    for(let x=0; x<=siteW; x+=gridFt){
+      const px = ftToPx(x);
+      c.beginPath(); c.moveTo(px,0); c.lineTo(px,h); c.stroke();
+    }
+    for(let y=0; y<=siteL; y+=gridFt){
+      const py = ftToPx(y);
+      c.beginPath(); c.moveTo(0,py); c.lineTo(w,py); c.stroke();
+    }
+    // major (5ft) + labels
+    c.strokeStyle = 'rgba(20,80,80,0.25)';
+    c.lineWidth = 0.8;
+    c.font = '9px DM Mono, monospace';
+    c.fillStyle = 'rgba(20,80,80,0.55)';
+    for(let x=0; x<=siteW; x+=5){
+      const px = ftToPx(x);
+      c.beginPath(); c.moveTo(px,0); c.lineTo(px,h); c.stroke();
+      if(x>0) c.fillText(x+"'", px+2, 10);
+    }
+    for(let y=0; y<=siteL; y+=5){
+      const py = ftToPx(y);
+      c.beginPath(); c.moveTo(0,py); c.lineTo(w,py); c.stroke();
+      if(y>0) c.fillText(y+"'", 2, py-2);
+    }
+    // boundary
+    c.strokeStyle = 'rgba(20,80,80,0.7)';
+    c.lineWidth = 1.5;
+    c.strokeRect(0, 0, ftToPx(siteW), ftToPx(siteL));
+  }
+
+  function drawElement(c, el, idx){
+    c.strokeStyle = el.color || '#1a8a8a';
+    c.lineWidth   = el.width || 2;
+    c.lineCap = 'round'; c.lineJoin = 'round';
+
+    if(el.type==='pencil'){
+      c.beginPath();
+      c.moveTo(ftToPx(el.pts[0].x), ftToPx(el.pts[0].y));
+      for(let i=1;i<el.pts.length;i++) c.lineTo(ftToPx(el.pts[i].x), ftToPx(el.pts[i].y));
+      c.stroke();
+    }
+    else if(el.type==='line'){
+      c.beginPath();
+      c.moveTo(ftToPx(el.x1), ftToPx(el.y1));
+      c.lineTo(ftToPx(el.x2), ftToPx(el.y2));
+      c.stroke();
+      const len = Math.hypot(el.x2-el.x1, el.y2-el.y1);
+      const mx = (el.x1+el.x2)/2, my = (el.y1+el.y2)/2;
+      const lbl = fmtFt(len);
+      c.font = 'bold 10px DM Mono, monospace';
+      const m = c.measureText(lbl);
+      c.fillStyle = 'rgba(253,250,240,0.9)';
+      c.fillRect(ftToPx(mx)+2, ftToPx(my)-12, m.width+6, 13);
+      c.fillStyle = el.color;
+      c.fillText(lbl, ftToPx(mx)+5, ftToPx(my)-2);
+    }
+    else if(el.type==='rect'){
+      const x = Math.min(el.x, el.x+el.w), y = Math.min(el.y, el.y+el.h);
+      const w = Math.abs(el.w), h = Math.abs(el.h);
+      if(el.fill==='solid'){
+        c.fillStyle = el.color + '33';
+        c.fillRect(ftToPx(x), ftToPx(y), ftToPx(w), ftToPx(h));
+      } else if(el.fill==='hatch'){
+        c.save();
+        c.beginPath();
+        c.rect(ftToPx(x), ftToPx(y), ftToPx(w), ftToPx(h));
+        c.clip();
+        c.strokeStyle = el.color + '66';
+        c.lineWidth = 0.6;
+        const px=ftToPx(x), py=ftToPx(y), pw=ftToPx(w), ph=ftToPx(h);
+        for(let i=-ph; i<pw+ph; i+=6){
+          c.beginPath(); c.moveTo(px+i,py); c.lineTo(px+i+ph,py+ph); c.stroke();
+        }
+        c.restore();
+      }
+      c.strokeStyle = el.color; c.lineWidth = el.width || 2;
+      c.strokeRect(ftToPx(x), ftToPx(y), ftToPx(w), ftToPx(h));
+      // dim labels
+      c.fillStyle = el.color;
+      c.font = 'bold 10px DM Mono, monospace';
+      c.textAlign = 'center';
+      c.fillText(fmtFt(w), ftToPx(x+w/2), ftToPx(y)-6);
+      c.save();
+      c.translate(ftToPx(x)-6, ftToPx(y+h/2));
+      c.rotate(-Math.PI/2);
+      c.fillText(fmtFt(h), 0, 0);
+      c.restore();
+      c.fillStyle = 'rgba(20,80,80,0.7)';
+      c.font = '9px DM Mono, monospace';
+      c.fillText((w*h).toFixed(0)+' sf', ftToPx(x+w/2), ftToPx(y+h/2)+4);
+      c.textAlign = 'start';
+    }
+    else if(el.type==='circle'){
+      c.beginPath();
+      c.arc(ftToPx(el.x), ftToPx(el.y), ftToPx(el.r), 0, Math.PI*2);
+      if(el.fill==='solid'){ c.fillStyle = el.color + '33'; c.fill(); }
+      c.stroke();
+      // crosshair center
+      c.strokeStyle = el.color + 'aa';
+      c.lineWidth = 0.6;
+      const cx=ftToPx(el.x), cy=ftToPx(el.y);
+      c.beginPath(); c.moveTo(cx-4,cy); c.lineTo(cx+4,cy); c.stroke();
+      c.beginPath(); c.moveTo(cx,cy-4); c.lineTo(cx,cy+4); c.stroke();
+      c.fillStyle = el.color;
+      c.font = 'bold 10px DM Mono, monospace';
+      c.fillText('Ø ' + fmtFt(el.r*2), ftToPx(el.x)+ftToPx(el.r)+4, ftToPx(el.y));
+    }
+    else if(el.type==='dim'){
+      const x1=ftToPx(el.x1), y1=ftToPx(el.y1);
+      const x2=ftToPx(el.x2), y2=ftToPx(el.y2);
+      c.strokeStyle = '#c4830f';
+      c.lineWidth = 1.2;
+      c.beginPath(); c.moveTo(x1,y1); c.lineTo(x2,y2); c.stroke();
+      const ang = Math.atan2(y2-y1, x2-x1);
+      drawArrow(c, x1, y1, ang + Math.PI);
+      drawArrow(c, x2, y2, ang);
+      const len = Math.hypot(el.x2-el.x1, el.y2-el.y1);
+      const txt = fmtFt(len);
+      const mx = (x1+x2)/2, my = (y1+y2)/2;
+      c.font = 'bold 11px DM Mono, monospace';
+      c.textAlign = 'center';
+      const m = c.measureText(txt);
+      c.fillStyle = '#fdfaf0';
+      c.fillRect(mx - m.width/2 - 4, my - 14, m.width + 8, 16);
+      c.fillStyle = '#c4830f';
+      c.fillText(txt, mx, my - 2);
+      c.textAlign = 'start';
+    }
+    else if(el.type==='text'){
+      c.fillStyle = el.color || '#1a8a8a';
+      c.font = (el.size||14) + 'px sans-serif';
+      c.fillText(el.text, ftToPx(el.x), ftToPx(el.y));
+    }
+
+    if(idx === selectedIdx){
+      c.save();
+      c.strokeStyle = '#e89a2b';
+      c.lineWidth = 1;
+      c.setLineDash([4,3]);
+      const bb = boundingBox(el);
+      if(bb) c.strokeRect(ftToPx(bb.x)-3, ftToPx(bb.y)-3, ftToPx(bb.w)+6, ftToPx(bb.h)+6);
+      c.restore();
+    }
+  }
+
+  function drawArrow(c, px, py, ang){
+    const sz = 7;
+    c.beginPath();
+    c.moveTo(px, py);
+    c.lineTo(px - sz*Math.cos(ang-0.42), py - sz*Math.sin(ang-0.42));
+    c.lineTo(px - sz*Math.cos(ang+0.42), py - sz*Math.sin(ang+0.42));
+    c.closePath();
+    c.fillStyle = '#c4830f';
+    c.fill();
+  }
+
+  function boundingBox(el){
+    if(el.type==='rect'){
+      return {x:Math.min(el.x, el.x+el.w), y:Math.min(el.y, el.y+el.h), w:Math.abs(el.w), h:Math.abs(el.h)};
+    }
+    if(el.type==='circle') return {x:el.x-el.r, y:el.y-el.r, w:el.r*2, h:el.r*2};
+    if(el.type==='line' || el.type==='dim'){
+      return {x:Math.min(el.x1,el.x2), y:Math.min(el.y1,el.y2),
+              w:Math.abs(el.x2-el.x1), h:Math.abs(el.y2-el.y1)};
+    }
+    if(el.type==='pencil'){
+      const xs=el.pts.map(p=>p.x), ys=el.pts.map(p=>p.y);
+      return {x:Math.min(...xs), y:Math.min(...ys),
+              w:Math.max(...xs)-Math.min(...xs), h:Math.max(...ys)-Math.min(...ys)};
+    }
+    if(el.type==='text') return {x:el.x, y:el.y-1, w:(el.text||'').length*0.45, h:1.4};
+    return null;
+  }
+
+  // Format feet as ft & in (e.g., 12.5 -> "12' 6\"")
+  function fmtFt(ft){
+    const t = Math.abs(ft);
+    const f = Math.floor(t);
+    let inches = Math.round((t - f) * 12);
+    if(inches === 12) return (f+1) + "'";
+    if(inches === 0)  return f + "'";
+    return f + "' " + inches + '"';
+  }
+
+  function redraw(){
+    if(!ctx) return;
+    drawGrid(ctx);
+    elements.forEach((el, i) => drawElement(ctx, el, i));
+    if(currentDraw) drawElement(ctx, currentDraw, -1);
+    updateStats();
+  }
+
+  function updateStats(){
+    const stats = document.getElementById('drawer-stats');
+    if(!stats) return;
+    let totalLF = 0, totalSF = 0, count = elements.length;
+    let rectCount = 0, lineCount = 0, postCount = 0;
+    elements.forEach(el => {
+      if(el.type==='line'){ totalLF += Math.hypot(el.x2-el.x1, el.y2-el.y1); lineCount++; }
+      if(el.type==='rect'){ totalSF += Math.abs(el.w*el.h); rectCount++; }
+      if(el.type==='circle'){ postCount++; }
+    });
+    const cell = (lbl,val) => `<div style="background:var(--surface2);padding:6px 10px;border-radius:6px"><div style="color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.04em">${lbl}</div><div style="color:var(--accent);font-weight:600;font-size:13px">${val}</div></div>`;
+    stats.innerHTML =
+      cell('Shapes', count) +
+      cell('Walls', lineCount + ' (' + totalLF.toFixed(1) + " lf)") +
+      cell('Rooms', rectCount + ' (' + totalSF.toFixed(0) + ' sf)') +
+      cell('Posts', postCount) +
+      cell('Scale', scale.toFixed(1) + ' px/ft') +
+      cell('Site', siteW + "'×" + siteL + "'");
+  }
+
+  function updateHud(p){
+    const c = document.getElementById('drawer-coords');
+    if(c) c.textContent = fmtFt(p.x) + ', ' + fmtFt(p.y);
+    const h = document.getElementById('drawer-hud');
+    if(h) h.textContent = tool.charAt(0).toUpperCase() + tool.slice(1) + ' tool';
+  }
+
+  function setTool(t){
+    tool = t;
+    document.querySelectorAll('.dr-tool').forEach(b => {
+      if(b.dataset.tool) b.classList.toggle('active', b.dataset.tool === t);
+    });
+    if(canvas){
+      canvas.style.cursor = t==='select' ? 'grab'
+        : t==='text' ? 'text'
+        : t==='eraser' ? 'crosshair'
+        : 'crosshair';
+    }
+    const h = document.getElementById('drawer-hud');
+    if(h) h.textContent = t.charAt(0).toUpperCase() + t.slice(1) + ' tool';
+  }
+
+  function updateScale(){
+    const wEl = document.getElementById('dr-site-w');
+    const lEl = document.getElementById('dr-site-l');
+    const gEl = document.getElementById('dr-grid');
+    const sEl = document.getElementById('dr-snap');
+    siteW  = Math.max(4, Math.min(500, parseFloat(wEl?.value)||40));
+    siteL  = Math.max(4, Math.min(500, parseFloat(lEl?.value)||30));
+    gridFt = parseFloat(gEl?.value) || 1;
+    snap   = (sEl?.value !== '0');
+    fitCanvas();
+    redraw();
+  }
+
+  function exportPNG(){
+    // Render at 3× DPR for crisp print
+    const exportCanvas = document.createElement('canvas');
+    const factor = 3;
+    const w = canvas.width  / (window.devicePixelRatio || 1);
+    const h = canvas.height / (window.devicePixelRatio || 1);
+    exportCanvas.width  = w * factor;
+    exportCanvas.height = h * factor;
+    const ex = exportCanvas.getContext('2d');
+    ex.scale(factor, factor);
+    // Temporarily redirect draw routines to the export ctx by swapping
+    // canvas.width/height-derived globals isn't safe — instead, draw
+    // straight into ex using the same helpers.
+    drawGrid(ex);
+    elements.forEach((el, i) => drawElement(ex, el, -1));
+    // Title block
+    ex.fillStyle = 'rgba(20,80,80,0.85)';
+    ex.font = 'bold 11px sans-serif';
+    ex.fillText('Project Plan — ' + siteW + "' × " + siteL + "' site  ·  grid " + gridFt + " ft", 6, h-6);
+    const dataUrl = exportCanvas.toDataURL('image/png');
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = 'project-plan-' + siteW + 'x' + siteL + 'ft.png';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    if(typeof toast==='function') toast('Saved PNG (' + (factor*w) + '×' + (factor*h) + ' px)');
+  }
+
+  async function copyClipboard(){
+    try {
+      const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+      if(!navigator.clipboard || !window.ClipboardItem) throw new Error('No clipboard');
+      await navigator.clipboard.write([new ClipboardItem({'image/png': blob})]);
+      if(typeof toast==='function') toast('Drawing copied to clipboard');
+    } catch(e){
+      if(typeof toast==='function') toast('Clipboard not supported — use Save as PNG');
+    }
+  }
+
+  function useInTakeoff(){
+    // Find largest room rectangle and push its dims to the active takeoff type.
+    let biggest = null, area = 0;
+    elements.forEach(el => {
+      if(el.type==='rect'){
+        const a = Math.abs(el.w * el.h);
+        if(a > area){ area = a; biggest = el; }
+      }
+    });
+    if(!biggest){
+      if(typeof toast==='function') toast('Draw a room rectangle first to define the footprint');
+      return;
+    }
+    const w = Math.abs(biggest.w), h = Math.abs(biggest.h);
+    const long = Math.max(w, h), short = Math.min(w, h);
+    if(typeof switchTab === 'function') switchTab('takeoff', 'tab-takeoff');
+    const typeEl = document.getElementById('to-type');
+    const type = typeEl ? typeEl.value : 'deck';
+    // Map takeoff type → length / width input IDs
+    const M = {
+      deck:     {len:'dk-len', wid:'dk-wid'},
+      porch:    {len:'po-len', wid:'po-dep'},
+      roof:     {len:'rf-len', wid:'rf-wid'},
+      framing:  {len:'fr-len', wid:'fr-wid'},
+      concrete: {len:'co-len', wid:'co-wid'},
+      carport:  {len:'cp-len', wid:'cp-wid'},
+      blockwall:{len:'bw-len'},
+    }[type] || {};
+    if(M.len){ const e = document.getElementById(M.len); if(e){ e.value = long.toFixed(1); } }
+    if(M.wid){ const e = document.getElementById(M.wid); if(e){ e.value = short.toFixed(1); } }
+    if(typeof toCalc === 'function') toCalc();
+    if(typeof toast === 'function') toast('Applied ' + fmtFt(long) + ' × ' + fmtFt(short) + ' to ' + type + ' takeoff');
+  }
+
+  return {
+    init, setTool, undo, redo, clearAll, updateScale,
+    exportPNG, copyClipboard, useInTakeoff,
+    setColor: (c) => { strokeColor = c; },
+    setStroke:(s) => { strokeWidth = parseFloat(s) || 2; },
+    setFill:  (f) => { fillStyle  = f; },
+  };
+})();
+
+window.drawerSetTool       = (t) => Drawer.setTool(t);
+window.drawerUndo          = ()  => Drawer.undo();
+window.drawerRedo          = ()  => Drawer.redo();
+window.drawerClear         = ()  => Drawer.clearAll();
+window.drawerUpdateScale   = ()  => Drawer.updateScale();
+window.drawerExportPNG     = ()  => Drawer.exportPNG();
+window.drawerCopyClipboard = ()  => Drawer.copyClipboard();
+window.drawerUseInTakeoff  = ()  => Drawer.useInTakeoff();
+window.drawerSetColor      = (c) => Drawer.setColor(c);
+window.drawerSetStroke     = (s) => Drawer.setStroke(s);
+window.drawerSetFill       = (f) => Drawer.setFill(f);
 
 // ── MAIN ANALYZE FUNCTION ─────────────────────────────────────────────────
 async function descAnalyze(){
