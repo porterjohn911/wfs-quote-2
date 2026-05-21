@@ -1469,6 +1469,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
             <button class="cad-tool toggle on" id="cad-osnapOn" onclick="CAD.toggle('osnapOn')">⊙ Osnap</button>
             <button class="cad-tool ghost" id="cad-osnap-exp" onclick="CAD.osnapPanel()" style="padding:7px 8px">▾</button>
             <button class="cad-tool toggle on" id="cad-ortho" onclick="CAD.toggle('ortho')">⌐ Ortho</button>
+            <button class="cad-tool toggle" id="cad-polar" onclick="CAD.toggle('polar')">∠ Polar</button>
             <button class="cad-tool toggle on" id="cad-grid"  onclick="CAD.toggle('grid')">▦ Grid</button>
             <button class="cad-tool toggle on" id="cad-dims"  onclick="CAD.toggle('dims')"># Dims</button>
             <div class="cad-sep"></div>
@@ -13591,6 +13592,7 @@ function guessOrderUnit(unit, qty){
     ppf:14, zoom:1, panX:60, panY:60,
     tool:'select',
     snap:true, ortho:true, grid:true, dims:true,
+    polar:false, polarStep:15, typeBuf:'',
     osnapOn:true,
     osnap:{endpoint:true, midpoint:true, center:true, quadrant:true, intersection:true, perpendicular:true, nearest:true},
     hoverSnap:null,
@@ -13702,16 +13704,39 @@ function guessOrderUnit(unit, qty){
     return {pt:{x:cands[0].pt.x,y:cands[0].pt.y}, type:cands[0].type};
   }
 
-  // ── snapping (OSNAP first, then ortho + grid) ───────────────
+  // Polar tracking: lock to nearest polarStep angle when within tolerance.
+  function polarLock(world, from){
+    const dx=world.x-from.x, dy=world.y-from.y;
+    if(dx===0&&dy===0) return null;
+    let deg=Math.atan2(-dy,dx)*180/Math.PI; if(deg<0) deg+=360;
+    const step=S.polarStep||15, nearest=Math.round(deg/step)*step;
+    let diff=Math.abs(deg-nearest); if(diff>180) diff=360-diff;
+    if(diff>4) return null;
+    const r=nearest*Math.PI/180, dirx=Math.cos(r), diry=-Math.sin(r);
+    const d=Math.max(0, dx*dirx+dy*diry);
+    return {pt:{x:from.x+d*dirx, y:from.y+d*diry}, type:'polar', angle:((nearest%360)+360)%360};
+  }
+
+  // ── snapping (OSNAP first, then ortho / polar, then grid) ───
   function snapPoint(world, from){
     const o=osnap(world, from);
     if(o) return o;
     let p={x:world.x,y:world.y};
-    if(S.ortho && from){
+    if(from && S.ortho){
       if(Math.abs(p.x-from.x) >= Math.abs(p.y-from.y)) p.y=from.y; else p.x=from.x;
+    } else if(from && S.polar){
+      const lk=polarLock(world, from); if(lk) return lk;
     }
     if(S.snap){ p.x=Math.round(p.x/S.gridSize)*S.gridSize; p.y=Math.round(p.y/S.gridSize)*S.gridSize; }
     return {pt:p, type:S.snap?'grid':'free'};
+  }
+
+  // Parse a length string: 12 | 12.5 | 12'6 | 12'6" | 6"  → feet
+  function parseLen(s){
+    s=(s||'').trim().replace(/\s+/g,''); if(!s) return NaN;
+    if(s.includes("'")){ const i=s.indexOf("'"); const ft=parseFloat(s.slice(0,i))||0; const rest=s.slice(i+1).replace('"',''); const inch=rest?parseFloat(rest)||0:0; return ft+inch/12; }
+    if(s.endsWith('"')){ const inch=parseFloat(s)||0; return inch/12; }
+    const v=parseFloat(s); return isNaN(v)?NaN:v;
   }
 
   // ── history / persistence ───────────────────────────────────
@@ -13929,6 +13954,12 @@ function guessOrderUnit(unit, qty){
 
   function drawPreview(ctx){
     const d=S.draw, t=S.tool;
+    if(d.snapType==='polar' && t!=='rect'){      // polar/ortho tracking ray
+      const a=w2s(d.p1), b=w2s(d.p2); const ang=Math.atan2(b.y-a.y,b.x-a.x);
+      const far={x:a.x+Math.cos(ang)*4000, y:a.y+Math.sin(ang)*4000};
+      ctx.save(); ctx.setLineDash([2,5]); ctx.strokeStyle='rgba(62,184,122,0.55)'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(far.x,far.y); ctx.stroke(); ctx.restore();
+    }
     ctx.setLineDash([5,4]);
     if(t==='rect'){
       const x=Math.min(d.p1.x,d.p2.x), y=Math.min(d.p1.y,d.p2.y), w=Math.abs(d.p2.x-d.p1.x), h=Math.abs(d.p2.y-d.p1.y);
@@ -13981,8 +14012,11 @@ function guessOrderUnit(unit, qty){
   }
   function readoutForDraw(){
     const d=S.draw, t=S.tool;
-    if(t==='rect'){ const w=Math.abs(d.p2.x-d.p1.x), h=Math.abs(d.p2.y-d.p1.y); setReadout(fmtFt(w)+' × '+fmtFt(h)+' = '+fmtArea(w*h)); }
-    else { const len=hyp(d.p1,d.p2); setReadout(fmtFt(len)+'  ∠'+segAngle(d.p1,d.p2)+'°'); }
+    let base;
+    if(t==='rect'){ const w=Math.abs(d.p2.x-d.p1.x), h=Math.abs(d.p2.y-d.p1.y); base=fmtFt(w)+' × '+fmtFt(h)+' = '+fmtArea(w*h); }
+    else { const len=hyp(d.p1,d.p2); base=fmtFt(len)+'  ∠'+segAngle(d.p1,d.p2)+'°'+(d.snapType==='polar'?' ⟲':''); }
+    if(S.typeBuf) base='⌨ '+S.typeBuf+'  ·  '+base;
+    setReadout(base);
   }
   function afterChange(){ updateStats(); refreshSelEditor(); }
   function updateStats(){
@@ -14089,10 +14123,10 @@ function guessOrderUnit(unit, qty){
       const enough = hyp(S.draw.p1,S.draw.p2)>0.08;
       if(moved){                       // press-drag-release
         if(enough) finalizeDraw();
-        S.draw=null; setReadout('');
+        S.draw=null; S.typeBuf=''; setReadout('');
       } else if(S.down && S.down.hadDraw){   // second tap → complete
         if(enough) finalizeDraw();
-        S.draw=null; setReadout('');
+        S.draw=null; S.typeBuf=''; setReadout('');
       } else {                          // first tap → wait for end point
         S.draw.p2=S.draw.p1;
         setReadout(t==='rect'?'Tap the opposite corner':'Tap the end point');
@@ -14117,6 +14151,28 @@ function guessOrderUnit(unit, qty){
     else if(t==='dim') add({type:'dim', x1:d.p1.x,y1:d.p1.y,x2:d.p2.x,y2:d.p2.y});
     else if(t==='rect'){ const x=Math.min(d.p1.x,d.p2.x),y=Math.min(d.p1.y,d.p2.y),w=Math.abs(d.p2.x-d.p1.x),h=Math.abs(d.p2.y-d.p1.y); add({type:'rect',x,y,w,h}); }
     commit();
+  }
+  // Commit the in-progress draw using a typed distance ("12", "12'6", "10<45", or "WxH" for rooms).
+  function commitTyped(){
+    const buf=S.typeBuf; S.typeBuf='';
+    if(!S.draw) { setReadout(''); return; }
+    const t=S.tool;
+    if(t==='rect'){
+      const parts=buf.split(/[x,]/i); const w=parseLen(parts[0]); const h=parseLen(parts[1]!=null?parts[1]:parts[0]);
+      if(isNaN(w)||isNaN(h)||w<=0||h<=0){ setReadout(''); render(); return; }
+      const sx=(S.draw.p2.x>=S.draw.p1.x)?1:-1, sy=(S.draw.p2.y>=S.draw.p1.y)?1:-1;
+      S.draw.p2={x:S.draw.p1.x+sx*w, y:S.draw.p1.y+sy*h};
+    } else {
+      let distPart=buf, angPart=null;
+      if(buf.includes('<')){ const k=buf.indexOf('<'); distPart=buf.slice(0,k); angPart=buf.slice(k+1); }
+      const dist=parseLen(distPart);
+      if(isNaN(dist)||dist<=0){ setReadout(''); render(); return; }
+      let theta = (angPart!=null && angPart!=='') ? parseFloat(angPart) : segAngle(S.draw.p1,S.draw.p2);
+      if(isNaN(theta)) theta=0;
+      const r=theta*Math.PI/180;
+      S.draw.p2={x:S.draw.p1.x+dist*Math.cos(r), y:S.draw.p1.y-dist*Math.sin(r)};
+    }
+    finalizeDraw(); S.draw=null; setReadout(''); render();
   }
 
   function beginSelect(world,sx,sy){
@@ -14165,7 +14221,7 @@ function guessOrderUnit(unit, qty){
 
   // ── public API ──────────────────────────────────────────────
   const CAD = {
-    setTool(t){ if(S.poly) finishPoly(); S.tool=t; S.draw=null; S.hoverSnap=null; setReadout('');
+    setTool(t){ if(S.poly) finishPoly(); S.tool=t; S.draw=null; S.hoverSnap=null; S.typeBuf=''; setReadout('');
       document.querySelectorAll('#page-draw .cad-tool[id^="cad-t-"]').forEach(b=>b.classList.remove('active'));
       const b=document.getElementById('cad-t-'+t); if(b) b.classList.add('active');
       if(S.canvas) S.canvas.style.cursor = (t==='pan')?'grab':(t==='select')?'default':'crosshair';
@@ -14174,9 +14230,9 @@ function guessOrderUnit(unit, qty){
         const H={
           select:'Select tool: tap an element to select it, then drag it or its white handles. Edit exact sizes below. Drag empty space to pan.',
           pan:'Pan tool: drag to move the view. Pinch or scroll to zoom.',
-          wall:'Wall: tap a start point, then tap the end point (or press-drag). Snap & Ortho keep it accurate. Esc cancels.',
-          line:'Line: tap a start point, then tap the end point (or press-drag). Esc cancels.',
-          rect:'Room: tap one corner, then tap the opposite corner (or press-drag). Esc cancels.',
+          wall:'Wall: tap a start point, then tap the end point (or press-drag). After the first point you can TYPE a length (e.g. 12 or 12\'6 or 10<45) and press Enter. Ortho/Polar lock the angle. Esc cancels.',
+          line:'Line: tap a start, then the end (or press-drag). Type a length + Enter for an exact run (e.g. 8\'6 or 10<30). Esc cancels.',
+          rect:'Room: tap one corner, then the opposite corner. Or after the first corner type WxH + Enter (e.g. 16x12). Esc cancels.',
           poly:'Polyline: tap each point. Tap the first point (or double-tap) to finish. Esc cancels.',
           dim:'Dimension: tap two points to measure the distance between them.',
           post:'Post / footing: tap to drop a post at the snapped point.',
@@ -14187,7 +14243,12 @@ function guessOrderUnit(unit, qty){
       }
       render();
     },
-    toggle(k){ S[k]=!S[k]; const b=document.getElementById('cad-'+k); if(b) b.classList.toggle('on',S[k]); render(); },
+    toggle(k){ S[k]=!S[k];
+      if(k==='polar' && S.polar) S.ortho=false;
+      if(k==='ortho' && S.ortho) S.polar=false;
+      const sync=(key)=>{ const b=document.getElementById('cad-'+key); if(b) b.classList.toggle('on',S[key]); };
+      sync(k); sync('ortho'); sync('polar'); render();
+    },
     osnapPanel(){ const row=document.getElementById('cad-osnap-row'); if(!row) return; const open=row.style.display==='none'; row.style.display=open?'flex':'none'; const exp=document.getElementById('cad-osnap-exp'); if(exp) exp.textContent=open?'▴':'▾'; },
     osnapToggle(type){ S.osnap[type]=!S.osnap[type]; const b=document.querySelector('#cad-osnap-row .cad-os[data-os="'+type+'"]'); if(b) b.classList.toggle('on',S.osnap[type]); render(); },
     setGrid(v){ S.gridSize=parseFloat(v)||1; const badge=document.getElementById('cad-scale-badge'); if(badge) badge.textContent=fmtFt(S.gridSize)+' / square'; save(); render(); },
@@ -14269,11 +14330,18 @@ function guessOrderUnit(unit, qty){
     c.addEventListener('dblclick', e=>{ e.preventDefault(); if(S.tool==='poly') finishPoly(); });
     window.addEventListener('keydown', e=>{
       if(!document.getElementById('page-draw').classList.contains('active')) return;
-      if(e.key==='Escape'){ S.draw=null; S.poly=null; S.polyPrev=null; S.hoverSnap=null; setReadout(''); render(); }
+      const tag=(document.activeElement&&document.activeElement.tagName)||'';
+      if(tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA') return;
+      if(e.key==='Escape'){ S.draw=null; S.poly=null; S.polyPrev=null; S.hoverSnap=null; S.typeBuf=''; setReadout(''); render(); }
       else if(e.key==='F3'){ e.preventDefault(); CAD.toggle('osnapOn'); }
       else if(e.key==='F9'){ e.preventDefault(); CAD.toggle('snap'); }
       else if(e.key==='F8'){ e.preventDefault(); CAD.toggle('ortho'); }
-      else if((e.key==='Delete'||e.key==='Backspace') && S.sel && document.activeElement===document.body){ e.preventDefault(); CAD.deleteSelected(); }
+      else if(S.draw && DRAG_TOOLS[S.tool]){       // dynamic distance entry
+        if(e.key==='Enter'){ e.preventDefault(); commitTyped(); }
+        else if(e.key==='Backspace'){ e.preventDefault(); S.typeBuf=S.typeBuf.slice(0,-1); readoutForDraw(); }
+        else if(/^[0-9.'"<,x-]$/i.test(e.key)){ e.preventDefault(); S.typeBuf+=e.key; readoutForDraw(); }
+      }
+      else if((e.key==='Delete'||e.key==='Backspace') && S.sel){ e.preventDefault(); CAD.deleteSelected(); }
     });
     window.addEventListener('resize', ()=>{ if(document.getElementById('page-draw').classList.contains('active')) resize(); });
     const badge=document.getElementById('cad-scale-badge'); if(badge) badge.textContent=fmtFt(S.gridSize)+' / square';
