@@ -1465,7 +1465,9 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
           </div>
           <!-- Modes -->
           <div class="cad-bar" style="margin-bottom:8px">
-            <button class="cad-tool toggle on" id="cad-snap"  onclick="CAD.toggle('snap')">⊞ Snap</button>
+            <button class="cad-tool toggle on" id="cad-snap"  onclick="CAD.toggle('snap')">⊞ Grid snap</button>
+            <button class="cad-tool toggle on" id="cad-osnapOn" onclick="CAD.toggle('osnapOn')">⊙ Osnap</button>
+            <button class="cad-tool ghost" id="cad-osnap-exp" onclick="CAD.osnapPanel()" style="padding:7px 8px">▾</button>
             <button class="cad-tool toggle on" id="cad-ortho" onclick="CAD.toggle('ortho')">⌐ Ortho</button>
             <button class="cad-tool toggle on" id="cad-grid"  onclick="CAD.toggle('grid')">▦ Grid</button>
             <button class="cad-tool toggle on" id="cad-dims"  onclick="CAD.toggle('dims')"># Dims</button>
@@ -1475,6 +1477,17 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
             <button class="cad-tool ghost" onclick="CAD.fit()">⤢ Fit</button>
             <button class="cad-tool ghost" onclick="CAD.exportPNG()">⤓ PNG</button>
             <button class="cad-tool ghost" onclick="CAD.clearAll()" style="color:var(--danger)">✕ Clear</button>
+          </div>
+          <!-- Object-snap types (collapsible) -->
+          <div class="cad-bar" id="cad-osnap-row" style="margin-bottom:8px;display:none">
+            <span style="font-size:10px;color:var(--text3);align-self:center;margin-right:2px">OSNAP:</span>
+            <button class="cad-tool toggle on cad-os" data-os="endpoint"     onclick="CAD.osnapToggle('endpoint')">◻ End</button>
+            <button class="cad-tool toggle on cad-os" data-os="midpoint"     onclick="CAD.osnapToggle('midpoint')">△ Mid</button>
+            <button class="cad-tool toggle on cad-os" data-os="center"       onclick="CAD.osnapToggle('center')">◯ Cen</button>
+            <button class="cad-tool toggle on cad-os" data-os="quadrant"     onclick="CAD.osnapToggle('quadrant')">◇ Quad</button>
+            <button class="cad-tool toggle on cad-os" data-os="intersection" onclick="CAD.osnapToggle('intersection')">✕ Int</button>
+            <button class="cad-tool toggle on cad-os" data-os="perpendicular" onclick="CAD.osnapToggle('perpendicular')">⊥ Perp</button>
+            <button class="cad-tool toggle on cad-os" data-os="nearest"      onclick="CAD.osnapToggle('nearest')">⋈ Near</button>
           </div>
           <!-- Settings + presets -->
           <div class="field-row" style="margin-bottom:0">
@@ -13578,6 +13591,9 @@ function guessOrderUnit(unit, qty){
     ppf:14, zoom:1, panX:60, panY:60,
     tool:'select',
     snap:true, ortho:true, grid:true, dims:true,
+    osnapOn:true,
+    osnap:{endpoint:true, midpoint:true, center:true, quadrant:true, intersection:true, perpendicular:true, nearest:true},
+    hoverSnap:null,
     gridSize:1,
     entities:[], nextId:1,
     sel:null,
@@ -13628,18 +13644,68 @@ function guessOrderUnit(unit, qty){
     if(e.type==='post'||e.type==='text') return [{x:e.x,y:e.y}];
     return [];
   }
-  function nearestVertex(world, thr){
-    let best=null, bd=thr;
-    for(const e of S.entities){ for(const v of verts(e)){ const d=hyp(world,v); if(d<bd){bd=d;best=v;} } }
-    if(S.poly){ for(const v of S.poly.pts){ const d=hyp(world,v); if(d<bd){bd=d;best=v;} } }
-    return best;
+  // ── OSNAP geometry helpers ──────────────────────────────────
+  function footPerp(p,a,b,clamp){
+    const dx=b.x-a.x, dy=b.y-a.y, L2=dx*dx+dy*dy;
+    if(L2===0) return {x:a.x,y:a.y};
+    let t=((p.x-a.x)*dx+(p.y-a.y)*dy)/L2; if(clamp) t=Math.max(0,Math.min(1,t));
+    return {x:a.x+t*dx, y:a.y+t*dy};
+  }
+  function segInt(a,b,c,d){
+    const rx=b.x-a.x, ry=b.y-a.y, sx=d.x-c.x, sy=d.y-c.y;
+    const den=rx*sy-ry*sx; if(Math.abs(den)<1e-9) return null;
+    const t=((c.x-a.x)*sy-(c.y-a.y)*sx)/den, u=((c.x-a.x)*ry-(c.y-a.y)*rx)/den;
+    if(t<-1e-9||t>1+1e-9||u<-1e-9||u>1+1e-9) return null;
+    return {x:a.x+t*rx, y:a.y+t*ry};
+  }
+  function eachSegment(cb){
+    for(const e of S.entities){
+      if(e.type==='wall'||e.type==='line'||e.type==='dim') cb({x:e.x1,y:e.y1},{x:e.x2,y:e.y2});
+      else if(e.type==='rect'){ const c=verts(e); for(let i=0;i<4;i++) cb(c[i],c[(i+1)%4]); }
+      else if(e.type==='poly'){ const p=e.pts, n=e.closed?p.length:p.length-1; for(let i=0;i<n;i++) cb(p[i],p[(i+1)%p.length]); }
+    }
+    if(S.poly){ const p=S.poly.pts; for(let i=0;i<p.length-1;i++) cb(p[i],p[i+1]); }
   }
 
-  // ── snapping ────────────────────────────────────────────────
+  // Object snap: returns nearest {pt,type} within threshold honouring enabled types + priority.
+  function osnap(world, from){
+    if(!S.osnapOn) return null;
+    const thr=12/ppfz(), O=S.osnap, cands=[];
+    const push=(pt,type,rank)=>{ if(!pt) return; const d=hyp(world,pt); if(d<=thr) cands.push({pt,type,rank,d}); };
+    for(const e of S.entities){
+      if(e.type==='wall'||e.type==='line'||e.type==='dim'){
+        if(O.endpoint){ push({x:e.x1,y:e.y1},'endpoint',1); push({x:e.x2,y:e.y2},'endpoint',1); }
+        if(O.midpoint) push({x:(e.x1+e.x2)/2,y:(e.y1+e.y2)/2},'midpoint',3);
+      } else if(e.type==='rect'){
+        const c=verts(e);
+        if(O.endpoint) c.forEach(p=>push(p,'endpoint',1));
+        if(O.midpoint) for(let i=0;i<4;i++) push({x:(c[i].x+c[(i+1)%4].x)/2,y:(c[i].y+c[(i+1)%4].y)/2},'midpoint',3);
+      } else if(e.type==='poly'){
+        if(O.endpoint) e.pts.forEach(p=>push(p,'endpoint',1));
+        if(O.midpoint){ const n=e.closed?e.pts.length:e.pts.length-1; for(let i=0;i<n;i++){const a=e.pts[i],b=e.pts[(i+1)%e.pts.length]; push({x:(a.x+b.x)/2,y:(a.y+b.y)/2},'midpoint',3);} }
+      } else if(e.type==='post'){
+        if(O.center) push({x:e.x,y:e.y},'center',4);
+        if(O.quadrant){ const r=(e.size||0.5)/2; push({x:e.x+r,y:e.y},'quadrant',5); push({x:e.x-r,y:e.y},'quadrant',5); push({x:e.x,y:e.y+r},'quadrant',5); push({x:e.x,y:e.y-r},'quadrant',5); }
+      } else if(e.type==='text'){
+        if(O.endpoint) push({x:e.x,y:e.y},'endpoint',1);
+      }
+    }
+    if(S.poly && O.endpoint) S.poly.pts.forEach(p=>push(p,'endpoint',1));
+    if(O.intersection){
+      const segs=[]; eachSegment((a,b)=>segs.push([a,b]));
+      if(segs.length<=120) for(let i=0;i<segs.length;i++) for(let j=i+1;j<segs.length;j++) push(segInt(segs[i][0],segs[i][1],segs[j][0],segs[j][1]),'intersection',2);
+    }
+    if(O.perpendicular && from) eachSegment((a,b)=>push(footPerp(from,a,b,true),'perpendicular',6));
+    if(O.nearest) eachSegment((a,b)=>push(footPerp(world,a,b,true),'nearest',7));
+    if(!cands.length) return null;
+    cands.sort((x,y)=> (x.rank-y.rank) || (x.d-y.d));
+    return {pt:{x:cands[0].pt.x,y:cands[0].pt.y}, type:cands[0].type};
+  }
+
+  // ── snapping (OSNAP first, then ortho + grid) ───────────────
   function snapPoint(world, from){
-    const thr = 13/ppfz();
-    const v = nearestVertex(world, thr);
-    if(v) return {pt:{x:v.x,y:v.y}, type:'vertex'};
+    const o=osnap(world, from);
+    if(o) return o;
     let p={x:world.x,y:world.y};
     if(S.ortho && from){
       if(Math.abs(p.x-from.x) >= Math.abs(p.y-from.y)) p.y=from.y; else p.x=from.x;
@@ -13745,9 +13811,11 @@ function guessOrderUnit(unit, qty){
     for(const e of S.entities) drawEntity(ctx, e, e.id===S.sel);
     if(S.draw) drawPreview(ctx);
     if(S.poly) drawPolyPreview(ctx);
+    if(S.hoverSnap && !S.draw) snapMark(ctx, S.hoverSnap.pt, S.hoverSnap.type);
     const se=getSel(); if(se) drawHandles(ctx, se);
     updateHUD();
   }
+  const POINT_TOOLS = {wall:1,line:1,rect:1,dim:1,poly:1,post:1,text:1};
 
   function drawGrid(ctx){
     let gs=S.gridSize; while(gs*ppfz()<8) gs*=2;
@@ -13889,10 +13957,17 @@ function guessOrderUnit(unit, qty){
       ctx.beginPath(); ctx.rect(s.x-5,s.y-5,10,10); ctx.fill(); ctx.stroke(); }
   }
   function snapMark(ctx, p, type){
-    const s=w2s(p); ctx.lineWidth=1.5;
-    if(type==='vertex'){ ctx.strokeStyle='#e060e0'; ctx.beginPath(); ctx.arc(s.x,s.y,7,0,7); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(s.x-9,s.y); ctx.lineTo(s.x+9,s.y); ctx.moveTo(s.x,s.y-9); ctx.lineTo(s.x,s.y+9); ctx.stroke(); }
-    else { ctx.strokeStyle='#2db8b8'; ctx.beginPath(); ctx.arc(s.x,s.y,4,0,7); ctx.stroke(); }
+    const s=w2s(p); ctx.lineWidth=1.6; const r=6;
+    if(type==='grid'||type==='free'){ ctx.strokeStyle='#2db8b8'; ctx.beginPath(); ctx.arc(s.x,s.y,4,0,7); ctx.stroke(); return; }
+    ctx.strokeStyle='#ffcc00';
+    if(type==='endpoint'){ ctx.strokeRect(s.x-r,s.y-r,2*r,2*r); }
+    else if(type==='midpoint'){ ctx.beginPath(); ctx.moveTo(s.x,s.y-r); ctx.lineTo(s.x+r,s.y+r); ctx.lineTo(s.x-r,s.y+r); ctx.closePath(); ctx.stroke(); }
+    else if(type==='center'){ ctx.beginPath(); ctx.arc(s.x,s.y,r,0,7); ctx.stroke(); }
+    else if(type==='quadrant'){ ctx.beginPath(); ctx.moveTo(s.x,s.y-r); ctx.lineTo(s.x+r,s.y); ctx.lineTo(s.x,s.y+r); ctx.lineTo(s.x-r,s.y); ctx.closePath(); ctx.stroke(); }
+    else if(type==='intersection'){ ctx.beginPath(); ctx.moveTo(s.x-r,s.y-r); ctx.lineTo(s.x+r,s.y+r); ctx.moveTo(s.x+r,s.y-r); ctx.lineTo(s.x-r,s.y+r); ctx.stroke(); }
+    else if(type==='perpendicular'){ ctx.beginPath(); ctx.moveTo(s.x-r,s.y-r); ctx.lineTo(s.x-r,s.y+r); ctx.lineTo(s.x+r,s.y+r); ctx.moveTo(s.x-r,s.y); ctx.lineTo(s.x,s.y); ctx.lineTo(s.x,s.y+r); ctx.stroke(); }
+    else if(type==='nearest'){ ctx.beginPath(); ctx.moveTo(s.x-r,s.y-r); ctx.lineTo(s.x+r,s.y-r); ctx.lineTo(s.x-r,s.y+r); ctx.lineTo(s.x+r,s.y+r); ctx.closePath(); ctx.stroke(); }
+    else { ctx.strokeRect(s.x-r,s.y-r,2*r,2*r); }
   }
 
   // ── HUD / readout / stats ───────────────────────────────────
@@ -13962,6 +14037,7 @@ function guessOrderUnit(unit, qty){
   function onDown(ev){
     try{ S.canvas.setPointerCapture && S.canvas.setPointerCapture(ev.pointerId); }catch(e){}
     if(ev.cancelable) ev.preventDefault();
+    S.hoverSnap=null;
     const {sx,sy}=getXY(ev); S.pointers.set(ev.pointerId,{sx,sy});
     if(S.pointers.size===2){ startPinch(); S.draw=null; S.drag=null; return; }
     if(S.pointers.size>2) return;
@@ -13982,9 +14058,10 @@ function guessOrderUnit(unit, qty){
     if(!S.pointers.has(ev.pointerId)){
       if(S.pointers.size===0){
         const {sx,sy}=getXY(ev); S.cur=s2w(sx,sy);
-        if(S.tool==='poly'&&S.poly){ S.polyPrev=snapPoint(S.cur, S.poly.pts[S.poly.pts.length-1]).pt; render(); }
+        if(S.tool==='poly'&&S.poly){ const s=snapPoint(S.cur, S.poly.pts[S.poly.pts.length-1]); S.polyPrev=s.pt; S.hoverSnap={pt:s.pt,type:s.type}; render(); }
         else if(S.draw){ const s=snapPoint(S.cur, S.draw.p1); S.draw.p2=s.pt; S.draw.snapType=s.type; readoutForDraw(); render(); }
-        else updateHUD();
+        else if(POINT_TOOLS[S.tool]){ const s=snapPoint(S.cur, null); S.hoverSnap=(s.type!=='grid'&&s.type!=='free')?{pt:s.pt,type:s.type}:null; render(); }
+        else { S.hoverSnap=null; updateHUD(); }
       }
       return;
     }
@@ -14088,7 +14165,7 @@ function guessOrderUnit(unit, qty){
 
   // ── public API ──────────────────────────────────────────────
   const CAD = {
-    setTool(t){ if(S.poly) finishPoly(); S.tool=t; S.draw=null; setReadout('');
+    setTool(t){ if(S.poly) finishPoly(); S.tool=t; S.draw=null; S.hoverSnap=null; setReadout('');
       document.querySelectorAll('#page-draw .cad-tool[id^="cad-t-"]').forEach(b=>b.classList.remove('active'));
       const b=document.getElementById('cad-t-'+t); if(b) b.classList.add('active');
       if(S.canvas) S.canvas.style.cursor = (t==='pan')?'grab':(t==='select')?'default':'crosshair';
@@ -14111,6 +14188,8 @@ function guessOrderUnit(unit, qty){
       render();
     },
     toggle(k){ S[k]=!S[k]; const b=document.getElementById('cad-'+k); if(b) b.classList.toggle('on',S[k]); render(); },
+    osnapPanel(){ const row=document.getElementById('cad-osnap-row'); if(!row) return; const open=row.style.display==='none'; row.style.display=open?'flex':'none'; const exp=document.getElementById('cad-osnap-exp'); if(exp) exp.textContent=open?'▴':'▾'; },
+    osnapToggle(type){ S.osnap[type]=!S.osnap[type]; const b=document.querySelector('#cad-osnap-row .cad-os[data-os="'+type+'"]'); if(b) b.classList.toggle('on',S.osnap[type]); render(); },
     setGrid(v){ S.gridSize=parseFloat(v)||1; const badge=document.getElementById('cad-scale-badge'); if(badge) badge.textContent=fmtFt(S.gridSize)+' / square'; save(); render(); },
     undo(){ if(S.idx>0){ S.idx--; restore(S.states[S.idx]); S.sel=null; save(); afterChange(); render(); } },
     redo(){ if(S.idx<S.states.length-1){ S.idx++; restore(S.states[S.idx]); S.sel=null; save(); afterChange(); render(); } },
@@ -14190,7 +14269,10 @@ function guessOrderUnit(unit, qty){
     c.addEventListener('dblclick', e=>{ e.preventDefault(); if(S.tool==='poly') finishPoly(); });
     window.addEventListener('keydown', e=>{
       if(!document.getElementById('page-draw').classList.contains('active')) return;
-      if(e.key==='Escape'){ S.draw=null; S.poly=null; S.polyPrev=null; setReadout(''); render(); }
+      if(e.key==='Escape'){ S.draw=null; S.poly=null; S.polyPrev=null; S.hoverSnap=null; setReadout(''); render(); }
+      else if(e.key==='F3'){ e.preventDefault(); CAD.toggle('osnapOn'); }
+      else if(e.key==='F9'){ e.preventDefault(); CAD.toggle('snap'); }
+      else if(e.key==='F8'){ e.preventDefault(); CAD.toggle('ortho'); }
       else if((e.key==='Delete'||e.key==='Backspace') && S.sel && document.activeElement===document.body){ e.preventDefault(); CAD.deleteSelected(); }
     });
     window.addEventListener('resize', ()=>{ if(document.getElementById('page-draw').classList.contains('active')) resize(); });
