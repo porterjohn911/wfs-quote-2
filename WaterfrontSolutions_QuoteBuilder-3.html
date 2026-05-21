@@ -1440,6 +1440,14 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
         #page-draw .cad-sel-edit .field-row-3{margin-bottom:8px}
         #page-draw .cad-mini{font-size:11px;padding:8px 12px}
         #page-draw .cad-hint{font-size:10px;color:var(--text3);margin-top:6px;line-height:1.6}
+        #page-draw .cad-layer-row{display:flex;align-items:center;gap:6px;padding:6px 6px;border-radius:7px;border:0.5px solid var(--border);margin-bottom:6px;background:var(--surface2)}
+        #page-draw .cad-layer-row.active{border-color:var(--gold);background:var(--gold-dim2)}
+        #page-draw .cad-layer-row .lbtn{cursor:pointer;font-size:14px;background:transparent;border:none;padding:2px 3px;line-height:1}
+        #page-draw .cad-layer-row .lname{flex:1;min-width:0;font-size:13px;color:var(--text);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
+        #page-draw .cad-layer-row .lname.cur{color:var(--gold)}
+        #page-draw .cad-layer-row input[type=color]{width:24px;height:24px;padding:0;border:0.5px solid var(--border);border-radius:5px;background:none}
+        #page-draw .cad-layer-row select{width:auto;font-size:11px;padding:4px 18px 4px 6px}
+        #page-draw .cad-layer-row .ldel{color:var(--danger)}
       </style>
 
       <!-- Toolbar -->
@@ -1516,6 +1524,18 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
               </select>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- Layers -->
+      <div class="section">
+        <div class="section-head" style="cursor:pointer" onclick="CAD.layersPanel()">
+          <span class="section-title">Layers · <span id="cad-active-name" style="color:var(--gold)">Walls</span></span>
+          <button class="cad-tool ghost" id="cad-layers-exp" style="padding:6px 9px" onclick="event.stopPropagation();CAD.layersPanel()">▾</button>
+        </div>
+        <div class="section-body" id="cad-layers-body" style="display:none;padding-top:6px">
+          <div id="cad-layers-list"></div>
+          <button class="btn btn-ghost btn-sm cad-mini" style="margin-top:8px" onclick="CAD.layerAdd()">+ New layer</button>
         </div>
       </div>
 
@@ -13597,6 +13617,7 @@ function guessOrderUnit(unit, qty){
     osnap:{endpoint:true, midpoint:true, center:true, quadrant:true, intersection:true, perpendicular:true, nearest:true},
     hoverSnap:null,
     gridSize:1,
+    layers:null, activeLayerId:'L1', nextLayer:5,
     entities:[], nextId:1,
     sel:null,
     pointers:new Map(),
@@ -13662,6 +13683,7 @@ function guessOrderUnit(unit, qty){
   }
   function eachSegment(cb){
     for(const e of S.entities){
+      if(!layerVisible(e)) continue;
       if(e.type==='wall'||e.type==='line'||e.type==='dim') cb({x:e.x1,y:e.y1},{x:e.x2,y:e.y2});
       else if(e.type==='rect'){ const c=verts(e); for(let i=0;i<4;i++) cb(c[i],c[(i+1)%4]); }
       else if(e.type==='poly'){ const p=e.pts, n=e.closed?p.length:p.length-1; for(let i=0;i<n;i++) cb(p[i],p[(i+1)%p.length]); }
@@ -13675,6 +13697,7 @@ function guessOrderUnit(unit, qty){
     const thr=12/ppfz(), O=S.osnap, cands=[];
     const push=(pt,type,rank)=>{ if(!pt) return; const d=hyp(world,pt); if(d<=thr) cands.push({pt,type,rank,d}); };
     for(const e of S.entities){
+      if(!layerVisible(e)) continue;
       if(e.type==='wall'||e.type==='line'||e.type==='dim'){
         if(O.endpoint){ push({x:e.x1,y:e.y1},'endpoint',1); push({x:e.x2,y:e.y2},'endpoint',1); }
         if(O.midpoint) push({x:(e.x1+e.x2)/2,y:(e.y1+e.y2)/2},'midpoint',3);
@@ -13740,9 +13763,10 @@ function guessOrderUnit(unit, qty){
   }
 
   // ── history / persistence ───────────────────────────────────
-  const serialize = ()=>JSON.stringify({entities:S.entities});
+  const serialize = ()=>JSON.stringify({entities:S.entities, layers:S.layers, activeLayerId:S.activeLayerId});
   function restore(str){
-    try{ const o=JSON.parse(str); S.entities=o.entities||[]; }catch(e){ S.entities=[]; }
+    try{ const o=JSON.parse(str); S.entities=o.entities||[]; if(o.layers) S.layers=o.layers; if(o.activeLayerId) S.activeLayerId=o.activeLayerId; }catch(e){ S.entities=[]; }
+    normalizeLayers();
     S.nextId=1; for(const e of S.entities) if(e.id>=S.nextId) S.nextId=e.id+1;
   }
   function commit(){
@@ -13753,19 +13777,42 @@ function guessOrderUnit(unit, qty){
     save(); afterChange();
   }
   function save(){
-    try{ localStorage.setItem(LS_KEY, JSON.stringify({entities:S.entities, view:{zoom:S.zoom,panX:S.panX,panY:S.panY,gridSize:S.gridSize}})); }catch(e){}
+    try{ localStorage.setItem(LS_KEY, JSON.stringify({entities:S.entities, layers:S.layers, activeLayerId:S.activeLayerId, view:{zoom:S.zoom,panX:S.panX,panY:S.panY,gridSize:S.gridSize}})); }catch(e){}
   }
   function load(){
     try{
       const o=JSON.parse(localStorage.getItem(LS_KEY)||'null');
-      if(o){ S.entities=o.entities||[]; if(o.view){ S.zoom=o.view.zoom||1; S.panX=o.view.panX||60; S.panY=o.view.panY||60; S.gridSize=o.view.gridSize||1; } }
+      if(o){ S.entities=o.entities||[]; if(o.layers) S.layers=o.layers; if(o.activeLayerId) S.activeLayerId=o.activeLayerId; if(o.view){ S.zoom=o.view.zoom||1; S.panX=o.view.panX||60; S.panY=o.view.panY||60; S.gridSize=o.view.gridSize||1; } }
     }catch(e){}
+    normalizeLayers();
     S.nextId=1; for(const e of S.entities) if(e.id>=S.nextId) S.nextId=e.id+1;
   }
 
   // ── entity ops ──────────────────────────────────────────────
   const getSel = ()=> S.entities.find(e=>e.id===S.sel) || null;
-  const add = (e)=>{ e.id=S.nextId++; S.entities.push(e); return e; };
+  const add = (e)=>{ e.id=S.nextId++; if(!e.layerId) e.layerId=S.activeLayerId; S.entities.push(e); return e; };
+
+  // ── layers ──────────────────────────────────────────────────
+  const DEFAULT_LAYERS = ()=>[
+    {id:'L1', name:'Walls',      color:'#dfe8e8', visible:true, locked:false, lineWeight:2,   lineType:'solid'},
+    {id:'L2', name:'Dimensions', color:'#f0a020', visible:true, locked:false, lineWeight:1,   lineType:'solid'},
+    {id:'L3', name:'Text',       color:'#e8f4f4', visible:true, locked:false, lineWeight:1,   lineType:'solid'},
+    {id:'L4', name:'Furniture',  color:'#a07ad0', visible:true, locked:false, lineWeight:1.5, lineType:'dashed'},
+  ];
+  const DASH = {solid:[], dashed:[7,4], dotted:[1,4], center:[12,3,2,3], hidden:[5,3], phantom:[12,3,2,3,2,3]};
+  function normalizeLayers(){
+    if(!Array.isArray(S.layers) || !S.layers.length) S.layers=DEFAULT_LAYERS();
+    if(!S.layers.find(l=>l.id===S.activeLayerId)) S.activeLayerId=S.layers[0].id;
+    for(const e of S.entities) if(!e.layerId || !S.layers.find(l=>l.id===e.layerId)) e.layerId=S.layers[0].id;
+    let mx=4; for(const l of S.layers){ const n=parseInt(String(l.id).replace(/\D/g,''),10); if(!isNaN(n)&&n>mx) mx=n; }
+    S.nextLayer=mx+1;
+  }
+  const layerOf = (e)=> S.layers.find(l=>l.id===e.layerId) || S.layers[0];
+  const layerVisible = (e)=> layerOf(e).visible;
+  const layerLocked  = (e)=> layerOf(e).locked;
+  const eColor  = (e,sel)=> sel ? '#f0a020' : (e.color || layerOf(e).color);
+  const eWeight = (e)=> e.lineWeight || layerOf(e).lineWeight || 1.5;
+  const eDash   = (e)=> DASH[e.lineType || layerOf(e).lineType || 'solid'] || [];
   function translateEntity(e, dx, dy){
     if(e.type==='wall'||e.type==='line'||e.type==='dim'){ e.x1+=dx;e.y1+=dy;e.x2+=dx;e.y2+=dy; }
     else if(e.type==='rect'||e.type==='post'||e.type==='text'){ e.x+=dx;e.y+=dy; }
@@ -13791,6 +13838,7 @@ function guessOrderUnit(unit, qty){
     const thr = Math.max(0.25, 9/ppfz());
     for(let i=S.entities.length-1;i>=0;i--){
       const e=S.entities[i];
+      if(!layerVisible(e) || layerLocked(e)) continue;
       if(e.type==='wall'||e.type==='line'||e.type==='dim'){
         if(distToSeg(world,{x:e.x1,y:e.y1},{x:e.x2,y:e.y2}) < Math.max(thr,(e.t||0)/2)) return e;
       } else if(e.type==='rect'){
@@ -13833,11 +13881,11 @@ function guessOrderUnit(unit, qty){
     ctx.clearRect(0,0,S.W,S.H);
     ctx.fillStyle='#0e1822'; ctx.fillRect(0,0,S.W,S.H);
     if(S.grid) drawGrid(ctx);
-    for(const e of S.entities) drawEntity(ctx, e, e.id===S.sel);
+    for(const e of S.entities){ if(!layerVisible(e)) continue; drawEntity(ctx, e, e.id===S.sel); }
     if(S.draw) drawPreview(ctx);
     if(S.poly) drawPolyPreview(ctx);
     if(S.hoverSnap && !S.draw) snapMark(ctx, S.hoverSnap.pt, S.hoverSnap.type);
-    const se=getSel(); if(se) drawHandles(ctx, se);
+    const se=getSel(); if(se && layerVisible(se)) drawHandles(ctx, se);
     updateHUD();
   }
   const POINT_TOOLS = {wall:1,line:1,rect:1,dim:1,poly:1,post:1,text:1};
@@ -13883,11 +13931,11 @@ function guessOrderUnit(unit, qty){
   }
 
   function drawEntity(ctx, e, sel){
-    const col = sel ? '#f0a020' : null;
+    const col = eColor(e, sel); const lw=eWeight(e), dash=eDash(e);
     if(e.type==='wall'){
       const a=w2s({x:e.x1,y:e.y1}), b=w2s({x:e.x2,y:e.y2});
       ctx.lineCap='square';
-      ctx.strokeStyle = col||'#dfe8e8'; ctx.lineWidth=Math.max(3,(e.t||0.5)*ppfz());
+      ctx.strokeStyle = col; ctx.lineWidth=Math.max(3,(e.t||0.5)*ppfz());
       ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
       ctx.strokeStyle='rgba(14,24,34,0.55)'; ctx.lineWidth=1;
       ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
@@ -13896,8 +13944,8 @@ function guessOrderUnit(unit, qty){
     }
     else if(e.type==='line'){
       const a=w2s({x:e.x1,y:e.y1}), b=w2s({x:e.x2,y:e.y2});
-      ctx.strokeStyle=col||'#2db8b8'; ctx.lineWidth=2;
-      ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+      ctx.strokeStyle=col; ctx.lineWidth=lw; ctx.setLineDash(dash);
+      ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke(); ctx.setLineDash([]);
       if(S.dims) segLabel(ctx, e, '#cfeaea');
     }
     else if(e.type==='rect'){
@@ -13905,7 +13953,7 @@ function guessOrderUnit(unit, qty){
       const pw=e.w*ppfz(), ph=e.h*ppfz();
       ctx.fillStyle = sel?'rgba(240,160,32,0.10)':'rgba(45,184,184,0.07)';
       ctx.fillRect(a.x,a.y,pw,ph);
-      ctx.strokeStyle=col||'#7ab8b8'; ctx.lineWidth=2; ctx.strokeRect(a.x,a.y,pw,ph);
+      ctx.strokeStyle=col; ctx.lineWidth=lw; ctx.setLineDash(dash); ctx.strokeRect(a.x,a.y,pw,ph); ctx.setLineDash([]);
       if(S.dims){
         pill(ctx, a.x+pw/2, a.y-9, fmtFt(e.w), '#cfeaea');
         ctx.save(); ctx.translate(a.x-9, a.y+ph/2); ctx.rotate(-Math.PI/2);
@@ -13916,8 +13964,8 @@ function guessOrderUnit(unit, qty){
     else if(e.type==='poly'){
       const ps=e.pts.map(p=>w2s(p));
       if(e.closed){ ctx.fillStyle='rgba(45,184,184,0.07)'; ctx.beginPath(); ps.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)); ctx.closePath(); ctx.fill(); }
-      ctx.strokeStyle=col||'#2db8b8'; ctx.lineWidth=2;
-      ctx.beginPath(); ps.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)); if(e.closed) ctx.closePath(); ctx.stroke();
+      ctx.strokeStyle=col; ctx.lineWidth=lw; ctx.setLineDash(dash);
+      ctx.beginPath(); ps.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)); if(e.closed) ctx.closePath(); ctx.stroke(); ctx.setLineDash([]);
       if(S.dims){
         for(let k=0;k<e.pts.length-(e.closed?0:1);k++){
           const a=e.pts[k], b=e.pts[(k+1)%e.pts.length], m=w2s({x:(a.x+b.x)/2,y:(a.y+b.y)/2});
@@ -13928,7 +13976,7 @@ function guessOrderUnit(unit, qty){
     }
     else if(e.type==='dim'){
       const a=w2s({x:e.x1,y:e.y1}), b=w2s({x:e.x2,y:e.y2});
-      ctx.strokeStyle=col||'#f0a020'; ctx.lineWidth=1.4;
+      ctx.strokeStyle=col; ctx.lineWidth=1.4;
       ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
       arrow(ctx,b,a); arrow(ctx,a,b);
       const m=w2s({x:(e.x1+e.x2)/2,y:(e.y1+e.y2)/2});
@@ -13936,14 +13984,14 @@ function guessOrderUnit(unit, qty){
     }
     else if(e.type==='post'){
       const a=w2s({x:e.x,y:e.y}); const sz=Math.max(7,(e.size||0.5)*ppfz());
-      ctx.fillStyle=col||'#f0a020'; ctx.strokeStyle='#0e1822'; ctx.lineWidth=1;
+      ctx.fillStyle=col; ctx.strokeStyle='#0e1822'; ctx.lineWidth=1;
       ctx.fillRect(a.x-sz/2, a.y-sz/2, sz, sz); ctx.strokeRect(a.x-sz/2, a.y-sz/2, sz, sz);
       ctx.beginPath(); ctx.moveTo(a.x-sz/2,a.y); ctx.lineTo(a.x+sz/2,a.y); ctx.moveTo(a.x,a.y-sz/2); ctx.lineTo(a.x,a.y+sz/2); ctx.stroke();
     }
     else if(e.type==='text'){
       const a=w2s({x:e.x,y:e.y});
       ctx.font='600 13px DM Sans, sans-serif'; ctx.textAlign='left'; ctx.textBaseline='middle';
-      ctx.fillStyle=col||'#e8f4f4'; ctx.fillText(e.text||'', a.x, a.y);
+      ctx.fillStyle=col; ctx.fillText(e.text||'', a.x, a.y);
     }
   }
   function centroid(pts){ let x=0,y=0; pts.forEach(p=>{x+=p.x;y+=p.y;}); return {x:x/pts.length,y:y/pts.length}; }
@@ -14018,7 +14066,30 @@ function guessOrderUnit(unit, qty){
     if(S.typeBuf) base='⌨ '+S.typeBuf+'  ·  '+base;
     setReadout(base);
   }
-  function afterChange(){ updateStats(); refreshSelEditor(); }
+  function afterChange(){ updateStats(); refreshSelEditor(); renderLayers(); }
+
+  // ── layers panel UI ─────────────────────────────────────────
+  const escHtml=(s)=>(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const weightOpts=(sel)=>[1,1.5,2,3].map(w=>`<option ${w==sel?'selected':''} value="${w}">${w}px</option>`).join('');
+  const typeOpts=(sel)=>['solid','dashed','dotted','center','hidden','phantom'].map(t=>`<option ${t===sel?'selected':''} value="${t}">${t}</option>`).join('');
+  function renderLayers(){
+    const an=document.getElementById('cad-active-name');
+    const active=S.layers&&(S.layers.find(l=>l.id===S.activeLayerId)||S.layers[0]);
+    if(an&&active) an.textContent=active.name;
+    const list=document.getElementById('cad-layers-list'); if(!list||!S.layers) return;
+    list.innerHTML=S.layers.map(l=>{
+      const cur=l.id===S.activeLayerId;
+      return `<div class="cad-layer-row ${cur?'active':''}">`+
+        `<button class="lbtn" title="Show/hide" onclick="CAD.layerToggleVis('${l.id}')">${l.visible?'👁':'🚫'}</button>`+
+        `<button class="lbtn" title="Lock/unlock" onclick="CAD.layerToggleLock('${l.id}')">${l.locked?'🔒':'🔓'}</button>`+
+        `<input type="color" value="${l.color}" oninput="CAD.layerColor('${l.id}',this.value)">`+
+        `<span class="lname ${cur?'cur':''}" title="Tap to set current, double-tap to rename" onclick="CAD.layerSetCurrent('${l.id}')" ondblclick="CAD.layerRename('${l.id}')">${escHtml(l.name)}${cur?' ✓':''}</span>`+
+        `<select title="Line weight" onchange="CAD.layerWeight('${l.id}',this.value)">${weightOpts(l.lineWeight)}</select>`+
+        `<select title="Line type" onchange="CAD.layerType('${l.id}',this.value)">${typeOpts(l.lineType)}</select>`+
+        `<button class="lbtn ldel" title="Delete layer" onclick="CAD.layerDelete('${l.id}')">✕</button>`+
+      `</div>`;
+    }).join('');
+  }
   function updateStats(){
     let lf=0, area=0, posts=0;
     for(const e of S.entities){
@@ -14063,6 +14134,9 @@ function guessOrderUnit(unit, qty){
       title.textContent='Text label';
       fields.innerHTML='<div class="field" style="margin-bottom:0"><label>Text</label><input id="sf-text" value="'+(e.text||'').replace(/"/g,'&quot;')+'" onchange="CAD.editSel(\'sf-text\',this.value)"></div>';
     }
+    const layerSel='<div class="field" style="margin:8px 0 0"><label>Layer</label><select id="sf-layer" onchange="CAD.editSel(\'sf-layer\',this.value)">'+
+      S.layers.map(l=>'<option value="'+l.id+'"'+(l.id===e.layerId?' selected':'')+'>'+escHtml(l.name)+'</option>').join('')+'</select></div>';
+    fields.innerHTML += layerSel;
   }
 
   // ── pointer handling ────────────────────────────────────────
@@ -14251,6 +14325,26 @@ function guessOrderUnit(unit, qty){
     },
     osnapPanel(){ const row=document.getElementById('cad-osnap-row'); if(!row) return; const open=row.style.display==='none'; row.style.display=open?'flex':'none'; const exp=document.getElementById('cad-osnap-exp'); if(exp) exp.textContent=open?'▴':'▾'; },
     osnapToggle(type){ S.osnap[type]=!S.osnap[type]; const b=document.querySelector('#cad-osnap-row .cad-os[data-os="'+type+'"]'); if(b) b.classList.toggle('on',S.osnap[type]); render(); },
+    layersPanel(){ const b=document.getElementById('cad-layers-body'); if(!b) return; const open=b.style.display==='none'; b.style.display=open?'block':'none'; const exp=document.getElementById('cad-layers-exp'); if(exp) exp.textContent=open?'▴':'▾'; if(open) renderLayers(); },
+    layerSetCurrent(id){ if(S.layers.find(l=>l.id===id)){ S.activeLayerId=id; save(); renderLayers(); } },
+    layerToggleVis(id){ const l=S.layers.find(x=>x.id===id); if(l){ l.visible=!l.visible; save(); renderLayers(); render(); } },
+    layerToggleLock(id){ const l=S.layers.find(x=>x.id===id); if(l){ l.locked=!l.locked; const se=getSel(); if(l.locked && se && se.layerId===id){ S.sel=null; refreshSelEditor(); } save(); renderLayers(); render(); } },
+    layerColor(id,v){ const l=S.layers.find(x=>x.id===id); if(l){ l.color=v; save(); render(); } },
+    layerWeight(id,v){ const l=S.layers.find(x=>x.id===id); if(l){ l.lineWeight=parseFloat(v)||1; save(); render(); } },
+    layerType(id,v){ const l=S.layers.find(x=>x.id===id); if(l){ l.lineType=v; save(); render(); } },
+    layerRename(id){ const l=S.layers.find(x=>x.id===id); if(!l) return; const n=prompt('Layer name:', l.name); if(n!=null && n.trim()){ l.name=n.trim(); save(); renderLayers(); } },
+    layerAdd(){ const id='L'+(S.nextLayer++); S.layers.push({id, name:'Layer '+S.layers.length, color:'#5fd0d0', visible:true, locked:false, lineWeight:1.5, lineType:'solid'}); S.activeLayerId=id; commit(); render(); },
+    layerDelete(id){
+      if(S.layers.length<=1){ if(window.toast) window.toast('Keep at least one layer'); return; }
+      const l=S.layers.find(x=>x.id===id); if(!l) return;
+      const target=S.layers.find(x=>x.id!==id);
+      const used=S.entities.filter(e=>e.layerId===id);
+      if(used.length && !confirm('Move '+used.length+' object(s) from "'+l.name+'" to "'+target.name+'" and delete the layer?')) return;
+      used.forEach(e=>e.layerId=target.id);
+      S.layers=S.layers.filter(x=>x.id!==id);
+      if(S.activeLayerId===id) S.activeLayerId=target.id;
+      commit(); render();
+    },
     setGrid(v){ S.gridSize=parseFloat(v)||1; const badge=document.getElementById('cad-scale-badge'); if(badge) badge.textContent=fmtFt(S.gridSize)+' / square'; save(); render(); },
     undo(){ if(S.idx>0){ S.idx--; restore(S.states[S.idx]); S.sel=null; save(); afterChange(); render(); } },
     redo(){ if(S.idx<S.states.length-1){ S.idx++; restore(S.states[S.idx]); S.sel=null; save(); afterChange(); render(); } },
@@ -14270,6 +14364,7 @@ function guessOrderUnit(unit, qty){
       else if(id==='sf-size'){ e.size=Math.max(0.1,(v||6)/12); }
       else if(id==='sf-text'){ e.text=val; }
       else if(id==='poly-close'){ e.closed=!e.closed; }
+      else if(id==='sf-layer'){ if(S.layers.find(l=>l.id===val)) e.layerId=val; }
       commit(); render(); if(id==='poly-close'||id==='sf-text') refreshSelEditor();
     },
     insertPreset(kind){ if(!kind) return; insertPreset(kind); },
