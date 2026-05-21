@@ -13960,22 +13960,35 @@ function guessOrderUnit(unit, qty){
   function getXY(ev){ const r=S.canvas.getBoundingClientRect(); return {sx:ev.clientX-r.left, sy:ev.clientY-r.top}; }
 
   function onDown(ev){
-    S.canvas.setPointerCapture && S.canvas.setPointerCapture(ev.pointerId);
+    try{ S.canvas.setPointerCapture && S.canvas.setPointerCapture(ev.pointerId); }catch(e){}
+    if(ev.cancelable) ev.preventDefault();
     const {sx,sy}=getXY(ev); S.pointers.set(ev.pointerId,{sx,sy});
     if(S.pointers.size===2){ startPinch(); S.draw=null; S.drag=null; return; }
     if(S.pointers.size>2) return;
     const world=s2w(sx,sy); S.down={sx,sy,moved:false};
     const t=S.tool;
-    if(DRAG_TOOLS[t]){ const s=snapPoint(world); S.draw={p1:s.pt,p2:s.pt,snapType:s.type}; readoutForDraw(); }
+    if(DRAG_TOOLS[t]){
+      const had=!!S.draw; S.down.hadDraw=had;
+      const s=snapPoint(world, had?S.draw.p1:null);
+      if(!had) S.draw={p1:s.pt, p2:s.pt, snapType:s.type};
+      else { S.draw.p2=s.pt; S.draw.snapType=s.type; }
+      readoutForDraw();
+    }
     else if(t==='select'){ beginSelect(world,sx,sy); }
     else if(t==='pan'){ S.drag={mode:'pan',sx,sy,px:S.panX,py:S.panY}; }
     render();
   }
   function onMove(ev){
     if(!S.pointers.has(ev.pointerId)){
-      if(S.pointers.size===0){ const {sx,sy}=getXY(ev); S.cur=s2w(sx,sy); if(S.tool==='poly'&&S.poly){ S.polyPrev=snapPoint(S.cur, S.poly.pts[S.poly.pts.length-1]).pt; render(); } else updateHUD(); }
+      if(S.pointers.size===0){
+        const {sx,sy}=getXY(ev); S.cur=s2w(sx,sy);
+        if(S.tool==='poly'&&S.poly){ S.polyPrev=snapPoint(S.cur, S.poly.pts[S.poly.pts.length-1]).pt; render(); }
+        else if(S.draw){ const s=snapPoint(S.cur, S.draw.p1); S.draw.p2=s.pt; S.draw.snapType=s.type; readoutForDraw(); render(); }
+        else updateHUD();
+      }
       return;
     }
+    if(ev.cancelable) ev.preventDefault();
     const {sx,sy}=getXY(ev); S.pointers.set(ev.pointerId,{sx,sy});
     if(S.pinch && S.pointers.size>=2){ doPinch(); return; }
     const world=s2w(sx,sy); S.cur=world;
@@ -13996,8 +14009,17 @@ function guessOrderUnit(unit, qty){
     if(S.pinch){ if(S.pointers.size<2){ S.pinch=null; save(); } S.down=null; return; }
     const moved=S.down?S.down.moved:false; const t=S.tool;
     if(S.draw){
-      if(moved && hyp(S.draw.p1,S.draw.p2)>0.08) finalizeDraw();
-      S.draw=null; setReadout('');
+      const enough = hyp(S.draw.p1,S.draw.p2)>0.08;
+      if(moved){                       // press-drag-release
+        if(enough) finalizeDraw();
+        S.draw=null; setReadout('');
+      } else if(S.down && S.down.hadDraw){   // second tap → complete
+        if(enough) finalizeDraw();
+        S.draw=null; setReadout('');
+      } else {                          // first tap → wait for end point
+        S.draw.p2=S.draw.p1;
+        setReadout(t==='rect'?'Tap the opposite corner':'Tap the end point');
+      }
     } else if(t==='select'){
       endSelect(moved);
     } else if(t==='pan'){ S.drag=null; save(); }
@@ -14070,6 +14092,22 @@ function guessOrderUnit(unit, qty){
       document.querySelectorAll('#page-draw .cad-tool[id^="cad-t-"]').forEach(b=>b.classList.remove('active'));
       const b=document.getElementById('cad-t-'+t); if(b) b.classList.add('active');
       if(S.canvas) S.canvas.style.cursor = (t==='pan')?'grab':(t==='select')?'default':'crosshair';
+      const hint=document.getElementById('cad-hint');
+      if(hint){
+        const H={
+          select:'Select tool: tap an element to select it, then drag it or its white handles. Edit exact sizes below. Drag empty space to pan.',
+          pan:'Pan tool: drag to move the view. Pinch or scroll to zoom.',
+          wall:'Wall: tap a start point, then tap the end point (or press-drag). Snap & Ortho keep it accurate. Esc cancels.',
+          line:'Line: tap a start point, then tap the end point (or press-drag). Esc cancels.',
+          rect:'Room: tap one corner, then tap the opposite corner (or press-drag). Esc cancels.',
+          poly:'Polyline: tap each point. Tap the first point (or double-tap) to finish. Esc cancels.',
+          dim:'Dimension: tap two points to measure the distance between them.',
+          post:'Post / footing: tap to drop a post at the snapped point.',
+          text:'Text: tap where you want a label, then type it.',
+          erase:'Erase: tap any element to delete it.'
+        };
+        hint.textContent = H[t] || H.select;
+      }
       render();
     },
     toggle(k){ S[k]=!S[k]; const b=document.getElementById('cad-'+k); if(b) b.classList.toggle('on',S[k]); render(); },
@@ -14150,6 +14188,11 @@ function guessOrderUnit(unit, qty){
     c.addEventListener('pointerleave', e=>{ if(!S.pointers.size){ } });
     c.addEventListener('wheel', onWheel, {passive:false});
     c.addEventListener('dblclick', e=>{ e.preventDefault(); if(S.tool==='poly') finishPoly(); });
+    window.addEventListener('keydown', e=>{
+      if(!document.getElementById('page-draw').classList.contains('active')) return;
+      if(e.key==='Escape'){ S.draw=null; S.poly=null; S.polyPrev=null; setReadout(''); render(); }
+      else if((e.key==='Delete'||e.key==='Backspace') && S.sel && document.activeElement===document.body){ e.preventDefault(); CAD.deleteSelected(); }
+    });
     window.addEventListener('resize', ()=>{ if(document.getElementById('page-draw').classList.contains('active')) resize(); });
     const badge=document.getElementById('cad-scale-badge'); if(badge) badge.textContent=fmtFt(S.gridSize)+' / square';
     const gsSel=document.getElementById('cad-gridsize'); if(gsSel) gsSel.value=String(S.gridSize);
