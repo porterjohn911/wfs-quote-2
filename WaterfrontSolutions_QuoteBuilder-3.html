@@ -14372,34 +14372,70 @@ function guessOrderUnit(unit, qty){
   };
   window.CAD = CAD;
 
-  function fit(){
-    let minx=Infinity,miny=Infinity,maxx=-Infinity,maxy=-Infinity, any=false;
-    for(const e of S.entities){ for(const v of verts(e)){ any=true; minx=Math.min(minx,v.x);miny=Math.min(miny,v.y);maxx=Math.max(maxx,v.x);maxy=Math.max(maxy,v.y); } }
-    if(!any){ minx=0;miny=0;maxx=32;maxy=24; }
-    const m=2; minx-=m;miny-=m;maxx+=m;maxy+=m;
+  function zoomToBounds(minx,miny,maxx,maxy,m){
+    m=(m==null?2:m); minx-=m;miny-=m;maxx+=m;maxy+=m;
     const bw=Math.max(1,maxx-minx), bh=Math.max(1,maxy-miny);
     const zx=S.W/(bw*S.ppf), zy=S.H/(bh*S.ppf);
     S.zoom=Math.max(0.12,Math.min(9, Math.min(zx,zy)));
     S.panX=(S.W-bw*ppfz())/2 - minx*ppfz();
     S.panY=(S.H-bh*ppfz())/2 - miny*ppfz();
   }
+  function fit(){
+    let minx=Infinity,miny=Infinity,maxx=-Infinity,maxy=-Infinity, any=false;
+    for(const e of S.entities){ if(!layerVisible(e)) continue; for(const v of verts(e)){ any=true; minx=Math.min(minx,v.x);miny=Math.min(miny,v.y);maxx=Math.max(maxx,v.x);maxy=Math.max(maxy,v.y); } }
+    if(!any){ minx=0;miny=0;maxx=32;maxy=24; }
+    zoomToBounds(minx,miny,maxx,maxy,2);
+  }
 
   function insertPreset(kind){
     const c=snapPoint(s2w(S.W/2,S.H/2)).pt;
-    const rectAt=(w,h)=>{ const x=Math.round((c.x-w/2)/S.gridSize)*S.gridSize, y=Math.round((c.y-h/2)/S.gridSize)*S.gridSize; return {x,y,w,h}; };
-    const cornerPosts=(r)=>{ [[r.x,r.y],[r.x+r.w,r.y],[r.x+r.w,r.y+r.h],[r.x,r.y+r.h]].forEach(([x,y])=>add({type:'post',x,y,size:0.5})); };
-    const label=(r,txt)=>add({type:'text', x:r.x, y:r.y-1.2, text:txt});
-    let r, last;
-    if(kind==='deck'){ r=rectAt(16,12); last=add({type:'rect',...r}); cornerPosts(r); label(r,'Deck 16×12'); }
-    else if(kind==='porch'){ r=rectAt(16,14); last=add({type:'rect',...r}); cornerPosts(r); label(r,'Covered Porch 16×14'); }
-    else if(kind==='carport'){ r=rectAt(24,20); last=add({type:'rect',...r}); cornerPosts(r);
-      add({type:'post',x:r.x+r.w/2,y:r.y,size:0.5}); add({type:'post',x:r.x+r.w/2,y:r.y+r.h,size:0.5}); label(r,'Carport 24×20'); }
-    else if(kind==='roof'){ r=rectAt(40,28); last=add({type:'rect',...r}); label(r,'Roof footprint 40×28'); }
-    else if(kind==='framing'){ r=rectAt(14,12); last=add({type:'rect',...r}); label(r,'Room Addition 14×12'); }
-    else if(kind==='concrete'){ r=rectAt(20,20); last=add({type:'rect',...r}); label(r,'Concrete Slab 20×20'); }
-    else if(kind==='blockwall'){ const x=Math.round((c.x-12)/S.gridSize)*S.gridSize, y=Math.round(c.y/S.gridSize)*S.gridSize; last=add({type:'wall',x1:x,y1:y,x2:x+24,y2:y,t:0.67}); add({type:'text',x:x,y:y-1.2,text:'Block / Retaining Wall 24 ft'}); }
-    if(last){ S.sel=last.id; }
-    commit(); render(); if(window.toast) window.toast('Inserted '+kind+' preset');
+    const g=S.gridSize, snap=(v)=>Math.round(v/g)*g;
+    const added=[];
+    const A=(spec)=>{ added.push(add(spec)); return spec; };
+    const rectAt=(w,h)=>({x:snap(c.x-w/2), y:snap(c.y-h/2), w, h});
+    const rimRect=(r)=>A({type:'rect', x:r.x,y:r.y,w:r.w,h:r.h, layerId:'L1'});
+    const post=(x,y)=>A({type:'post', x:snap(x), y:snap(y), size:0.5, layerId:'L4'});
+    const lineE=(x1,y1,x2,y2)=>A({type:'line', x1,y1,x2,y2, layerId:'L1'});
+    const wallE=(x1,y1,x2,y2,t)=>A({type:'wall', x1,y1,x2,y2, t:t||0.5, layerId:'L1'});
+    const lbl=(x,y,t)=>A({type:'text', x,y, text:t, layerId:'L3'});
+    const cornerPosts=(r)=>{ post(r.x,r.y); post(r.x+r.w,r.y); post(r.x+r.w,r.y+r.h); post(r.x,r.y+r.h); };
+    const postsAlong=(x1,y,x2,sp)=>{ const n=Math.max(1,Math.round((x2-x1)/sp)); for(let i=0;i<=n;i++) post(x1+(x2-x1)*i/n, y); };
+    let r;
+    if(kind==='deck' || kind==='porch'){
+      const d = kind==='deck'?[16,12]:[16,14];
+      r=rectAt(d[0],d[1]); rimRect(r);
+      cornerPosts(r); post(r.x+r.w/2,r.y); post(r.x+r.w/2,r.y+r.h);
+      lineE(r.x, r.y+r.h/2, r.x+r.w, r.y+r.h/2);                 // center beam
+      lbl(r.x, r.y-1.2, kind==='deck'?'Deck 16×12':'Covered Porch 16×14');
+    } else if(kind==='carport'){
+      r=rectAt(24,20); rimRect(r);
+      postsAlong(r.x, r.y, r.x+r.w, 8); postsAlong(r.x, r.y+r.h, r.x+r.w, 8);
+      lineE(r.x, r.y+r.h/2, r.x+r.w, r.y+r.h/2);                 // roof ridge
+      lbl(r.x, r.y-1.2, 'Carport 24×20');
+    } else if(kind==='roof'){
+      r=rectAt(40,28); rimRect(r);
+      lineE(r.x, r.y+r.h/2, r.x+r.w, r.y+r.h/2);                 // ridge
+      lbl(r.x, r.y-1.2, 'Roof footprint 40×28');
+    } else if(kind==='framing'){
+      r=rectAt(14,12);
+      wallE(r.x,r.y,r.x+r.w,r.y); wallE(r.x+r.w,r.y,r.x+r.w,r.y+r.h);
+      wallE(r.x+r.w,r.y+r.h,r.x,r.y+r.h); wallE(r.x,r.y+r.h,r.x,r.y);
+      lbl(r.x, r.y-1.2, 'Room Addition 14×12');
+    } else if(kind==='concrete'){
+      r=rectAt(20,20); rimRect(r);
+      lineE(r.x+r.w/2, r.y, r.x+r.w/2, r.y+r.h);                 // control joints
+      lineE(r.x, r.y+r.h/2, r.x+r.w, r.y+r.h/2);
+      lbl(r.x, r.y-1.2, 'Concrete Slab 20×20');
+    } else if(kind==='blockwall'){
+      const x=snap(c.x-12), y=snap(c.y);
+      wallE(x,y,x+24,y,0.67);                                    // 8" block wall
+      lbl(x, y-1.2, 'Block / Retaining Wall 24 ft');
+    }
+    let mnx=1e9,mny=1e9,mxx=-1e9,mxy=-1e9;
+    for(const e of added) for(const v of verts(e)){ mnx=Math.min(mnx,v.x);mny=Math.min(mny,v.y);mxx=Math.max(mxx,v.x);mxy=Math.max(mxy,v.y); }
+    if(mnx<=mxx) zoomToBounds(mnx,mny,mxx,mxy,5);
+    if(added.length) S.sel=added[0].id;
+    commit(); render(); if(window.toast) window.toast('Loaded '+kind+' preset');
   }
 
   function exportPNG(){
