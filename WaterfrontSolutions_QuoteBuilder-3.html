@@ -1125,6 +1125,8 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
             <div style="flex:1"></div>
             <span style="font-size:10px;color:var(--text3)">Drag elements to reposition</span>
           </div>
+          <!-- Step-by-step build card (per-phase: what's installed + how/where) -->
+          <div id="pv-step-card" style="display:none;padding:9px 12px;background:var(--surface2);border-top:0.5px solid var(--border)"></div>
           <!-- Interactive canvas -->
           <div style="position:relative;background:#1a1a2e;overflow:hidden" id="process-wrap">
             <canvas id="process-canvas" style="width:100%;display:block;cursor:grab;touch-action:none"></canvas>
@@ -6081,6 +6083,7 @@ function setPhase(p){
     else b.className='phase-btn'+(isA?' active':'');
   });
   if(_pvType) pvDraw();
+  pvRenderStepCard();
 }
 
 function setOrient(o){
@@ -6178,6 +6181,7 @@ function pvBuild(type, params){
   pvUpdatePalette();
   pvRenderProcessDims(type, params);
   pvDraw();
+  pvRenderStepCard();
 }
 
 // ── DECK BUILD ────────────────────────────────────────────────────────────
@@ -7287,6 +7291,97 @@ function pvRenderProcessDims(type, p){
 }
 
 // ══════════════════════════════════════════════════════════════════════════
+// STEP-BY-STEP BUILD CARD — per-phase "how to build it / where each piece goes"
+// The piece list is derived live from _pvElems (truthful to what the canvas
+// actually drew for this phase); the method + code notes are curated per phase.
+// Currently wired for the deck builder.
+// ══════════════════════════════════════════════════════════════════════════
+const DECK_PHASE_GUIDE = [
+  { // 0 — Site Prep & Layout
+    method:'Set batter boards a couple feet beyond each corner and run mason strings between them. Square the layout with the 3-4-5 method, then mark the EW/NS center lines. The strings establish the deck\'s exact footprint before any digging.',
+    code:'IRC R507.2 — deck must be designed for the applied loads and properly located relative to the dwelling.'
+  },
+  { // 1 — Footings
+    method:'Dig each footing below the local frost line and set a Ø12" sonotube form. Drop a (3) #4 vertical rebar cage into each, then pour. Footings land directly under each post location marked from the strings.',
+    code:'IRC R403.1.4 — footings must extend below the frost line; R507.3 — deck footing size per load & soil bearing.'
+  },
+  { // 2 — Ledger, Posts & Beam
+    method:'Lag the 2×10 PT ledger to the house band board with ½"Ø lags @ 16" O.C. and proper flashing. Stand the PT posts on Simpson ABU post bases over each footing, then drop the doubled 2×10 beam across the post line.',
+    code:'IRC R507.9 — ledger attachment & flashing; R507.5 — beam sizing; R507.4 — post-to-footing connection.'
+  },
+  { // 3 — Joists, Rim & Blocking
+    method:'Hang the 2×10 joists between ledger and rim with Simpson LUS210 hangers at the spec O.C. spacing. Nail off the rim and end joists, then add solid blocking at mid-span to keep the joists from twisting.',
+    code:'IRC R507.6 — joist span & spacing; R507.7 — joist-to-ledger/beam connections (hangers required).'
+  },
+  { // 4 — Decking & Fascia
+    method:'Lay 5/4×6 PT decking perpendicular to the joists with a 1/8" gap between boards for drainage. Wrap the perimeter with 1×8 picture-frame fascia to hide the rim and board ends.',
+    code:'IRC R507.6 / manufacturer span tables — decking fastened to every joist; ≤16" O.C. for 5/4 PT.'
+  },
+  { // 5 — Railing & Stairs
+    method:'Bolt 4×4 guard posts at the corners and ≤6\'-0" O.C. between, then build the railing infill. Cut (3) 2×12 stringers and hang the treads at code rise/run for any stair run.',
+    code:'IRC R312.1 — guard height ≥36"; R507.10 — guard post connection; R311.7 — stair rise/run geometry.'
+  },
+  { // 6 — Final Inspection
+    method:'Walk the final inspection: confirm footing depth, ledger fasteners & flashing, every joist hanger, guard height ≥36" with <4" sphere spacing, and stair geometry before sign-off.',
+    code:'IRC R109 — required inspections; verify against the edition adopted by your local AHJ.'
+  },
+];
+
+// Group a phase's drawn elements by label → [[label, count], ...]
+function pvPhasePieces(phase){
+  const map=new Map();
+  _pvElems.forEach(e=>{
+    if(e.phase!==phase) return;
+    const k=e.label||e.id;
+    map.set(k,(map.get(k)||0)+1);
+  });
+  return [...map.entries()];
+}
+
+function pvRenderStepCard(){
+  const el=document.getElementById('pv-step-card');
+  if(!el) return;
+  if(_pvType!=='deck'){ el.style.display='none'; el.innerHTML=''; return; }
+  el.style.display='block';
+
+  const names=PHASE_NAMES.deck||[];
+  const total=names.length;
+  const ph=Math.max(0,Math.min(_pvPhase,total-1));
+  const guide=DECK_PHASE_GUIDE[ph]||{method:'',code:''};
+  const pieces=pvPhasePieces(ph);
+
+  const prevDis = ph<=0 ? 'opacity:.35;pointer-events:none' : '';
+  const nextDis = ph>=total-1 ? 'opacity:.35;pointer-events:none' : '';
+
+  let html='';
+  // Header: step nav + name
+  html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">';
+  html+=`<button onclick="setPhase(${ph-1})" class="btn btn-ghost btn-sm" style="${prevDis};font-size:12px;padding:2px 8px">◀</button>`;
+  html+=`<div style="flex:1;text-align:center"><span style="color:var(--gold);font-weight:700;letter-spacing:.5px">STEP ${ph+1} / ${total}</span><span style="color:var(--text2)"> · ${names[ph]||''}</span></div>`;
+  html+=`<button onclick="setPhase(${ph+1})" class="btn btn-ghost btn-sm" style="${nextDis};font-size:12px;padding:2px 8px">▶</button>`;
+  html+='</div>';
+
+  // Pieces installed this step (derived live from the canvas model)
+  if(pieces.length){
+    html+='<div style="font-size:9.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">Installed this step</div>';
+    html+='<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">';
+    html+=pieces.map(([label,n])=>
+      `<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(245,190,50,0.12);border:0.5px solid rgba(245,190,50,0.4);border-radius:5px;padding:2px 7px;font-size:10px;color:#f5d27a">`+
+      `<b style="color:#f5be32">${n}×</b> ${label}</span>`
+    ).join('');
+    html+='</div>';
+  }
+
+  // Method ("how / where")
+  html+=`<div style="font-size:11.5px;line-height:1.55;color:var(--text)">${guide.method}</div>`;
+  // Code note
+  if(guide.code){
+    html+=`<div style="margin-top:6px;font-size:10px;line-height:1.5;color:var(--text3);border-left:2px solid rgba(0,229,255,0.4);padding-left:7px"><b style="color:#00e5ff">CODE</b> · ${guide.code}</div>`;
+  }
+  el.innerHTML=html;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
 // ANNOTATION PASS — real CAD primitives drawn after elements, before titleblock
 // Multi-tier dim strings, section cut bubbles, detail callouts, elevation
 // tags, slope arrows, joist/stud direction arrows, code-note text boxes,
@@ -7859,6 +7954,13 @@ function pvDrawElem(ctx, e, isSel){
   if(e.rot) ctx.rotate(e.rot*Math.PI/180);
   const x=-e.w/2, y=-e.h/2, w=e.w, h=e.h;
 
+  // ── Phase highlight (deck): ghost prior-phase pieces, glow the current step ──
+  const _pvHi   = _pvType==='deck';
+  const _isCur  = _pvHi && e.phase===_pvPhase;
+  const _isPrev = _pvHi && e.phase<_pvPhase;
+  if(_isPrev && e.layer!=='center') ctx.globalAlpha=0.30;
+  if(_isCur){ ctx.shadowColor='rgba(245,190,50,0.85)'; ctx.shadowBlur=7; }
+
   const layerStyle = {
     earth:    {fill:'#3d2b1a',stroke:'#5a4030',lw:0.5},
     concrete: {fill:'rgba(110,120,130,0.7)',stroke:CAD.concrete,lw:0.8},
@@ -7974,6 +8076,14 @@ function pvDrawElem(ctx, e, isSel){
       }
       ctx.strokeStyle=st.stroke; ctx.strokeRect(x,y,w,h);
     }
+  }
+
+  // Current-step accent ring — makes "what gets installed now" unmistakable
+  if(_isCur){
+    ctx.shadowBlur=0; ctx.globalAlpha=1; ctx.setLineDash([]);
+    ctx.strokeStyle='rgba(245,190,50,0.95)'; ctx.lineWidth=1.4;
+    if(shape==='circle'){ const r=Math.max(w,h)/2; ctx.beginPath(); ctx.arc(w/2,h/2,r,0,Math.PI*2); ctx.stroke(); }
+    else { ctx.strokeRect(x,y,w,h); }
   }
 
   // Dimension text on hover/select (CAD callout style)
